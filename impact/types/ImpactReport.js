@@ -1,0 +1,1 @@
+// Type: { affectedShipments[], delayDays, totalCostImpact }

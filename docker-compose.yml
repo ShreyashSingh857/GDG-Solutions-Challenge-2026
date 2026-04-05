@@ -1,0 +1,49 @@
+version: '3.9'
+services:
+  disruption:
+    build: ./disruption
+    ports:
+      - "4001:4001"
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./disruption:/app
+    environment:
+      - NODE_ENV=production
+
+  impact:
+    build: ./impact
+    ports:
+      - "4002:4002"
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./impact:/app
+    environment:
+      - NODE_ENV=production
+
+  resolution:
+    build: ./resolution
+    ports:
+      - "4003:4003"
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./resolution:/app
+    environment:
+      - NODE_ENV=production
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    command: npm run start
+    volumes:
+      - ./dashboard:/app
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - disruption
+      - impact
+      - resolution

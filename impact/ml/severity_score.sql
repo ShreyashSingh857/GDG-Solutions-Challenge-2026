@@ -1,0 +1,1 @@
+-- BigQuery ML: severity scoring based on historical patterns
