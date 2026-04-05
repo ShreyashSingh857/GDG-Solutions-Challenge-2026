@@ -1,278 +1,294 @@
-# 🚀 Supply Chain AI — Multi-Agent Autonomous System
+# 🚀 AI-Driven Anti-Fragile Supply Chain  
+### Google Hackathon 2026 · Production-Grade Multi-Agent System
+
+---
 
 ## 🧠 Overview
 
-This project is a **production-grade AI-driven supply chain system** built using:
+**AI-Driven Anti-Fragile Supply Chain** is a real-time, autonomous decision-making system that detects disruptions, analyzes impact, and resolves them using AI agents — all within seconds.
 
-* **Multi-Agent Architecture (Monitor → Impact → Negotiator)**
-* **Event-Driven Design (Pub/Sub)**
-* **Real-Time Dashboard (Next.js + Firestore)**
-* **Vertex AI + Gemini for reasoning**
+Unlike traditional systems that rely on human intervention, this platform uses **Vertex AI + Gemini-powered agents** to:
 
-The system detects disruptions, analyzes impact, and autonomously generates resolution strategies.
+- Detect disruptions (storms, strikes, closures)
+- Analyze financial & operational impact
+- Generate optimal resolution strategies
+- Execute decisions autonomously
 
 ---
 
-## 📂 Repository Structure
+## ⚡ Key Highlights
+
+- 🤖 **Multi-Agent AI System** (Monitor → Impact → Negotiator)
+- 🔄 **Event-Driven Architecture** using Pub/Sub
+- ⚡ **Real-Time Dashboard** with Firestore + WebSockets
+- 🧠 **Gemini 1.5 Flash Reasoning + Tool Calling**
+- 📊 **BigQuery ML (ARIMA+) for Predictions**
+- 🗺️ **Google Maps Fleet Routing Integration**
+- 📡 **Live Agent Reasoning Streaming (SSE)**
+
+---
+
+## 🏗️ Architecture Overview
 
 ```
+
+External Event → Monitor Agent → Impact Agent → Negotiator Agent → Dashboard → Execution
+
+```
+
+### Core Flow:
+1. Disruption detected (news/weather/API)
+2. Monitor Agent classifies event
+3. Impact Agent evaluates affected shipments
+4. Negotiator Agent generates 3 solutions
+5. Dashboard displays options in real-time
+6. Manager approves → system executes automatically
+
+---
+
+## 🧩 Tech Stack
+
+### 🔹 AI & ML
+- Vertex AI Agent Builder
+- Gemini 1.5 Flash
+- BigQuery ML (ARIMA+)
+- Vertex AI Embeddings
+
+### 🔹 Backend & Infra
+- Google Cloud Run
+- Google Cloud Pub/Sub
+- Firebase Data Connect (PostgreSQL)
+- Firestore (Real-time DB)
+- Cloud Build (CI/CD)
+- Secret Manager
+
+### 🔹 Frontend
+- Next.js 15 (App Router)
+- Tailwind CSS
+- Shadcn/UI
+- Zustand (State Management)
+- Recharts (Data Visualization)
+
+### 🔹 Maps & Routing
+- Google Maps Platform
+- Fleet Routing API
+
+---
+
+## 📁 Repository Structure
+
+```
+
 supply-chain-ai/
-│
-├── disruption/        # Monitor Agent
-├── impact/            # Impact Agent
-├── resolution/        # Negotiator Agent
-├── dashboard/         # Frontend (Next.js)
-├── shared/            # Shared utilities & infra
-├── docs/              # Documentation
-├── .env.example
-└── README.md
-```
+
+├── disruption/     # Monitor Agent
+├── impact/         # Impact Agent
+├── resolution/     # Negotiator Agent
+├── dashboard/      # Next.js Frontend
+└── shared/         # Shared modules (DB, Pub/Sub, Auth, Types)
+
+````
 
 ---
 
-## 🆕 Dashboard Production Structure
+## 🤖 Agents Breakdown
 
-The dashboard is organized for production readiness:
+### 🟡 Monitor Agent
+- Detects disruptions using Google Search + Weather API
+- Classifies severity and affected zones
+- Publishes events to Pub/Sub
 
-```
-dashboard/
-	src/
-		app/
-			dashboard/
-				page.jsx, layout.jsx
-				api/webhooks/pubsub/route.js
-				components/
-					map/GlobalCommandMap.jsx, ShipmentMarker.jsx, RouteOverlay.jsx
-					alerts/AlertToast.jsx, SeverityBadge.jsx
-					decision/DecisionModal.jsx, OptionCard.jsx, CostTimeChart.jsx, FeedbackThumb.jsx
-					agent/AgentChatSidebar.jsx, AgentStatusBadge.jsx
-				store/shipmentStore.js, alertStore.js
-				hooks/useShipments.js, useDisruptions.js
-				lib/websocket.js, firebase.js
-```
+### 🔵 Impact Agent
+- Uses BigQuery ML to calculate impact
+- Identifies affected shipments
+- Generates ImpactReport
 
-All files are initialized with minimal boilerplate for rapid development.
+### 🟢 Negotiator Agent
+- Generates 3 optimized resolution strategies:
+  - Best balance
+  - Fastest
+  - Cheapest
+- Uses routing, supplier lookup, and cost analysis
 
 ---
 
----
+## 🔄 Communication Architecture
 
-## 🔍 Folder & File Responsibilities
-
-### 1️⃣ disruption/ (Monitor Agent)
-
-Detects real-world disruptions.
-
-* `agent/agent.yaml` → Vertex AI agent config
-* `agent/prompt.md` → LLM instructions
-* `tools/searchTool.js` → Google Search grounding
-* `tools/weatherTool.js` → Weather API integration
-* `tools/pubsubTrigger.js` → Publishes events
-* `api/events.route.js` → REST endpoints
-* `api/events.service.js` → Business logic
-* `types/DisruptionEvent.js` → Event schema
-* `index.js` → Service entry point
+| Protocol | Purpose |
+|----------|--------|
+| REST | CRUD + execution |
+| Pub/Sub | Agent-to-agent communication |
+| WebSocket | Agent status updates |
+| SSE | Streaming AI reasoning |
+| Firestore RT | Real-time UI sync |
 
 ---
 
-### 2️⃣ impact/ (Impact Agent)
+## ⚙️ Setup Guide
 
-Analyzes disruption impact.
-
-* `agent/agent.yaml` → Agent config
-* `prompt.md` → Impact reasoning logic
-* `tools/bigqueryTool.js` → ML queries
-* `tools/shipmentLookup.js` → DB queries
-* `api/impact.route.js` → API endpoints
-* `api/impact.service.js` → Core logic
-* `ml/*.sql` → ML models (ARIMA, scoring)
-* `types/ImpactReport.js` → Output schema
-* `index.js` → Entry point
+### 1️⃣ Clone Repo
+```bash
+git clone https://github.com/your-username/supply-chain-ai.git
+cd supply-chain-ai
+````
 
 ---
 
-### 3️⃣ resolution/ (Negotiator Agent)
-
-Generates solutions.
-
-* `agent/agent.yaml` → Agent config
-* `prompt.md` → Decision logic
-* `tools/routingTool.js` → Google Maps routing
-* `tools/supplierLookup.js` → AI embeddings search
-* `tools/costCalculator.js` → Cost evaluation
-* `api/options.route.js` → Fetch + SSE stream
-* `api/options.service.js` → Core logic
-* `api/execute.route.js` → Execute decisions
-* `simulation/*.js` → Demo scenarios
-* `types/ResolutionOption.js` → Output schema
-* `index.js` → Entry point
-
----
-
-### 4️⃣ dashboard/ (Frontend)
-
-Real-time UI for visualization.
-
-#### app/
-
-* `page.jsx` → Main UI layout
-* `layout.jsx` → Providers & auth
-
-#### components/
-
-**Map**
-
-* `GlobalCommandMap.jsx` → Main map
-* `ShipmentMarker.jsx` → Shipment UI
-* `RouteOverlay.jsx` → Route visualization
-
-**Alerts**
-
-* `AlertToast.jsx` → Notifications
-* `SeverityBadge.jsx` → Alert severity
-
-**Decision**
-
-* `DecisionModal.jsx` → Options UI
-* `OptionCard.jsx` → Option display
-* `CostTimeChart.jsx` → Charts
-* `FeedbackThumb.jsx` → Feedback
-
-**Agent**
-
-* `AgentChatSidebar.jsx` → SSE reasoning stream
-* `AgentStatusBadge.jsx` → Agent state
-
-#### state & hooks
-
-* `store/*.js` → Zustand stores
-* `hooks/*.js` → Firestore listeners
-
-#### utils
-
-* `lib/websocket.js` → WS client
-* `lib/firebase.js` → Firebase config
-
----
-
-### 5️⃣ shared/ (Core Infrastructure)
-
-Used across all services.
-
-#### db/
-
-* `schema.sql` → PostgreSQL schema
-* `firebase.js` → Firebase Admin
-* `seed/mock_shipments.json` → Demo data
-
-#### pubsub/
-
-* `publisher.js` → Publish events
-* `subscriber.js` → Consume events
-
-#### types/
-
-* `Shipment.js` → Shipment schema
-* `Supplier.js` → Supplier schema
-* `AgentPayload.js` → Message format
-
-#### auth/
-
-* `firebase-auth.js` → JWT middleware
-
-#### orchestrator/
-
-* `agent.yaml` → Master orchestration
-* `handoff.md` → Agent contracts
-
-#### infra/
-
-* `cloudbuild.yaml` → CI/CD
-* `cloud-run/service.yaml` → Deployment
-* `pubsub/topics.yaml` → Topics
-* `bigquery/dataset.yaml` → ML infra
-
----
-
-### 6️⃣ docs/
-
-* `demo-script.md` → Demo walkthrough
-
----
-
-## ⚙️ Setup
+### 2️⃣ Install Dependencies
 
 ```bash
-node setup.js
 npm install
 ```
 
 ---
 
-## ▶️ Run (High Level)
+### 3️⃣ Setup Environment Variables
+
+Create `.env` based on `.env.example`:
+
+```
+GCP_PROJECT_ID=
+FIREBASE_PROJECT_ID=
+MAPS_API_KEY=
+VERTEX_AI_LOCATION=us-central1
+```
+
+---
+
+### 4️⃣ Enable GCP Services
 
 ```bash
-# Start services (example)
-node disruption/index.js
-node impact/index.js
-node resolution/index.js
+gcloud services enable \
+  aiplatform.googleapis.com \
+  bigquery.googleapis.com \
+  pubsub.googleapis.com \
+  run.googleapis.com \
+  firestore.googleapis.com
+```
 
-# Start frontend
+---
+
+### 5️⃣ Setup Firebase
+
+```bash
+firebase login
+firebase init
+```
+
+---
+
+### 6️⃣ Run Locally
+
+#### Start Backend Services
+
+```bash
+npm run dev:disruption
+npm run dev:impact
+npm run dev:resolution
+```
+
+#### Start Frontend
+
+```bash
 cd dashboard
 npm run dev
 ```
 
 ---
 
-## 🐳 Docker Compose (Local Development)
+## 🧪 Run Simulation
 
-To run the entire system in containers on different ports:
+Trigger a disruption scenario:
 
 ```bash
-docker-compose up --build
+node resolution/simulation/inject.js pacific_storm
 ```
 
-This will start:
+Other scenarios:
 
-- disruption (port 4001)
-- impact (port 4002)
-- resolution (port 4003)
-- dashboard (port 3000)
-
-See `docker-compose.yml` for details.
+* `suez_closure`
+* `port_strike`
 
 ---
 
-## 🔁 System Flow
+## 📊 Dashboard Features
 
-1. Event detected → Monitor Agent
-2. Published via Pub/Sub
-3. Impact Agent calculates risk
-4. Negotiator Agent generates 3 solutions
-5. Dashboard shows results in real-time
-
----
-
-## 🏆 Key Features
-
-* ⚡ Real-time event-driven architecture
-* 🤖 Multi-agent AI reasoning
-* 🌍 Live map visualization
-* 📡 SSE + WebSocket streaming
-* 📊 ML-powered impact analysis
+* 🌍 Live shipment tracking on map
+* 🚨 Real-time disruption alerts
+* 🧠 AI reasoning stream (like ChatGPT thinking)
+* 📈 Cost vs Time decision charts
+* ✅ One-click resolution execution
 
 ---
 
-## 📌 Note
+## 🔁 End-to-End Flow (Demo)
 
-This is a **hackathon-grade production architecture**, designed to demonstrate:
-
-* System design excellence
-* AI orchestration
-* Real-time distributed systems
+1. Inject disruption
+2. Alert appears on dashboard
+3. Impact calculated via BigQuery
+4. AI generates 3 options
+5. Reasoning streams live
+6. Manager selects option
+7. System updates routes instantly
 
 ---
 
-## 👨‍💻 Author
+## 🏆 Why This Project Wins
 
-Built for **Google Hackathon 2026**
+* Real **agentic architecture**, not just API calls
+* True **event-driven system** (not REST chaining)
+* Uses **multiple Google services deeply**
+* Demonstrates **real AI reasoning + decision-making**
+* Fully **deployable production-grade system**
+
+---
+
+## 🚀 Deployment
+
+Deploy all services using Cloud Run:
+
+```bash
+gcloud builds submit --config infra/cloudbuild.yaml
+```
+
+---
+
+## 🔍 Observability
+
+* Cloud Logging → trace every agent decision
+* Cloud Trace → latency per agent
+* Firestore → real-time state debugging
+
+---
+
+## 📌 Future Improvements
+
+* Reinforcement learning for decision optimization
+* Multi-region deployment
+* Predictive disruption prevention
+* Autonomous execution without human approval
+
+---
+
+## 👥 Team
+
+**4-Person Hackathon Team**
+
+* AI Lead
+* Backend Engineer (x2)
+* Frontend Engineer
+
+---
+
+## 📜 License
+
+MIT License
+
+---
+
+## 💡 Final Thought
+
+> “Don’t just detect problems. Build systems that **fix them automatically**.”
+
+---
+
