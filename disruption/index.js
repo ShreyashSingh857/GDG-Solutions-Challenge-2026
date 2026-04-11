@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import 'dotenv/config';
-import { db } from '../shared/db/firebase.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
@@ -10,7 +9,9 @@ const startTime = Date.now();
 let lastEventAt = null;
 
 // Register routes
-import('./api/events.route.js').then((m) => app.register(m.default));
+import('./api/events.route.js').then((m) => {
+	if (typeof m.default === 'function') app.register(m.default);
+});
 
 app.get('/health', async (req, reply) => {
 	reply.send({

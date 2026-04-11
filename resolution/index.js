@@ -8,8 +8,12 @@ await app.register(cors, { origin: '*' });
 const startTime = Date.now();
 let lastEventAt = null;
 
-import('./api/options.route.js').then((m) => app.register(m.default));
-import('./api/execute.route.js').then((m) => app.register(m.default));
+import('./api/options.route.js').then((m) => {
+	if (typeof m.default === 'function') app.register(m.default);
+});
+import('./api/execute.route.js').then((m) => {
+	if (typeof m.default === 'function') app.register(m.default);
+});
 
 app.get('/health', async (req, reply) => {
 	reply.send({

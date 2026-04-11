@@ -8,7 +8,9 @@ await app.register(cors, { origin: '*' });
 const startTime = Date.now();
 let lastEventAt = null;
 
-import('./api/impact.route.js').then((m) => app.register(m.default));
+import('./api/impact.route.js').then((m) => {
+	if (typeof m.default === 'function') app.register(m.default);
+});
 
 app.get('/health', async (req, reply) => {
 	reply.send({
