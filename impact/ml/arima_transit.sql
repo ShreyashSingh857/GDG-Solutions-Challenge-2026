@@ -1,1 +1,0 @@
--- BigQuery ML: ARIMA+ model for transit time prediction
