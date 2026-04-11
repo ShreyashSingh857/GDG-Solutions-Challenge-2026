@@ -1,37 +1,61 @@
 version: '3.9'
 services:
+  event-bus:
+    build: ./event-bus
+    ports:
+      - "4000:4000"
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./event-bus:/app
+      - ./shared:/shared
+    environment:
+      - NODE_ENV=production
+
   disruption:
     build: ./disruption
     ports:
-      - "4001:4001"
+      - "3001:3001"
     working_dir: /app
     command: node index.js
     volumes:
       - ./disruption:/app
+      - ./shared:/shared
     environment:
       - NODE_ENV=production
+      - EVENT_BUS_URL=http://event-bus:4000
+    depends_on:
+      - event-bus
 
   impact:
     build: ./impact
     ports:
-      - "4002:4002"
+      - "3002:3002"
     working_dir: /app
     command: node index.js
     volumes:
       - ./impact:/app
+      - ./shared:/shared
     environment:
       - NODE_ENV=production
+      - EVENT_BUS_URL=http://event-bus:4000
+    depends_on:
+      - event-bus
 
   resolution:
     build: ./resolution
     ports:
-      - "4003:4003"
+      - "3003:3003"
     working_dir: /app
     command: node index.js
     volumes:
       - ./resolution:/app
+      - ./shared:/shared
     environment:
       - NODE_ENV=production
+      - EVENT_BUS_URL=http://event-bus:4000
+    depends_on:
+      - event-bus
 
   dashboard:
     build: ./dashboard
@@ -44,6 +68,4 @@ services:
     environment:
       - NODE_ENV=production
     depends_on:
-      - disruption
-      - impact
-      - resolution
+      - event-bus
