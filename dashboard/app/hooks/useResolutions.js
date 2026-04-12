@@ -49,5 +49,5 @@ export function useResolutions() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [setResolutionWithOptions]);
 }

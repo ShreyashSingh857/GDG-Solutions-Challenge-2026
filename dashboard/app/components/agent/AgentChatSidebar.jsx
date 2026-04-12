@@ -10,39 +10,58 @@ export default function AgentChatSidebar() {
   const disruptions = useAlertStore((s) => s.disruptions);
   const activeDisruptionId = useAlertStore((s) => s.activeDisruptionId);
   const [chains, setChains] = useState([]);
-  const [isStreaming, setIsStreaming] = useState(false);
   const esRef = useRef(null);
+  const completedTraceIdsRef = useRef(new Set());
   const bottomRef = useRef(null);
 
   const traceId = activeResolution?.traceId || activeResolution?.id;
   const activeDisruption = disruptions.find((d) => (d.id || d.traceId) === activeDisruptionId);
+  const current = chains[0];
+  const isStreaming = Boolean(current && !current.complete);
 
   useEffect(() => {
-    if (!traceId) return;
-    if (chains.find((c) => c.traceId === traceId && c.complete)) return;
-    if (esRef.current) esRef.current.close();
-    setIsStreaming(true);
-    setChains((p) => [{ traceId, text: '', complete: false }, ...p.filter((c) => c.traceId !== traceId)].slice(0, 5));
+    if (!traceId) {
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+      return;
+    }
+    if (completedTraceIdsRef.current.has(traceId)) return;
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
+    }
     const es = new EventSource(`${URL}/options/stream/${traceId}`);
     esRef.current = es;
+    es.onopen = () => {
+      setChains((p) => [{ traceId, text: '', complete: false }, ...p.filter((c) => c.traceId !== traceId)].slice(0, 5));
+    };
     es.onmessage = (e) => {
       try {
         const { type, data } = JSON.parse(e.data);
         if (type === 'chunk') setChains((p) => p.map((c) => c.traceId === traceId ? { ...c, text: c.text + data } : c));
         if (type === 'done') {
           setChains((p) => p.map((c) => c.traceId === traceId ? { ...c, complete: true } : c));
-          setIsStreaming(false);
+          completedTraceIdsRef.current.add(traceId);
           es.close();
+          if (esRef.current === es) esRef.current = null;
         }
       } catch {}
     };
-    es.onerror = () => { setIsStreaming(false); es.close(); };
-    return () => es.close();
-  }, [traceId, chains]);
+    es.onerror = () => {
+      setChains((p) => p.map((c) => c.traceId === traceId ? { ...c, complete: true } : c));
+      es.close();
+      if (esRef.current === es) esRef.current = null;
+    };
+    return () => {
+      es.close();
+      if (esRef.current === es) esRef.current = null;
+    };
+  }, [traceId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chains]);
 
-  const current = chains[0];
   return (
     <div className="flex flex-col h-full bg-gray-950 border-l border-white/5">
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">

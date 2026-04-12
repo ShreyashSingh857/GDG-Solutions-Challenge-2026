@@ -35,7 +35,7 @@ export function useDisruptions() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [addDisruption]);
 
   return useAlertStore((state) => state.disruptions);
 }
