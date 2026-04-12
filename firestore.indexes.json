@@ -1,0 +1,27 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "shipments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "currentLat", "order": "ASCENDING" },
+        { "fieldPath": "currentLng", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "disruptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "detectedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "resolutions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
