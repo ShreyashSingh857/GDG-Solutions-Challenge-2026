@@ -1,24 +1,39 @@
 import { db } from '../firebase.js';
+import { supabase, assertNoSupabaseError } from '../supabase.js';
 import { v4 as uuidv4 } from 'uuid';
 import 'dotenv/config';
 
 const CARRIERS = ['Maersk', 'MSC', 'COSCO', 'Evergreen', 'Hapag-Lloyd'];
-const STATUSES = ['active', 'active', 'active', 'active', 'delayed']; // weight toward active
+const STATUSES = ['active', 'active', 'active', 'active', 'delayed'];
 
 function generateShipment(index) {
   const isPacific = index < 10;
-  const originLat = isPacific ? 20 + Math.random() * 15 : Math.random() * 60 - 10;
-  const originLng = isPacific ? 120 + Math.random() * 20 : Math.random() * 200 - 80;
-  const destLat = isPacific ? 30 + Math.random() * 15 : Math.random() * 60 - 10;
-  const destLng = isPacific ? -120 + Math.random() * -20 : Math.random() * 60 - 20;
+  const isSuez = index >= 10 && index < 22;
+
+  let originLat, originLng, destLat, destLng, origin, destination, corridor;
+
+  if (isPacific) {
+    originLat = 20 + Math.random() * 15; originLng = 120 + Math.random() * 20;
+    destLat = 33 + Math.random() * 5; destLng = -118 + Math.random() * -10;
+    origin = 'Shanghai'; destination = 'Los Angeles'; corridor = 'Pacific';
+  } else if (isSuez) {
+    originLat = 1 + Math.random() * 5; originLng = 103 + Math.random() * 4;
+    destLat = 51 + Math.random() * 3; destLng = 0 + Math.random() * 4;
+    origin = 'Singapore'; destination = 'Rotterdam'; corridor = 'Suez';
+  } else {
+    originLat = 18 + Math.random() * 4; originLng = 72 + Math.random() * 3;
+    destLat = 25 + Math.random() * 5; destLng = 55 + Math.random() * 5;
+    origin = 'Mumbai'; destination = 'Dubai'; corridor = 'Indian Ocean';
+  }
+
   const currentLat = (originLat + destLat) / 2 + (Math.random() * 4 - 2);
   const currentLng = (originLng + destLng) / 2 + (Math.random() * 4 - 2);
   const eta = new Date(Date.now() + (3 + Math.random() * 25) * 24 * 60 * 60 * 1000).toISOString();
 
   return {
     id: `ship-${uuidv4()}`,
-    origin: isPacific ? 'Shanghai' : ['Rotterdam', 'Singapore', 'Mumbai', 'Dubai'][Math.floor(Math.random() * 4)],
-    destination: isPacific ? 'Los Angeles' : ['New York', 'Hamburg', 'Colombo', 'Jeddah'][Math.floor(Math.random() * 4)],
+    origin,
+    destination,
     originLat,
     originLng,
     destLat,
@@ -29,48 +44,78 @@ function generateShipment(index) {
     carrier: CARRIERS[Math.floor(Math.random() * CARRIERS.length)],
     cargoValueUSD: Math.floor(500000 + Math.random() * 9500000),
     eta,
-    corridor: isPacific ? 'Pacific' : ['Atlantic', 'Suez', 'Indian Ocean'][Math.floor(Math.random() * 3)],
+    corridor,
     createdAt: new Date().toISOString(),
   };
 }
 
-async function seed() {
-  console.log('[Seed] Starting Firestore seed...');
+const SUPPLIER_DATA = [
+  ['sup-001', 'Pacific Air Express', 'Pacific', 2.50, 94, 'ops@pacificairexpress.com', ['air-freight', 'express', 'refrigerated']],
+  ['sup-002', 'Trans-Pacific Shipping Co.', 'Pacific', 0.12, 88, 'ops@transpacific.com', ['sea-freight', 'bulk', 'containers']],
+  ['sup-003', 'Alaska Northern Route Ltd.', 'Pacific', 0.18, 79, 'ops@alaskanorthern.com', ['sea-freight', 'containers', 'cold-storage']],
+  ['sup-004', 'Suez Alternative Carriers', 'Suez', 0.15, 85, 'ops@suezalt.com', ['sea-freight', 'containers', 'bulk']],
+  ['sup-005', 'Cape Route Logistics', 'Suez', 0.20, 82, 'ops@caperoute.com', ['sea-freight', 'containers', 'tankers']],
+  ['sup-006', 'Middle East Air Freight', 'Suez', 2.80, 91, 'ops@meaf.com', ['air-freight', 'express', 'high-value']],
+  ['sup-007', 'Mumbai Alternative Port Authority', 'Indian Ocean', 0.14, 76, 'ops@mumbaialternative.com', ['sea-freight', 'containers', 'port-handling']],
+  ['sup-008', 'Indian Ocean Air Cargo', 'Indian Ocean', 2.60, 89, 'ops@ioac.com', ['air-freight', 'express', 'refrigerated']],
+  ['sup-009', 'Atlantic Ocean Freight', 'Atlantic', 0.13, 87, 'ops@atlanticfreight.com', ['sea-freight', 'containers', 'bulk']],
+  ['sup-010', 'European Express Logistics', 'Atlantic', 2.40, 93, 'ops@eurexpress.com', ['air-freight', 'express', 'high-value']],
+  ['sup-011', 'Southeast Asia Freight Co.', 'Pacific', 0.11, 81, 'ops@seafreight.com', ['sea-freight', 'containers', 'refrigerated']],
+  ['sup-012', 'Global Emergency Logistics', 'Pacific', 3.20, 96, 'ops@globalemergency.com', ['air-freight', 'sea-freight', 'express', 'emergency']],
+];
+
+async function seedFirestoreShipments() {
+  console.log('[Seed] Writing 50 shipments to Firestore...');
   const batch = db.batch();
 
   for (let i = 0; i < 50; i++) {
-    const shipment = generateShipment(i);
-    const ref = db.collection('shipments').doc(shipment.id);
-    batch.set(ref, shipment);
+    const s = generateShipment(i);
+    batch.set(db.collection('shipments').doc(s.id), s);
   }
-
   await batch.commit();
-  console.log('[Seed] ✅ 50 shipments written to Firestore (10 in Pacific corridor)');
+  console.log('[Seed] ✅ 50 shipments in Firestore (10 Pacific, 12 Suez, 28 Indian Ocean)');
+}
 
-  const suppliers = [
-    ['sup-001','Pacific Air Express','Pacific',['air-freight','express','refrigerated'],94,2.5,'ops@pacificairexpress.com'],
-    ['sup-002','Trans-Pacific Shipping Co.','Pacific',['sea-freight','bulk','containers'],88,0.12,'ops@transpacific.com'],
-    ['sup-003','Alaska Northern Route Ltd.','Pacific',['sea-freight','containers','cold-storage'],79,0.18,'ops@alaskanorthern.com'],
-    ['sup-004','Suez Alternative Carriers','Suez',['sea-freight','containers','bulk'],85,0.15,'ops@suezalt.com'],
-    ['sup-005','Cape Route Logistics','Suez',['sea-freight','containers','tankers'],82,0.2,'ops@caperoute.com'],
-    ['sup-006','Middle East Air Freight','Suez',['air-freight','express','high-value'],91,2.8,'ops@meaf.com'],
-    ['sup-007','Mumbai Alternative Port Authority','Indian Ocean',['sea-freight','containers','port-handling'],76,0.14,'ops@mumbaialternative.com'],
-    ['sup-008','Indian Ocean Air Cargo','Indian Ocean',['air-freight','express','refrigerated'],89,2.6,'ops@ioac.com'],
-    ['sup-009','Atlantic Ocean Freight','Atlantic',['sea-freight','containers','bulk'],87,0.13,'ops@atlanticfreight.com'],
-    ['sup-010','European Express Logistics','Atlantic',['air-freight','express','high-value'],93,2.4,'ops@eurexpress.com'],
-    ['sup-011','Southeast Asia Freight Co.','Pacific',['sea-freight','containers','refrigerated'],81,0.11,'ops@seafreight.com'],
-    ['sup-012','Global Emergency Logistics','Pacific',['air-freight','sea-freight','express','emergency'],96,3.2,'ops@globalemergency.com'],
-  ];
-  const supplierBatch = db.batch();
-  for (const [id,name,region,capabilities,reliabilityScore,baseCostPerKm,contactEmail] of suppliers) {
-    supplierBatch.set(db.collection('suppliers').doc(id), { id, name, region, capabilities, reliabilityScore, baseCostPerKm, contactEmail });
+async function seedSupabaseSuppliers() {
+  console.log('[Seed] Writing suppliers to Supabase...');
+  const { data: capRows, error: capErr } = await supabase.from('capabilities').select('id, name');
+  assertNoSupabaseError(capErr, 'fetch capabilities');
+  const capMap = Object.fromEntries(capRows.map((c) => [c.name, c.id]));
+
+  const supplierRows = SUPPLIER_DATA.map(([id, name, region, base_cost_per_km, reliability_score, contact_email]) => ({
+    id, name, region, base_cost_per_km, reliability_score, contact_email, is_active: true,
+  }));
+  const { error: supErr } = await supabase.from('suppliers').upsert(supplierRows, { onConflict: 'id' });
+  assertNoSupabaseError(supErr, 'upsert suppliers');
+
+  const capJunctionRows = [];
+  for (const [id, , , , , , capabilities] of SUPPLIER_DATA) {
+    for (const capName of capabilities) {
+      const capId = capMap[capName];
+      if (!capId) {
+        console.warn(`[Seed] Warning: capability '${capName}' not in capabilities table - add it and re-run`);
+        continue;
+      }
+      capJunctionRows.push({ supplier_id: id, capability_id: capId });
+    }
   }
-  await supplierBatch.commit();
-  console.log('[Seed] ✅ 12 suppliers written to Firestore');
+
+  const { error: juncErr } = await supabase
+    .from('supplier_capabilities')
+    .upsert(capJunctionRows, { onConflict: 'supplier_id,capability_id' });
+  assertNoSupabaseError(juncErr, 'upsert supplier_capabilities');
+
+  console.log(`[Seed] ✅ ${SUPPLIER_DATA.length} suppliers + ${capJunctionRows.length} capability links written to Supabase`);
+}
+
+async function seed() {
+  await seedFirestoreShipments();
+  await seedSupabaseSuppliers();
+  console.log('[Seed] All seed data written successfully');
   process.exit(0);
 }
 
 seed().catch((err) => {
-  console.error('[Seed] ❌ Failed:', err);
+  console.error('[Seed] Failed:', err.message);
   process.exit(1);
 });
