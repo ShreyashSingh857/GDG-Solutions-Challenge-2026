@@ -116,6 +116,16 @@ async function seed() {
 }
 
 seed().catch((err) => {
-  console.error('[Seed] Failed:', err.message);
+  const msg = String(err?.message || 'Unknown error');
+  const code = err?.code ? ` (code: ${err.code})` : '';
+  if (msg.includes('NOT_FOUND')) {
+    console.error('[Seed] Failed: Firestore database was not found in the configured Firebase project.' + code);
+    console.error('[Seed] Action: Open Firebase Console -> Firestore Database -> Create database (Native mode) for project:', process.env.FIREBASE_PROJECT_ID);
+  } else if (msg.includes('PERMISSION_DENIED')) {
+    console.error('[Seed] Failed: Firestore API or IAM permission issue.' + code);
+    console.error('[Seed] Action: Enable Firestore API and verify service account access for project:', process.env.FIREBASE_PROJECT_ID);
+  } else {
+    console.error('[Seed] Failed:', msg + code);
+  }
   process.exit(1);
 });
