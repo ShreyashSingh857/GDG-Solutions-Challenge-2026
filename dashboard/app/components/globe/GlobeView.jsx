@@ -28,6 +28,7 @@ import {
 import { useShipmentStore } from '../../store/shipmentStore.js';
 import { useAlertStore } from '../../store/alertStore.js';
 import GlobeControls from './GlobeControls.jsx';
+import { useGlobeCamera } from './useGlobeCamera.js';
 
 const C = { active: '#22c55e', delayed: '#ef4444', rerouted: '#3b82f6', disrupted: '#f97316' };
 const CITIES = [['Shanghai', 31.2304, 121.4737], ['Singapore', 1.3521, 103.8198], ['Los Angeles', 34.0522, -118.2437], ['Rotterdam', 51.9244, 4.4777], ['Dubai', 25.2048, 55.2708], ['Mumbai', 19.076, 72.8777], ['Hong Kong', 22.3193, 114.1694], ['New York', 40.7128, -74.006]];
@@ -43,6 +44,7 @@ export default function GlobeView() {
   const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
+  useGlobeCamera(vRef);
 
   useEffect(() => {
     if (!cRef.current || vRef.current) return;
