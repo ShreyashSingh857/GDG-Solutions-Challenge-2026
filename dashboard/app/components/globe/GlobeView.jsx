@@ -5,15 +5,25 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useDebouncedCallback } from 'use-debounce';
 import {
   ArcType,
+  Cartesian2,
   Cartesian3,
+  CallbackProperty,
   Color,
   CustomDataSource,
   EllipsoidTerrainProvider,
-  GeoJsonDataSource,
-  OpenStreetMapImageryProvider,
+  DistanceDisplayCondition,
+  HeightReference,
+  ImageryLayer,
+  JulianDate,
+  LabelStyle,
+  NearFarScalar,
+  PolylineDashMaterialProperty,
+  PolylineGlowMaterialProperty,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  TileMapServiceImageryProvider,
   Viewer,
+  buildModuleUrl,
 } from 'cesium';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 import { useAlertStore } from '../../store/alertStore.js';
@@ -23,8 +33,14 @@ const C = { active: '#22c55e', delayed: '#ef4444', rerouted: '#3b82f6', disrupte
 const CITIES = [['Shanghai', 31.2304, 121.4737], ['Singapore', 1.3521, 103.8198], ['Los Angeles', 34.0522, -118.2437], ['Rotterdam', 51.9244, 4.4777], ['Dubai', 25.2048, 55.2708], ['Mumbai', 19.076, 72.8777], ['Hong Kong', 22.3193, 114.1694], ['New York', 40.7128, -74.006]];
 const STATES = [['California', 36.7783, -119.4179], ['Texas', 31.9686, -99.9018], ['Florida', 27.6648, -81.5158], ['New York State', 43, -75], ['Maharashtra', 19.7515, 75.7139], ['Gujarat', 22.2587, 71.1924], ['Tamil Nadu', 11.1271, 78.6569], ['Western Australia', -25.2744, 122]];
 
+function getLineMaterial(status, colorCss) {
+  const color = Color.fromCssColorString(colorCss);
+  if (status === 'delayed') return new PolylineDashMaterialProperty({ color, dashLength: 16.0, dashPattern: 255 });
+  return new PolylineGlowMaterialProperty({ color, glowPower: status === 'rerouted' ? 0.3 : 0.15, taperPower: 1.0 });
+}
+
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
 
@@ -32,35 +48,12 @@ export default function GlobeView() {
     if (!cRef.current || vRef.current) return;
     let v;
     try {
-      v = new Viewer(cRef.current, {
-        animation: false,
-        timeline: false,
-        sceneModePicker: false,
-        geocoder: false,
-        baseLayerPicker: false,
-        imageryProvider: new OpenStreetMapImageryProvider({
-          url: 'https://tile.openstreetmap.org/',
-        }),
-        navigationHelpButton: false,
-        homeButton: false,
-        fullscreenButton: false,
-        infoBox: false,
-        selectionIndicator: false,
-        shouldAnimate: true,
-        requestRenderMode: true,
-        maximumRenderTimeChange: Infinity,
-        terrainProvider: new EllipsoidTerrainProvider(),
-      });
+      v = new Viewer(cRef.current, { animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, terrainProvider: new EllipsoidTerrainProvider(), baseLayer: ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(buildModuleUrl('Assets/Textures/NaturalEarthII'))) });
     } catch (err) {
       console.error('[GlobeView] Failed to initialize Cesium Viewer:', err);
       return;
     }
-    v.useBrowserRecommendedResolution = false;
-    v.resolutionScale = Math.min(window.devicePixelRatio || 1, 2);
-    v.scene.globe.enableLighting = true;
-    v.scene.globe.baseColor = Color.fromCssColorString('#000108');
-    v.scene.fxaa = false;
-    v.camera.setView({ destination: Cartesian3.fromDegrees(10, 20, 25000000) });
+    const scene = v.scene; const globe = scene.globe; v.useBrowserRecommendedResolution = false; v.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5); scene.fxaa = true; globe.enableLighting = true; globe.dynamicAtmosphereLighting = true; globe.dynamicAtmosphereLightingFromSun = true; globe.showGroundAtmosphere = true; globe.atmosphereLightIntensity = 10.0; globe.tileCacheSize = 50; globe.baseColor = Color.fromCssColorString('#020B18'); scene.skyAtmosphere.show = true; scene.skyAtmosphere.perFragmentAtmosphere = true; scene.skyAtmosphere.atmosphereLightIntensity = 20.0; scene.skyBox.show = true; scene.sun.show = true; scene.moon.show = false; scene.fog.enabled = true; scene.fog.density = 0.0002; scene.fog.minimumBrightness = 0.0; v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
     const ds = new CustomDataSource('shipments');
     v.dataSources.add(ds);
     vRef.current = v; dsRef.current = ds;
@@ -83,7 +76,6 @@ export default function GlobeView() {
         setT({ x: m.endPosition.x, y: m.endPosition.y, label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
       });
     }, ScreenSpaceEventType.MOUSE_MOVE);
-    GeoJsonDataSource.load('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson', { stroke: Color.fromCssColorString('#64748b'), fill: Color.fromCssColorString('#0f172a').withAlpha(0.05), strokeWidth: 1 }).then((cds) => v.dataSources.add(cds)).catch(() => null);
     return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
   }, [setZoomLevelDebounced]);
 
