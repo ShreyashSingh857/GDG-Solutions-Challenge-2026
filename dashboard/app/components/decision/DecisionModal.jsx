@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAlertStore } from '../../store/alertStore.js';
 import OptionCard from './OptionCard.jsx';
@@ -26,8 +27,8 @@ function LoadingSkeleton({ stage, onDismiss }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-gray-900 rounded-2xl border border-white/10 p-6 space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }} className="w-full max-w-2xl bg-gray-900 rounded-2xl border border-white/10 p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />
@@ -45,17 +46,22 @@ function LoadingSkeleton({ stage, onDismiss }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="h-48 rounded-xl bg-gray-800/40 animate-pulse" />
-          <div className="h-48 rounded-xl bg-gray-800/40 animate-pulse" />
-          <div className="h-48 rounded-xl bg-gray-800/40 animate-pulse" />
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="h-48 rounded-xl bg-gray-800/40"
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
         </div>
 
         <div className="flex items-center justify-between text-xs text-white/40">
           <span>Typically 30-60 seconds</span>
           <button onClick={onDismiss} className="px-3 py-1.5 rounded-lg border border-white/10 text-white/60 hover:text-white hover:border-white/20">Dismiss</button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -138,15 +144,14 @@ export default function DecisionModal() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [isApproving]);
 
-  if (activeDisruptionId && !activeResolution?.options?.length) {
-    return <LoadingSkeleton stage={agentStage} onDismiss={clearActiveDisruption} />;
-  }
-
-  if (!activeResolution?.options?.length) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-5xl bg-gray-900 rounded-2xl border border-white/10 flex flex-col max-h-[90vh] overflow-hidden">
+    <AnimatePresence>
+      {activeDisruptionId && !activeResolution?.options?.length ? (
+        <LoadingSkeleton stage={agentStage} onDismiss={clearActiveDisruption} />
+      ) : null}
+      {activeResolution?.options?.length ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }} className="w-full max-w-5xl bg-gray-900 rounded-2xl border border-white/10 flex flex-col max-h-[90vh] overflow-hidden">
         <div className="flex items-start justify-between px-6 py-4 border-b border-white/5">
           <div className="flex flex-col gap-1"><div className="flex items-center gap-3"><h2 className="text-lg font-semibold text-white">Resolution Required</h2>{disruption && <SeverityBadge severity={disruption.severity} />}</div><p className="text-sm text-white/50">{disruption?.location || 'Disruption detected'} — {activeResolution.cascadeRisk} cascade risk</p></div>
           <button title="Esc" onClick={clearActiveDisruption} className="text-white/30 hover:text-white/60 text-xl leading-none flex items-center gap-1">×<span className="text-xs text-white/20 ml-1">[Esc]</span></button>
@@ -158,7 +163,9 @@ export default function DecisionModal() {
           ))}
         </div>
         <div className="px-6 py-3 border-t border-white/5 flex items-center justify-between"><p className="text-xs text-white/20">Trace ID: <span className="font-mono">{traceId}</span></p><p className="text-xs text-white/20">Urgency {activeResolution.urgency}/10</p></div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

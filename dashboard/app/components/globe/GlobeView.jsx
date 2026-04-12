@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useDebouncedCallback } from 'use-debounce';
 import {
   ArcType,
   Cartesian3,
   Color,
   CustomDataSource,
+  EllipsoidTerrainProvider,
   GeoJsonDataSource,
-  HeightReference,
+  OpenStreetMapImageryProvider,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Viewer,
@@ -21,12 +24,37 @@ const CITIES = [['Shanghai', 31.2304, 121.4737], ['Singapore', 1.3521, 103.8198]
 const STATES = [['California', 36.7783, -119.4179], ['Texas', 31.9686, -99.9018], ['Florida', 27.6648, -81.5158], ['New York State', 43, -75], ['Maharashtra', 19.7515, 75.7139], ['Gujarat', 22.2587, 71.1924], ['Tamil Nadu', 11.1271, 78.6569], ['Western Australia', -25.2744, 122]];
 
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
-  const s = useShipmentStore((x) => x.shipments); const d = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
+  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
+  const s = useShipmentStore((x) => x.shipments); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
 
   useEffect(() => {
     if (!cRef.current || vRef.current) return;
-    const v = new Viewer(cRef.current, { animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: true, requestRenderMode: true, maximumRenderTimeChange: Infinity });
+    let v;
+    try {
+      v = new Viewer(cRef.current, {
+        animation: false,
+        timeline: false,
+        sceneModePicker: false,
+        geocoder: false,
+        baseLayerPicker: false,
+        imageryProvider: new OpenStreetMapImageryProvider({
+          url: 'https://tile.openstreetmap.org/',
+        }),
+        navigationHelpButton: false,
+        homeButton: false,
+        fullscreenButton: false,
+        infoBox: false,
+        selectionIndicator: false,
+        shouldAnimate: true,
+        requestRenderMode: true,
+        maximumRenderTimeChange: Infinity,
+        terrainProvider: new EllipsoidTerrainProvider(),
+      });
+    } catch (err) {
+      console.error('[GlobeView] Failed to initialize Cesium Viewer:', err);
+      return;
+    }
     v.useBrowserRecommendedResolution = false;
     v.resolutionScale = Math.min(window.devicePixelRatio || 1, 2);
     v.scene.globe.enableLighting = true;
@@ -41,7 +69,7 @@ export default function GlobeView() {
       const next = h < 1.95 ? 'state' : h < 2.3 ? 'city' : 'far';
       if (next !== zoomRef.current) {
         zoomRef.current = next;
-        setZoomLevel(next);
+        setZoomLevelDebounced(next);
       }
     };
     v.camera.changed.addEventListener(onCam);
@@ -56,26 +84,81 @@ export default function GlobeView() {
       });
     }, ScreenSpaceEventType.MOUSE_MOVE);
     GeoJsonDataSource.load('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson', { stroke: Color.fromCssColorString('#64748b'), fill: Color.fromCssColorString('#0f172a').withAlpha(0.05), strokeWidth: 1 }).then((cds) => v.dataSources.add(cds)).catch(() => null);
-    return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
-  }, []);
+    return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
+  }, [setZoomLevelDebounced]);
 
   const ss = useMemo(() => (f === 'all' ? s : s.filter((x) => x.status === f)), [f, s]);
   useEffect(() => {
     if (!dsRef.current) return;
-    const e = dsRef.current.entities; e.removeAll();
+    const entities = dsRef.current.entities;
+    const entityMap = entityMapRef.current;
+    const currentIds = new Set(ss.map((x) => x.id));
+
+    for (const [id, refs] of entityMap) {
+      if (!currentIds.has(id)) {
+        if (refs.point) entities.remove(refs.point);
+        if (refs.line) entities.remove(refs.line);
+        entityMap.delete(id);
+      }
+    }
+
     ss.forEach((x) => {
-      e.add({ position: Cartesian3.fromDegrees(x.currentLng, x.currentLat), point: { pixelSize: x.status === 'delayed' ? 10 : 8, color: Color.fromCssColorString(C[x.status] || C.active), outlineColor: Color.BLACK, outlineWidth: 1, heightReference: HeightReference.NONE }, properties: { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` } });
       const route = x.status === 'rerouted' && x.disruptionId ? reroutedRoutes[x.disruptionId] : null;
       const coords = route?.geometry?.coordinates || route?.features?.[0]?.geometry?.coordinates;
-      if (Array.isArray(coords) && coords.length > 1) {
-        for (let i = 0; i < coords.length - 1; i++) e.add({ polyline: { positions: Cartesian3.fromDegreesArray([coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]]), width: 2, material: Color.fromCssColorString('#60A5FA'), arcType: ArcType.GEODESIC }, properties: { kind: 'route', status: 'rerouted', label: 'Rerouted Segment' } });
+      const positions = Array.isArray(coords) && coords.length > 1
+        ? Cartesian3.fromDegreesArray(coords.flatMap(([lng, lat]) => [lng, lat]))
+        : Cartesian3.fromDegreesArray([x.originLng, x.originLat, x.destLng, x.destLat]);
+      const colorCss = x.status === 'rerouted' ? '#60A5FA' : (C[x.status] || C.active);
+      const pointSize = x.status === 'delayed' ? 10 : 8;
+      const lineWidth = x.status === 'delayed' ? 2.6 : 1.8;
+
+      if (!entityMap.has(x.id)) {
+        const point = entities.add({ position: Cartesian3.fromDegrees(x.currentLng, x.currentLat), point: { pixelSize: pointSize, color: Color.fromCssColorString(C[x.status] || C.active), outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` } });
+        const line = entities.add({ polyline: { positions, width: lineWidth, material: Color.fromCssColorString(colorCss), arcType: ArcType.GEODESIC }, properties: { kind: 'route', status: x.status, label: x.status === 'rerouted' ? 'Rerouted Segment' : 'Route Segment' } });
+        entityMap.set(x.id, { point, line });
       } else {
-        e.add({ polyline: { positions: Cartesian3.fromDegreesArray([x.originLng, x.originLat, x.destLng, x.destLat]), width: x.status === 'delayed' ? 2.6 : 1.8, material: Color.fromCssColorString(C[x.status] || C.active), arcType: ArcType.GEODESIC }, properties: { kind: 'route', status: x.status, label: 'Route Segment' } });
+        const refs = entityMap.get(x.id);
+        refs.point.position = Cartesian3.fromDegrees(x.currentLng, x.currentLat);
+        refs.point.properties = { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` };
+        refs.point.point.color = Color.fromCssColorString(C[x.status] || C.active);
+        refs.point.point.pixelSize = pointSize;
+        refs.line.polyline.positions = positions;
+        refs.line.polyline.width = lineWidth;
+        refs.line.polyline.material = Color.fromCssColorString(colorCss);
+        refs.line.properties = { kind: 'route', status: x.status, label: x.status === 'rerouted' ? 'Rerouted Segment' : 'Route Segment' };
       }
     });
-    if (zoomLevel !== 'far') CITIES.forEach(([name, lat, lng]) => e.add({ position: Cartesian3.fromDegrees(lng, lat), point: { pixelSize: 5, color: Color.fromCssColorString('#e2e8f0') }, properties: { kind: 'city', label: name, status: 'city' } }));
-    if (zoomLevel === 'state') STATES.forEach(([name, lat, lng]) => e.add({ position: Cartesian3.fromDegrees(lng, lat), point: { pixelSize: 4, color: Color.fromCssColorString('#a78bfa') }, properties: { kind: 'state', label: name, status: 'state' } }));
-  }, [ss, reroutedRoutes, zoomLevel]);
 
-  return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" />{t && <div className="fixed z-20 bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white" style={{ left: t.x + 12, top: t.y - 40 }}><p className="font-medium">{t.label}</p><p className="text-white/60 capitalize">{t.kind} • {t.status}</p></div>}<div className="absolute bottom-4 right-4 z-10 bg-black/50 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex gap-4 text-xs"><span className="text-green-400">{s.filter((x) => x.status === 'active').length} active</span><span className="text-red-400">{s.filter((x) => x.status === 'delayed').length} delayed</span><span className="text-blue-400">{s.filter((x) => x.status === 'rerouted').length} rerouted</span></div></div>;
+    vRef.current?.scene.requestRender();
+  }, [ss, reroutedRoutes]);
+
+  useEffect(() => {
+    if (!dsRef.current) return;
+    const entities = dsRef.current.entities;
+
+    zoomEntityIdsRef.current.forEach((id) => {
+      const z = entities.getById(id);
+      if (z) entities.remove(z);
+    });
+    zoomEntityIdsRef.current.clear();
+
+    if (zoomLevel !== 'far') {
+      CITIES.forEach(([name, lat, lng]) => {
+        const id = `city-${name}`;
+        entities.add({ id, position: Cartesian3.fromDegrees(lng, lat), point: { pixelSize: 5, color: Color.fromCssColorString('#e2e8f0') }, properties: { kind: 'city', label: name, status: 'city' } });
+        zoomEntityIdsRef.current.add(id);
+      });
+    }
+    if (zoomLevel === 'state') {
+      STATES.forEach(([name, lat, lng]) => {
+        const id = `state-${name}`;
+        entities.add({ id, position: Cartesian3.fromDegrees(lng, lat), point: { pixelSize: 4, color: Color.fromCssColorString('#a78bfa') }, properties: { kind: 'state', label: name, status: 'state' } });
+        zoomEntityIdsRef.current.add(id);
+      });
+    }
+
+    vRef.current?.scene.requestRender();
+  }, [zoomLevel]);
+
+  return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" /><AnimatePresence>{t && <motion.div key={`${t.label}-${t.x}-${t.y}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed z-20 bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white" style={{ left: Math.min(t.x + 12, window.innerWidth - 180), top: t.y - 40 }}><p className="font-medium">{t.label}</p><p className="text-white/60 capitalize">{t.kind} • {t.status}</p></motion.div>}</AnimatePresence><div className="absolute bottom-4 right-4 z-10 bg-black/50 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex gap-4 text-xs"><span className="text-green-400">{s.filter((x) => x.status === 'active').length} active</span><span className="text-red-400">{s.filter((x) => x.status === 'delayed').length} delayed</span><span className="text-blue-400">{s.filter((x) => x.status === 'rerouted').length} rerouted</span></div></div>;
 }
