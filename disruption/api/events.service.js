@@ -1,5 +1,6 @@
 import { generate } from '../../shared/lib/gemini.js';
 import { db } from '../../shared/db/firebase.js';
+import { supabase } from '../../shared/db/supabase.js';
 import { publish } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
 import { createAgentPayload } from '../../shared/types/AgentPayload.js';
@@ -22,6 +23,22 @@ export async function classifyAndPublish(rawDescription, traceId = null) {
 	const disruptionEvent = createDisruptionEvent({ ...parsed, rawDescription });
 	validateDisruptionEvent(disruptionEvent);
 	await db.collection('disruptions').doc(disruptionEvent.id).set(disruptionEvent);
+	const { error: sbErr } = await supabase.from('disruptions').upsert({
+		id: disruptionEvent.id,
+		trace_id: traceId || disruptionEvent.id,
+		type: disruptionEvent.type,
+		severity: disruptionEvent.severity,
+		location: disruptionEvent.location,
+		epicenter_lat: disruptionEvent.epicenterLat,
+		epicenter_lng: disruptionEvent.epicenterLng,
+		affected_zones: disruptionEvent.affectedZones,
+		confidence: disruptionEvent.confidence,
+		raw_description: rawDescription,
+		weather_data: parsed._weatherData || null,
+		published: disruptionEvent.confidence >= CONFIDENCE_THRESHOLD,
+		detected_at: disruptionEvent.detectedAt,
+	}, { onConflict: 'id' });
+	if (sbErr) console.error('[DisruptionService] Supabase write failed (non-fatal):', sbErr.message);
 	setLastEventAt(new Date().toISOString());
 	if (disruptionEvent.confidence < CONFIDENCE_THRESHOLD) return { disruptionEvent, published: false };
 	const agentPayload = createAgentPayload('monitor', disruptionEvent, traceId);
