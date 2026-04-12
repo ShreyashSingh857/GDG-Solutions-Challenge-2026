@@ -8,6 +8,7 @@ export const useAlertStore = create((set, get) => ({
 	// Resolution with options combined
 	activeResolution: null,
 	resolutionOptions: [],
+	reroutedRoutes: {},
 
 	addDisruption: (disruption) =>
 		set((state) => ({
@@ -30,6 +31,7 @@ export const useAlertStore = create((set, get) => ({
 	markResolutionExecuted: (rank) =>
 		set((state) => {
 			if (!state.activeResolution) return {};
+			const selectedOption = state.activeResolution.options.find((o) => o.rank === rank);
 			return {
 				activeResolution: {
 					...state.activeResolution,
@@ -39,6 +41,12 @@ export const useAlertStore = create((set, get) => ({
 						o.rank === rank ? { ...o, selected: true } : o
 					),
 				},
+				reroutedRoutes: selectedOption?.route
+					? {
+						...state.reroutedRoutes,
+						[state.activeResolution.disruptionId]: selectedOption.route,
+					}
+					: state.reroutedRoutes,
 			};
 		}),
 
