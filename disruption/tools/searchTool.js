@@ -1,1 +1,1 @@
-// Google Search Grounding function call definition
+export const searchToolDeclaration = { name: 'search_web', description: 'Search the web for current news and information about a disruption event.', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } };

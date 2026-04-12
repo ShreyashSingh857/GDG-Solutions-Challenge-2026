@@ -1,294 +1,156 @@
-# 🚀 AI-Driven Anti-Fragile Supply Chain  
-### Google Hackathon 2026 · Production-Grade Multi-Agent System
+# AI-Driven Anti-Fragile Supply Chain
+### Google Hackathon 2026 - Free-Tier Multi-Agent System
 
 ---
 
-## 🧠 Overview
+## Overview
 
-**AI-Driven Anti-Fragile Supply Chain** is a real-time, autonomous decision-making system that detects disruptions, analyzes impact, and resolves them using AI agents — all within seconds.
+Real-time autonomous supply chain disruption detection and resolution using Gemini AI Studio, Firestore, and a custom Node.js event bus. No billing account required.
 
-Unlike traditional systems that rely on human intervention, this platform uses **Vertex AI + Gemini-powered agents** to:
-
-- Detect disruptions (storms, strikes, closures)
-- Analyze financial & operational impact
-- Generate optimal resolution strategies
-- Execute decisions autonomously
+**Agent pipeline:** Monitor Agent → Impact Agent → Negotiator Agent → Dashboard → Execution
 
 ---
 
-## ⚡ Key Highlights
+## Tech Stack
 
-- 🤖 **Multi-Agent AI System** (Monitor → Impact → Negotiator)
-- 🔄 **Event-Driven Architecture** using Pub/Sub
-- ⚡ **Real-Time Dashboard** with Firestore + WebSockets
-- 🧠 **Gemini 1.5 Flash Reasoning + Tool Calling**
-- 📊 **BigQuery ML (ARIMA+) for Predictions**
-- 🗺️ **Google Maps Fleet Routing Integration**
-- 📡 **Live Agent Reasoning Streaming (SSE)**
-
----
-
-## 🏗️ Architecture Overview
-
-```
-
-External Event → Monitor Agent → Impact Agent → Negotiator Agent → Dashboard → Execution
-
-```
-
-### Core Flow:
-1. Disruption detected (news/weather/API)
-2. Monitor Agent classifies event
-3. Impact Agent evaluates affected shipments
-4. Negotiator Agent generates 3 solutions
-5. Dashboard displays options in real-time
-6. Manager approves → system executes automatically
+- **AI:** Gemini 1.5 Flash via Google AI Studio (free API key)
+- **Event Bus:** Custom Node.js EventEmitter (replaces GCP Pub/Sub)
+- **Database:** Firebase Firestore (free tier)
+- **Auth:** Firebase Auth (Google OAuth)
+- **Backend:** Fastify microservices on Render.com (free tier)
+- **Frontend:** Next.js 15 on Vercel (free hobby tier)
+- **CI/CD:** GitHub Actions
 
 ---
 
-## 🧩 Tech Stack
+## Local Setup
 
-### 🔹 AI & ML
-- Vertex AI Agent Builder
-- Gemini 1.5 Flash
-- BigQuery ML (ARIMA+)
-- Vertex AI Embeddings
-
-### 🔹 Backend & Infra
-- Google Cloud Run
-- Google Cloud Pub/Sub
-- Firebase Data Connect (PostgreSQL)
-- Firestore (Real-time DB)
-- Cloud Build (CI/CD)
-- Secret Manager
-
-### 🔹 Frontend
-- Next.js 15 (App Router)
-- Tailwind CSS
-- Shadcn/UI
-- Zustand (State Management)
-- Recharts (Data Visualization)
-
-### 🔹 Maps & Routing
-- Google Maps Platform
-- Fleet Routing API
-
----
-
-## 📁 Repository Structure
-
-```
-
-supply-chain-ai/
-
-├── disruption/     # Monitor Agent
-├── impact/         # Impact Agent
-├── resolution/     # Negotiator Agent
-├── dashboard/      # Next.js Frontend
-└── shared/         # Shared modules (DB, Pub/Sub, Auth, Types)
-
-````
-
----
-
-## 🤖 Agents Breakdown
-
-### 🟡 Monitor Agent
-- Detects disruptions using Google Search + Weather API
-- Classifies severity and affected zones
-- Publishes events to Pub/Sub
-
-### 🔵 Impact Agent
-- Uses BigQuery ML to calculate impact
-- Identifies affected shipments
-- Generates ImpactReport
-
-### 🟢 Negotiator Agent
-- Generates 3 optimized resolution strategies:
-  - Best balance
-  - Fastest
-  - Cheapest
-- Uses routing, supplier lookup, and cost analysis
-
----
-
-## 🔄 Communication Architecture
-
-| Protocol | Purpose |
-|----------|--------|
-| REST | CRUD + execution |
-| Pub/Sub | Agent-to-agent communication |
-| WebSocket | Agent status updates |
-| SSE | Streaming AI reasoning |
-| Firestore RT | Real-time UI sync |
-
----
-
-## ⚙️ Setup Guide
-
-### 1️⃣ Clone Repo
-```bash
-git clone https://github.com/your-username/supply-chain-ai.git
-cd supply-chain-ai
-````
-
----
-
-### 2️⃣ Install Dependencies
+### 1. Clone and install
 
 ```bash
-npm install
+git clone <repo-url>
+cd GDG-Solutions-Challenge-2026-main
 ```
 
----
-
-### 3️⃣ Setup Environment Variables
-
-Create `.env` based on `.env.example`:
-
-```
-GCP_PROJECT_ID=
-FIREBASE_PROJECT_ID=
-MAPS_API_KEY=
-VERTEX_AI_LOCATION=us-central1
-```
-
----
-
-### 4️⃣ Enable GCP Services
+Install deps for each service:
 
 ```bash
-gcloud services enable \
-  aiplatform.googleapis.com \
-  bigquery.googleapis.com \
-  pubsub.googleapis.com \
-  run.googleapis.com \
-  firestore.googleapis.com
+cd event-bus && npm install && cd ..
+cd disruption && npm install && cd ..
+cd impact && npm install && cd ..
+cd resolution && npm install && cd ..
+cd dashboard && npm install && cd ..
 ```
 
----
+### 2. Environment variables
 
-### 5️⃣ Setup Firebase
+Copy `.env.example` to `.env` in the repo root and fill in all values. Each agent service also needs a `.env` file - symlink or copy the root one.
+
+### 3. Seed Firestore
 
 ```bash
-firebase login
-firebase init
+node shared/db/seed/seed.js
 ```
 
----
-
-### 6️⃣ Run Locally
-
-#### Start Backend Services
+### 4. Start services (4 terminals)
 
 ```bash
-npm run dev:disruption
-npm run dev:impact
-npm run dev:resolution
+# Terminal 1
+cd event-bus && npm run dev
+
+# Terminal 2
+cd disruption && npm run dev
+
+# Terminal 3
+cd impact && npm run dev
+
+# Terminal 4
+cd resolution && npm run dev
+
+# Terminal 5
+cd dashboard && npm run dev
 ```
 
-#### Start Frontend
-
-```bash
-cd dashboard
-npm run dev
-```
-
----
-
-## 🧪 Run Simulation
-
-Trigger a disruption scenario:
+### 5. Run a demo scenario
 
 ```bash
 node resolution/simulation/inject.js pacific_storm
 ```
 
-Other scenarios:
+---
 
-* `suez_closure`
-* `port_strike`
+## Service Ports
+
+| Service | Port |
+|---|---|
+| Event Bus | 4000 |
+| Disruption Agent | 3001 |
+| Impact Agent | 3002 |
+| Resolution Agent | 3003 |
+| Dashboard | 3000 |
 
 ---
 
-## 📊 Dashboard Features
+## Architecture
 
-* 🌍 Live shipment tracking on map
-* 🚨 Real-time disruption alerts
-* 🧠 AI reasoning stream (like ChatGPT thinking)
-* 📈 Cost vs Time decision charts
-* ✅ One-click resolution execution
+```
+Browser (Next.js → Vercel)
+  |-- Firestore real-time listeners
+  |-- SSE ← Resolution Agent (Gemini reasoning tokens)
+  |-- WebSocket ← Event Bus (agent heartbeats)
 
----
+Event Bus (Node.js EventEmitter → Render.com :4000)
+  |-- disruption-events → Impact Agent
+  |-- impact-reports → Resolution Agent
+  |-- resolution-options → Dashboard webhook
 
-## 🔁 End-to-End Flow (Demo)
-
-1. Inject disruption
-2. Alert appears on dashboard
-3. Impact calculated via BigQuery
-4. AI generates 3 options
-5. Reasoning streams live
-6. Manager selects option
-7. System updates routes instantly
-
----
-
-## 🏆 Why This Project Wins
-
-* Real **agentic architecture**, not just API calls
-* True **event-driven system** (not REST chaining)
-* Uses **multiple Google services deeply**
-* Demonstrates **real AI reasoning + decision-making**
-* Fully **deployable production-grade system**
-
----
-
-## 🚀 Deployment
-
-Deploy all services using Cloud Run:
-
-```bash
-gcloud builds submit --config infra/cloudbuild.yaml
+Agents (Fastify → Render.com)
+  |-- Monitor Agent :3001 → Gemini AI Studio + Open-Meteo
+  |-- Impact Agent :3002 → Gemini AI Studio + haversine scorer + Firestore
+  |-- Resolution Agent :3003 → Gemini AI Studio + static routes + Firestore
 ```
 
 ---
 
-## 🔍 Observability
+## THINGS TO LEAVE ALONE (Phase 2+)
 
-* Cloud Logging → trace every agent decision
-* Cloud Trace → latency per agent
-* Firestore → real-time state debugging
+Do not implement the following files during Phase 1. Leave their existing stubs as-is:
 
----
-
-## 📌 Future Improvements
-
-* Reinforcement learning for decision optimization
-* Multi-region deployment
-* Predictive disruption prevention
-* Autonomous execution without human approval
-
----
-
-## 👥 Team
-
-**4-Person Hackathon Team**
-
-* AI Lead
-* Backend Engineer (x2)
-* Frontend Engineer
-
----
-
-## 📜 License
-
-MIT License
+- `disruption/agent/agent.js` - Phase 2
+- `disruption/api/events.service.js` - Phase 2
+- `disruption/api/events.route.js` - Phase 2
+- `disruption/tools/searchTool.js` - Phase 2
+- `disruption/tools/weatherTool.js` - Phase 2
+- `disruption/agent/prompt.md` - Phase 2
+- `impact/agent/agent.js` - Phase 2
+- `impact/api/impact.service.js` - Phase 2
+- `impact/api/impact.route.js` - Phase 2
+- `impact/tools/shipmentLookup.js` - Phase 2
+- `impact/tools/severityScorer.js` - Phase 2 (create this file in Phase 2)
+- `impact/agent/prompt.md` - Phase 2
+- `resolution/agent/agent.js` - Phase 2
+- `resolution/api/options.service.js` - Phase 2
+- `resolution/api/options.route.js` - Phase 2
+- `resolution/api/execute.route.js` - Phase 2
+- `resolution/tools/routingTool.js` - Phase 2
+- `resolution/tools/supplierLookup.js` - Phase 2
+- `resolution/tools/costCalculator.js` - Phase 2
+- `resolution/simulation/pacific_storm.js` - Phase 2
+- `resolution/simulation/port_strike.js` - Phase 2
+- `resolution/simulation/suez_closure.js` - Phase 2
+- `resolution/simulation/inject.js` - Phase 2
+- `dashboard/app/components/` (all component files) - Phase 3
 
 ---
 
-## 💡 Final Thought
+## Phase 1 Exit Criteria
 
-> “Don’t just detect problems. Build systems that **fix them automatically**.”
+When Phase 1 is complete, verify all of the following:
 
----
+1. `curl http://localhost:4000/health` returns JSON with `status: "ok"` and the three topic names
+2. Publishing to the event bus (`POST /publish`) and subscribing (`GET /subscribe/disruption-events`) works end-to-end - the subscriber receives the message
+3. `curl http://localhost:3001/health`, `curl http://localhost:3002/health`, `curl http://localhost:3003/health` all return `status: "ok"`
+4. `node shared/db/seed/seed.js` runs without error and 50 documents appear in the Firebase console under `shipments`
+5. Opening the dashboard at `http://localhost:3000` shows "✅ Firestore connected - 50 shipments loaded"
+6. Calling `generate('say hello')` from `shared/lib/gemini.js` returns a non-empty string (smoke test in a scratch file)
 

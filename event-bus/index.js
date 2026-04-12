@@ -1,0 +1,96 @@
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import { broker } from './broker.js';
+import { TOPICS } from './topics.js';
+
+const app = Fastify({ logger: true });
+await app.register(cors, { origin: '*' });
+
+const startTime = Date.now();
+
+/**
+ * Health check - used by UptimeRobot and agents to verify the bus is live.
+ */
+app.get('/health', async (req, reply) => {
+  reply.send({
+    status: 'ok',
+    service: 'event-bus',
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    topics: Object.values(TOPICS),
+    messageCounts: Object.fromEntries(
+      Object.values(TOPICS).map((t) => [t, broker.getReplay(t).length])
+    ),
+  });
+});
+
+/**
+ * Publish endpoint - any agent POSTs here to emit an event.
+ * Body: { topic: string, payload: AgentPayload }
+ */
+app.post('/publish', async (req, reply) => {
+  const { topic, payload } = req.body;
+
+  if (!topic || !payload) {
+    return reply.status(400).send({ error: 'topic and payload are required', traceId: payload?.traceId });
+  }
+
+  if (!Object.values(TOPICS).includes(topic)) {
+    return reply.status(400).send({ error: `Unknown topic: ${topic}. Valid topics: ${Object.values(TOPICS).join(', ')}` });
+  }
+
+  broker.publish(topic, payload);
+  reply.send({ ok: true, topic, traceId: payload.traceId });
+});
+
+/**
+ * Subscribe endpoint - agents connect here via SSE to receive events on a topic.
+ * On connect, replays the last 50 messages so reconnecting agents don't miss events.
+ */
+app.get('/subscribe/:topic', async (req, reply) => {
+  const { topic } = req.params;
+
+  if (!Object.values(TOPICS).includes(topic)) {
+    return reply.status(400).send({ error: `Unknown topic: ${topic}` });
+  }
+
+  // Set SSE headers
+  reply.raw.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no', // important for Nginx/Render proxies
+  });
+
+  const send = (data) => {
+    reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Replay missed messages immediately on connect
+  const replayMessages = broker.getReplay(topic);
+  replayMessages.forEach((msg) => send({ type: 'replay', ...msg }));
+
+  // Subscribe to live events
+  const onMessage = (message) => send({ type: 'event', ...message });
+  broker.on(topic, onMessage);
+
+  // Clean up on disconnect
+  req.raw.on('close', () => {
+    broker.off(topic, onMessage);
+    console.log(`[EventBus] SSE client disconnected from topic: ${topic}`);
+  });
+
+  // Keep-alive ping every 30 seconds
+  const keepAlive = setInterval(() => {
+    reply.raw.write(': ping\n\n');
+  }, 30000);
+
+  req.raw.on('close', () => clearInterval(keepAlive));
+});
+
+try {
+  await app.listen({ port: 4000, host: '0.0.0.0' });
+  console.log('[EventBus] Running on port 4000');
+} catch (err) {
+  app.log.error(err);
+  process.exit(1);
+}
