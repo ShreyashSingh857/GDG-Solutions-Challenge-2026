@@ -9,7 +9,7 @@ const CFG = {
   3: { label: '#3 Cheapest', badge: 'bg-amber-900/20 text-amber-500 border border-amber-700/30', border: 'border-white/5', btn: 'bg-gray-700 hover:bg-gray-600 text-white' },
 };
 
-export default function OptionCard({ option, onApprove, isApproving, isSelected }) {
+export default function OptionCard({ option, onApprove, isApproving, isSelected, shortcutKey }) {
   const c = CFG[option.rank] || CFG[3];
   return (
     <div className={`flex flex-col gap-4 bg-gray-800/60 rounded-xl border p-5 flex-1 min-w-0 ${c.border} ${isSelected ? 'ring-2 ring-green-500/40' : ''}`}>
@@ -27,9 +27,12 @@ export default function OptionCard({ option, onApprove, isApproving, isSelected 
           <FeedbackThumb traceId={option.traceId} rank={option.rank} />
         </div>
       ) : (
-        <button onClick={() => onApprove(option.rank)} disabled={isApproving} className={`mt-auto w-full py-2 px-4 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${c.btn}`}>
-          {isApproving ? 'Executing...' : 'Approve & Execute'}
-        </button>
+        <div className="mt-auto flex flex-col gap-1.5">
+          <button onClick={() => onApprove(option.rank)} disabled={isApproving} className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${c.btn}`}>
+            {isApproving ? 'Executing...' : 'Approve & Execute'}
+          </button>
+          <span className="text-xs text-white/20 text-center">[{shortcutKey}]</span>
+        </div>
       )}
     </div>
   );

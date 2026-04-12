@@ -69,6 +69,7 @@ export default function DecisionModal() {
   const [approvedRank, setApprovedRank] = useState(null);
   const [agentStage, setAgentStage] = useState(0);
   const prevDisruptionsCountRef = useRef(0);
+  const approveRef = useRef(null);
 
   useEffect(() => {
     let monitorTimer;
@@ -99,17 +100,11 @@ export default function DecisionModal() {
     };
   }, [disruptions.length, activeResolution, activeDisruptionId]);
 
-  if (activeDisruptionId && !activeResolution?.options?.length) {
-    return <LoadingSkeleton stage={agentStage} onDismiss={clearActiveDisruption} />;
-  }
-
-  if (!activeResolution?.options?.length) return null;
-
-  const traceId = activeResolution.traceId || activeResolution.id;
-  const disruption = disruptions.find((d) => d.id === activeResolution.disruptionId || d.traceId === activeResolution.disruptionId);
+  const traceId = activeResolution?.traceId || activeResolution?.id;
+  const disruption = disruptions.find((d) => d.id === activeResolution?.disruptionId || d.traceId === activeResolution?.disruptionId);
 
   async function handleApprove(rank) {
-    if (isApproving) return;
+    if (isApproving || !traceId) return;
     setIsApproving(true);
     try {
       const res = await fetch(`${URL}/execute`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ traceId, rank }) });
@@ -126,17 +121,40 @@ export default function DecisionModal() {
     }
   }
 
+  approveRef.current = handleApprove;
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        useAlertStore.getState().clearActiveDisruption();
+        return;
+      }
+      if (!isApproving && ['1', '2', '3'].includes(event.key)) {
+        approveRef.current?.(Number(event.key));
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isApproving]);
+
+  if (activeDisruptionId && !activeResolution?.options?.length) {
+    return <LoadingSkeleton stage={agentStage} onDismiss={clearActiveDisruption} />;
+  }
+
+  if (!activeResolution?.options?.length) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="w-full max-w-5xl bg-gray-900 rounded-2xl border border-white/10 flex flex-col max-h-[90vh] overflow-hidden">
         <div className="flex items-start justify-between px-6 py-4 border-b border-white/5">
           <div className="flex flex-col gap-1"><div className="flex items-center gap-3"><h2 className="text-lg font-semibold text-white">Resolution Required</h2>{disruption && <SeverityBadge severity={disruption.severity} />}</div><p className="text-sm text-white/50">{disruption?.location || 'Disruption detected'} — {activeResolution.cascadeRisk} cascade risk</p></div>
-          <button onClick={clearActiveDisruption} className="text-white/30 hover:text-white/60 text-xl leading-none">×</button>
+          <button title="Esc" onClick={clearActiveDisruption} className="text-white/30 hover:text-white/60 text-xl leading-none flex items-center gap-1">×<span className="text-xs text-white/20 ml-1">[Esc]</span></button>
         </div>
         {activeResolution.analysisText && <div className="px-6 py-3 bg-red-950/20 border-b border-white/5"><p className="text-xs text-red-300/80 leading-relaxed">{activeResolution.analysisText}</p></div>}
         <div className="flex flex-col md:flex-row gap-4 p-6 overflow-y-auto">
           {activeResolution.options.map((option) => (
-            <OptionCard key={option.rank} option={option} onApprove={handleApprove} isApproving={isApproving} isSelected={approvedRank === option.rank} />
+            <OptionCard key={option.rank} option={option} onApprove={handleApprove} isApproving={isApproving} isSelected={approvedRank === option.rank} shortcutKey={option.rank} />
           ))}
         </div>
         <div className="px-6 py-3 border-t border-white/5 flex items-center justify-between"><p className="text-xs text-white/20">Trace ID: <span className="font-mono">{traceId}</span></p><p className="text-xs text-white/20">Urgency {activeResolution.urgency}/10</p></div>
