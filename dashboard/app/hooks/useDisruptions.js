@@ -6,15 +6,18 @@ import { db } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
 /**
- * Subscribes to the Firestore `disruptions` collection in real time.
- * Each new disruption document triggers addDisruption in the alert store,
- * which triggers the AlertToast and updates the activeDisruptionId.
+ * Subscribes to Firestore disruptions collection.
+ * Uses detectedAt (not receivedAt) — that is the field written by the disruption agent.
  */
 export function useDisruptions() {
   const { addDisruption } = useAlertStore();
 
   useEffect(() => {
-    const q = query(collection(db, 'disruptions'), orderBy('receivedAt', 'desc'), limit(20));
+    const q = query(
+      collection(db, 'disruptions'),
+      orderBy('detectedAt', 'desc'),
+      limit(20)
+    );
 
     const unsubscribe = onSnapshot(
       q,
