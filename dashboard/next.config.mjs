@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  webpack: (config) => {
+    config.module.unknownContextCritical = false;
+    return config;
+  },
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: 'unpkg.com' }],
+  },
 };
 
 export default nextConfig;
