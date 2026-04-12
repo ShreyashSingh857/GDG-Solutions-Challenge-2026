@@ -13,7 +13,11 @@
     "firebase-admin": "^12.0.0",
     "next": "16.2.2",
     "react": "19.2.4",
+    "react-globe.gl": "^2.27.0",
     "react-dom": "19.2.4",
+    "recharts": "^2.12.7",
+    "sonner": "^1.5.0",
+    "three": "^0.166.1",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
