@@ -1,10 +1,10 @@
+import 'dotenv/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('[Gemini] GEMINI_API_KEY is not set in environment variables');
+function getGenAI() {
+  if (!process.env.GEMINI_API_KEY) throw new Error('[Gemini] GEMINI_API_KEY is not set in environment variables');
+  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 }
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const MODEL_NAME = 'gemini-1.5-flash';
 
@@ -16,7 +16,7 @@ const MODEL_NAME = 'gemini-1.5-flash';
  */
 export async function generate(prompt, tools = []) {
   try {
-    const model = genAI.getGenerativeModel({
+    const model = getGenAI().getGenerativeModel({
       model: MODEL_NAME,
       ...(tools.length > 0 && { tools: [{ functionDeclarations: tools }] }),
     });
@@ -42,7 +42,7 @@ export async function generate(prompt, tools = []) {
  */
 export async function* generateStream(prompt, tools = []) {
   try {
-    const model = genAI.getGenerativeModel({
+    const model = getGenAI().getGenerativeModel({
       model: MODEL_NAME,
       ...(tools.length > 0 && { tools: [{ functionDeclarations: tools }] }),
     });

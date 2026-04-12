@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import EventSource from 'eventsource';
 
 const EVENT_BUS_URL = process.env.EVENT_BUS_URL || 'http://localhost:4000';
 
@@ -17,8 +18,8 @@ export async function publish(topic, agentPayload) {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(`EventBus publish failed: ${err.error}`);
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(`EventBus publish failed [${res.status}]: ${err.error}`);
     }
 
     console.log(`[EventBusClient] Published to ${topic} | traceId: ${agentPayload.traceId}`);
@@ -47,6 +48,7 @@ export function subscribe(topic, onMessage) {
   es.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
+      if (data.type === 'replay') return;
       onMessage(data);
     } catch (err) {
       console.error(`[EventBusClient] Failed to parse message from ${topic}:`, err.message);
@@ -54,7 +56,7 @@ export function subscribe(topic, onMessage) {
   };
 
   es.onerror = (err) => {
-    console.error(`[EventBusClient] SSE error on topic ${topic}:`, err);
+    console.error(`[EventBusClient] SSE connection error on topic: ${topic}. Will auto-reconnect.`);
   };
 
   es.onopen = () => {

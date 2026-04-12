@@ -1,19 +1,19 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import 'dotenv/config';
+import { lastEventAt } from './state.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
 
 const startTime = Date.now();
-let lastEventAt = null;
 
-import('./api/options.route.js').then((m) => {
-	if (typeof m.default === 'function') app.register(m.default);
-});
-import('./api/execute.route.js').then((m) => {
-	if (typeof m.default === 'function') app.register(m.default);
-});
+const { default: optionsRoute } = await import('./api/options.route.js');
+if (typeof optionsRoute === 'function') app.register(optionsRoute);
+const { default: executeRoute } = await import('./api/execute.route.js');
+if (typeof executeRoute === 'function') app.register(executeRoute);
+const { startResolutionSubscriber } = await import('./api/options.service.js');
+startResolutionSubscriber();
 
 app.get('/health', async (req, reply) => {
 	reply.send({
@@ -23,8 +23,6 @@ app.get('/health', async (req, reply) => {
 		lastEventAt,
 	});
 });
-
-export function setLastEventAt(ts) { lastEventAt = ts; }
 
 try {
 	await app.listen({ port: 3003, host: '0.0.0.0' });

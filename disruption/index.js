@@ -1,17 +1,15 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import 'dotenv/config';
+import { lastEventAt } from './state.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
 
 const startTime = Date.now();
-let lastEventAt = null;
 
-// Register routes
-import('./api/events.route.js').then((m) => {
-	if (typeof m.default === 'function') app.register(m.default);
-});
+const { default: eventsRoute } = await import('./api/events.route.js');
+if (typeof eventsRoute === 'function') app.register(eventsRoute);
 
 app.get('/health', async (req, reply) => {
 	reply.send({
@@ -21,9 +19,6 @@ app.get('/health', async (req, reply) => {
 		lastEventAt,
 	});
 });
-
-// Export lastEventAt setter so the service layer can update it
-export function setLastEventAt(ts) { lastEventAt = ts; }
 
 try {
 	await app.listen({ port: 3001, host: '0.0.0.0' });
