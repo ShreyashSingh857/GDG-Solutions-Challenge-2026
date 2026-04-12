@@ -25,6 +25,8 @@ export const useAlertStore = create((set, get) => ({
 
 	clearActiveDisruption: () => set({ activeDisruptionId: null, activeResolution: null }),
 
+	setActiveDisruptionId: (id) => set({ activeDisruptionId: id }),
+
 	markResolutionExecuted: (rank) =>
 		set((state) => {
 			if (!state.activeResolution) return {};
