@@ -1,6 +1,7 @@
 'use client';
 
 import CostTimeChart from './CostTimeChart.jsx';
+import FeedbackThumb from './FeedbackThumb.jsx';
 
 const CFG = {
   1: { label: '#1 Recommended', badge: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30', border: 'border-yellow-500/20', btn: 'bg-yellow-600 hover:bg-yellow-500 text-white' },
@@ -21,7 +22,10 @@ export default function OptionCard({ option, onApprove, isApproving, isSelected 
       <CostTimeChart costDelta={option.costDelta} timeDelta={option.timeDelta} />
       <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" /><span className="text-xs text-white/50">{option.supplierName}</span></div>
       {isSelected ? (
-        <div className="text-xs text-green-400 font-medium flex items-center gap-1.5 mt-auto pt-2 border-t border-white/5"><span>✓</span> Executed</div>
+        <div className="mt-auto pt-2 border-t border-white/5 text-xs text-green-400 font-medium flex items-center justify-between">
+          <span>Executed</span>
+          <FeedbackThumb traceId={option.traceId} rank={option.rank} />
+        </div>
       ) : (
         <button onClick={() => onApprove(option.rank)} disabled={isApproving} className={`mt-auto w-full py-2 px-4 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${c.btn}`}>
           {isApproving ? 'Executing...' : 'Approve & Execute'}
