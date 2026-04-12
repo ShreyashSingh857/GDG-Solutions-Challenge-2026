@@ -26,7 +26,7 @@ export function useShipments() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [setShipments]);
 
   return useShipmentStore((state) => state.shipments);
 }

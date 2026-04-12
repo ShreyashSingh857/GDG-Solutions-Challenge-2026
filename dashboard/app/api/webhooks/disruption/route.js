@@ -1,4 +1,4 @@
-import { db } from '../../../../../lib/firebase-admin.js'; // server-side admin import
+import { db } from '../../../../lib/firebase-admin.js'; // server-side admin import
 
 /**
  * POST /api/webhooks/disruption
