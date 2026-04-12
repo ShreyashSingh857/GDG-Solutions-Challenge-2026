@@ -1,5 +1,6 @@
 import { generate } from '../../shared/lib/gemini.js';
 import { db } from '../../shared/db/firebase.js';
+import { supabase } from '../../shared/db/supabase.js';
 import { publish, subscribe } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
 import { createAgentPayload } from '../../shared/types/AgentPayload.js';
@@ -25,6 +26,35 @@ export async function processDisruptionEvent(agentPayload) {
 	const impactReport = createImpactReport({ disruptionId: disruption.id, traceId, affectedShipments: scoredShipments, cascadeRisk: geminiResult.cascadeRisk || 'MEDIUM', urgency: geminiResult.urgency || disruption.severity, totalCargoAtRiskUSD, analysisText: geminiResult.analysisText || '' });
 	validateImpactReport(impactReport);
 	await db.collection('impactReports').doc(impactReport.id).set(impactReport);
+	const { error: irErr } = await supabase.from('impact_reports').upsert({
+		id: impactReport.id,
+		disruption_id: disruption.id,
+		trace_id: traceId,
+		cascade_risk: impactReport.cascadeRisk,
+		urgency: impactReport.urgency,
+		total_cargo_at_risk_usd: totalCargoAtRiskUSD,
+		analysis_text: impactReport.analysisText,
+		shipment_count: scoredShipments.length,
+	}, { onConflict: 'id' });
+	if (irErr) console.error('[ImpactService] Supabase impact_reports write failed (non-fatal):', irErr.message);
+	if (scoredShipments.length) {
+		const irsRows = scoredShipments.map((s) => ({
+			impact_report_id: impactReport.id,
+			shipment_id: s.id,
+			distance_km: s.distanceKm,
+			impact_score: s.impactScore,
+			cargo_value_usd: s.cargoValueUSD,
+			carrier: s.carrier,
+			origin: s.origin,
+			destination: s.destination,
+			corridor: s.corridor,
+			current_lat: s.currentLat,
+			current_lng: s.currentLng,
+			status_at_impact: 'active',
+		}));
+		const { error: irsErr } = await supabase.from('impact_report_shipments').upsert(irsRows, { onConflict: 'impact_report_id,shipment_id' });
+		if (irsErr) console.error('[ImpactService] Supabase impact_report_shipments write failed (non-fatal):', irsErr.message);
+	}
 	if (scoredShipments.length) { const batch = db.batch(); scoredShipments.forEach((s) => batch.update(db.collection('shipments').doc(s.id), { status: 'delayed', lastUpdated: new Date().toISOString(), disruptionId: disruption.id })); await batch.commit(); }
 	await publish(TOPICS.IMPACT_REPORTS, createAgentPayload('impact', impactReport, traceId));
 	setLastEventAt(new Date().toISOString());
