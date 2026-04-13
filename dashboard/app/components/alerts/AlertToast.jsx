@@ -44,7 +44,7 @@ export default function AlertToastController() {
           <button
             className="mt-1 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition-colors text-left"
             onClick={() => {
-              useAlertStore.getState().addDisruption(newest);
+              useAlertStore.getState().setActiveDisruptionId(newest.id || newest.traceId);
             }}
           >
             View Options →

@@ -9,6 +9,7 @@ import AlertToastController from './components/alerts/AlertToast.jsx';
 import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentChatSidebar from './components/agent/AgentChatSidebar.jsx';
 import DecisionModal from './components/decision/DecisionModal.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
   ssr: false,
@@ -25,13 +26,17 @@ export default function Home() {
       <Toaster position="bottom-right" theme="dark" />
       <AlertToastController />
       <DecisionModal />
-      <div className="relative flex-1 h-full">
-        <GlobeView />
-        <AgentStatusBadge />
-      </div>
-      <div className="w-[30%] min-w-[300px] max-w-[420px] h-full flex-shrink-0">
-        <AgentChatSidebar />
-      </div>
+      <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable — WebGL may not be supported</div>}>
+        <div className="relative flex-1 h-full">
+          <GlobeView />
+          <AgentStatusBadge />
+        </div>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="w-[30%] min-w-[300px] max-w-[420px] h-full flex-shrink-0">
+          <AgentChatSidebar />
+        </div>
+      </ErrorBoundary>
     </div>
   );
 }

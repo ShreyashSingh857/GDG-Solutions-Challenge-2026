@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useAlertStore } from '../../store/alertStore.js';
 
 const URL = process.env.NEXT_PUBLIC_RESOLUTION_AGENT_URL || 'http://localhost:3003';
@@ -69,12 +72,26 @@ export default function AgentChatSidebar() {
         {isStreaming ? <span className="text-xs text-purple-300">Thinking...</span> : current?.complete ? <span className="text-xs text-green-400">Complete ✓</span> : null}
       </div>
       {activeDisruption && <div className="px-4 py-2 border-b border-white/5 bg-red-950/20"><p className="text-xs text-red-300">{activeDisruption.type} — {activeDisruption.location}</p></div>}
-      <div className="flex-1 overflow-y-auto px-4 py-3 font-mono text-xs text-white/70 whitespace-pre-wrap">
-        {current ? (current.text || 'Waiting for Gemini response...') : 'Inject a disruption scenario to see AI reasoning'}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 font-mono text-xs text-white/70 whitespace-pre-wrap">
+        {current ? (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current.traceId}
+              initial={{ x: 16, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -8, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="prose prose-invert prose-xs max-w-none prose-headings:text-white/90 prose-p:text-white/60 prose-code:bg-blue-900/40 prose-code:text-blue-300 custom-scrollbar">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{current?.text || ''}</ReactMarkdown>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        ) : 'Inject a disruption scenario to see AI reasoning'}
         {isStreaming && <span className="inline-block w-1.5 h-3 bg-purple-400 ml-1 animate-pulse" />}
         <div ref={bottomRef} />
       </div>
-      {chains.length > 1 && <div className="px-4 py-2 border-t border-white/5 flex gap-2 overflow-x-auto">{chains.slice(1).map((c) => <button key={c.traceId} onClick={() => setChains((p) => [c, ...p.filter((x) => x.traceId !== c.traceId)])} className="text-xs bg-white/5 border border-white/10 rounded px-2 py-1 text-white/40 font-mono">#{c.traceId.slice(-6)}{c.complete ? ' ✓' : ' ...'}</button>)}</div>}
+      {chains.length > 1 && <div className="px-4 py-2 border-t border-white/5 flex gap-2 overflow-x-auto">{chains.slice(1).map((c) => <button key={c.traceId} onClick={() => setChains((p) => [c, ...p.filter((x) => x.traceId !== c.traceId)])} className="text-xs bg-white/5 border border-white/10 rounded px-2 py-1 text-white/40 font-mono min-h-[36px]">#{c.traceId.slice(-6)} {String(c.text || '').slice(0, 20)}...{c.complete ? ' ✓' : ' ...'}</button>)}</div>}
     </div>
   );
 }

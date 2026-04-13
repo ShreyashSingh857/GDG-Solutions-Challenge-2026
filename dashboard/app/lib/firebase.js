@@ -1,7 +1,7 @@
 'use client';
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -16,5 +16,15 @@ const firebaseConfig = {
 // Prevent re-initialization on hot reloads in Next.js dev mode
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-export const db = getFirestore(app);
+let db;
+try {
+  db = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+    useFetchStreams: false,
+  });
+} catch {
+  db = getFirestore(app);
+}
+
+export { db };
 export const auth = getAuth(app);

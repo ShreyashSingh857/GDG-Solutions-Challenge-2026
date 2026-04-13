@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 
 const STATUS_FILTERS = ['all', 'active', 'delayed', 'rerouted'];
@@ -12,6 +12,7 @@ const STATUS_FILTERS = ['all', 'active', 'delayed', 'rerouted'];
  */
 export default function GlobeControls({ onFilterChange }) {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [injecting, setInjecting] = useState(null);
   const shipments = useShipmentStore((s) => s.shipments);
 
   const counts = {
@@ -24,6 +25,33 @@ export default function GlobeControls({ onFilterChange }) {
     setActiveFilter(filter);
     onFilterChange(filter);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const keyMap = { 'a': 'all', 'v': 'active', 'd': 'delayed', 'r': 'rerouted' };
+      const filter = keyMap[e.key.toLowerCase()];
+      if (filter) {
+        setActiveFilter(filter);
+        onFilterChange(filter);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onFilterChange]);
+
+  async function injectScenario(name) {
+    setInjecting(name);
+    try {
+      await fetch('/api/webhooks/disruption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario: name.toLowerCase().replace(/ /g, '_') }),
+      });
+    } finally {
+      setInjecting(null);
+    }
+  }
 
   const filterColors = {
     all: 'border-white/30 text-white/70 hover:border-white/60',
@@ -52,7 +80,7 @@ export default function GlobeControls({ onFilterChange }) {
                 activeFilter === filter ? activeColors[filter] : filterColors[filter]
               }`}
             >
-              {filter === 'all' ? `All (${shipments.length})` : `${filter} (${counts[filter]})`}
+              {filter === 'all' ? `All [A] (${shipments.length})` : filter === 'active' ? `Active [V] (${counts[filter]})` : filter === 'delayed' ? `Delayed [D] (${counts[filter]})` : `Rerouted [R] (${counts[filter]})`}
             </button>
           ))}
         </div>
@@ -63,11 +91,11 @@ export default function GlobeControls({ onFilterChange }) {
         {['Pacific Storm', 'Port Strike', 'Suez Closure'].map((name) => (
           <button
             key={name}
-            disabled
-            title="Use CLI: npm run inject:pacific"
-            className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-white/30 cursor-not-allowed"
+            onClick={() => injectScenario(name)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-white/80 hover:border-white/30 transition flex items-center justify-center gap-2"
           >
-            {name}
+            {injecting === name ? <span className="w-3 h-3 rounded-full border-2 border-white/60 border-t-transparent animate-spin" /> : null}
+            <span>{name}</span>
           </button>
         ))}
       </div>
