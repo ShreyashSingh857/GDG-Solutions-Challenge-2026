@@ -41,7 +41,7 @@ function getLineMaterial(status, colorCss) {
 }
 
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
   useGlobeCamera(vRef);
@@ -78,7 +78,7 @@ export default function GlobeView() {
         setT({ x: m.endPosition.x, y: m.endPosition.y, label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
       });
     }, ScreenSpaceEventType.MOUSE_MOVE);
-    return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
+    return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
   }, [setZoomLevelDebounced]);
 
   const ss = useMemo(() => (f === 'all' ? s : s.filter((x) => x.status === f)), [f, s]);
@@ -168,14 +168,12 @@ export default function GlobeView() {
 
     disruptions.forEach((d) => {
       if (!d.epicenterLat || !d.epicenterLng || disruptionEntitiesRef.current.has(d.id)) return;
-      viewer.clock.shouldAnimate = true;
-      const startTime = viewer.clock.currentTime;
       const entity = viewer.entities.add({
         id: `disruption-${d.id}`,
         position: Cartesian3.fromDegrees(d.epicenterLng, d.epicenterLat),
         ellipse: {
-          semiMajorAxis: new CallbackProperty((t) => 50000 + (JulianDate.secondsDifference(t, startTime) % 3) * 83333, false),
-          semiMinorAxis: new CallbackProperty((t) => 50000 + (JulianDate.secondsDifference(t, startTime) % 3) * 83333, false),
+          semiMajorAxis: 250000,
+          semiMinorAxis: 250000,
           material: Color.fromCssColorString('#EF4444').withAlpha(0.25),
           outline: true,
           outlineColor: Color.fromCssColorString('#EF4444'),
@@ -186,7 +184,26 @@ export default function GlobeView() {
       disruptionEntitiesRef.current.set(d.id, entity);
     });
 
-    viewer.scene.requestRender();
+    const pulseLoop = () => {
+      const t = Date.now() / 1000;
+      const radius = 80000 + Math.sin(t * 2.0) * 60000;
+      for (const entity of disruptionEntitiesRef.current.values()) {
+        entity.ellipse.semiMajorAxis = radius;
+        entity.ellipse.semiMinorAxis = radius;
+      }
+      vRef.current?.scene.requestRender();
+      pulseRafRef.current = requestAnimationFrame(pulseLoop);
+    };
+    if (disruptionEntitiesRef.current.size > 0 && !pulseRafRef.current) {
+      pulseRafRef.current = requestAnimationFrame(pulseLoop);
+    }
+
+    return () => {
+      if (pulseRafRef.current) {
+        cancelAnimationFrame(pulseRafRef.current);
+        pulseRafRef.current = null;
+      }
+    };
   }, [disruptions]);
 
   return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" /><AnimatePresence>{t && <motion.div key={`${t.label}-${t.x}-${t.y}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed z-20 bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white" style={{ left: Math.min(t.x + 12, window.innerWidth - 180), top: t.y - 40 }}><p className="font-medium">{t.label}</p><p className="text-white/60 capitalize">{t.kind} • {t.status}</p></motion.div>}</AnimatePresence><div className="absolute bottom-4 right-4 z-10 bg-black/50 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex gap-4 text-xs text-white/80"><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 10px #22c55e' }} /><span>{s.filter((x) => x.status === 'active').length} active</span></div><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#ef4444', boxShadow: '0 0 10px #ef4444' }} /><span>{s.filter((x) => x.status === 'delayed').length} delayed</span></div><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#60a5fa', boxShadow: '0 0 10px #60a5fa' }} /><span>{s.filter((x) => x.status === 'rerouted').length} rerouted</span></div></div></div>;
