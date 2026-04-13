@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
+import { shallow } from 'zustand/shallow';
 import {
   ArcType,
   Cartesian2,
@@ -41,9 +42,9 @@ function getLineMaterial(status, colorCss) {
 }
 
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
-  const s = useShipmentStore((x) => x.shipments); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
+  const s = useShipmentStore((x) => x.shipments, shallow); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
   useGlobeCamera(vRef);
 
   useEffect(() => {
@@ -81,6 +82,29 @@ export default function GlobeView() {
       const ds = new CustomDataSource('shipments');
       v.dataSources.add(ds);
       vRef.current = v; dsRef.current = ds;
+      function startAutoRotate() {
+        if (isRotatingRef.current) return;
+        isRotatingRef.current = true;
+        function rotateFrame() {
+          if (!isRotatingRef.current || !vRef.current) return;
+          vRef.current.camera.rotate(Cartesian3.UNIT_Z, -0.0003);
+          vRef.current.scene.requestRender();
+          autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
+        }
+        autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
+      }
+      function stopAutoRotate() {
+        isRotatingRef.current = false;
+        if (autoRotateRafRef.current) cancelAnimationFrame(autoRotateRafRef.current);
+      }
+      function resetIdleTimer() {
+        stopAutoRotate();
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = setTimeout(startAutoRotate, 10000);
+      }
+      v.scene.canvas.addEventListener("mousedown", resetIdleTimer);
+      v.scene.canvas.addEventListener("touchstart", resetIdleTimer);
+      resetIdleTimer();
       const onCam = () => {
         const h = v.camera.positionCartographic.height / 10000000;
         const next = h < 1.95 ? 'state' : h < 2.3 ? 'city' : 'far';
@@ -107,7 +131,7 @@ export default function GlobeView() {
           setT({ label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
         });
       }, ScreenSpaceEventType.MOUSE_MOVE);
-      return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
+      return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); stopAutoRotate(); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
     })();
   }, [setZoomLevelDebounced]);
 
@@ -169,7 +193,23 @@ export default function GlobeView() {
     if (zoomLevel !== 'far') {
       CITIES.forEach(([name, lat, lng]) => {
         const id = `city-${name}`;
-        entities.add({ id, position: Cartesian3.fromDegrees(lng, lat), point: { pixelSize: 5, color: Color.fromCssColorString('#e2e8f0') }, properties: { kind: 'city', label: name, status: 'city' } });
+        entities.add({ 
+          id, 
+          position: Cartesian3.fromDegrees(lng, lat), 
+          point: { pixelSize: 5, color: Color.fromCssColorString('#e2e8f0') }, 
+          label: {
+            text: name,
+            font: "12px Arial",
+            style: LabelStyle.FILL_AND_OUTLINE,
+            fillColor: Color.WHITE,
+            outlineColor: Color.BLACK,
+            outlineWidth: 2,
+            pixelOffset: new Cartesian2(0, -14),
+            translucencyByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.0),
+            scaleByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.5),
+          },
+          properties: { kind: 'city', label: name, status: 'city' } 
+        });
         zoomEntityIdsRef.current.add(id);
       });
     }
@@ -236,5 +276,5 @@ export default function GlobeView() {
     };
   }, [disruptions]);
 
-  return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" /><div ref={tooltipRef} style={{ position: "fixed", top: 0, left: 0, transform: "translate(-9999px, -9999px)", zIndex: 20, pointerEvents: "none", transition: "none" }} className={`bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white ${t ? 'visible' : 'invisible'}`}><p className="font-medium">{t?.label || ''}</p><p className="text-white/60 capitalize">{t?.kind || ''} • {t?.status || ''}</p></div><div className="absolute bottom-4 right-4 z-10 bg-black/50 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex gap-4 text-xs text-white/80"><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 10px #22c55e' }} /><span>{s.filter((x) => x.status === 'active').length} active</span></div><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#ef4444', boxShadow: '0 0 10px #ef4444' }} /><span>{s.filter((x) => x.status === 'delayed').length} delayed</span></div><div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#60a5fa', boxShadow: '0 0 10px #60a5fa' }} /><span>{s.filter((x) => x.status === 'rerouted').length} rerouted</span></div></div></div>;
+  return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" /><div ref={tooltipRef} style={{ position: "fixed", top: 0, left: 0, transform: "translate(-9999px, -9999px)", zIndex: 20, pointerEvents: "none", transition: "none" }} className={`bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white ${t ? 'visible' : 'invisible'}`}><p className="font-medium">{t?.label || ''}</p><p className="text-white/60 capitalize">{t?.kind || ''} • {t?.status || ''}</p></div></div>;
 }
