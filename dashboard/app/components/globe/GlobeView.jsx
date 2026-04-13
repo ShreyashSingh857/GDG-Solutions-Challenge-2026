@@ -17,13 +17,12 @@ import {
   IonWorldImageryStyle,
   LabelStyle,
   NearFarScalar,
+  OpenStreetMapImageryProvider,
   PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  TileMapServiceImageryProvider,
   Viewer,
-  buildModuleUrl,
   createWorldTerrainAsync,
 } from 'cesium';
 import { useShipmentStore } from '../../store/shipmentStore.js';
@@ -56,29 +55,26 @@ export default function GlobeView() {
         if (ionToken) Ion.defaultAccessToken = ionToken;
         
         v = new Viewer(cRef.current, { 
-          animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, 
+          animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: false, 
           terrainProvider: ionToken
             ? await createWorldTerrainAsync({ requestVertexNormals: true, requestWaterMask: true })
             : new EllipsoidTerrainProvider(),
           baseLayer: ionToken
             ? ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS })
-            : ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(buildModuleUrl('Assets/Textures/NaturalEarthII')))
+            : new ImageryLayer(new OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/', maximumLevel: 19, credit: 'OSM' }))
         });
       } catch (err) {
         console.error('[GlobeView] Failed to initialize Cesium Viewer:', err);
         return;
       }
-      const scene = v.scene; const globe = scene.globe; v.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5); scene.fxaa = true; globe.enableLighting = true; globe.dynamicAtmosphereLighting = true; globe.dynamicAtmosphereLightingFromSun = true; globe.showGroundAtmosphere = true; globe.atmosphereLightIntensity = 3.0; globe.tileCacheSize = 200; globe.baseColor = Color.fromCssColorString('#020B18'); scene.skyAtmosphere.show = true; scene.skyAtmosphere.perFragmentAtmosphere = true; scene.skyAtmosphere.atmosphereLightIntensity = 5.0; scene.skyBox.show = true; scene.sun.show = true; scene.moon.show = false; scene.fog.enabled = false; scene.fog.minimumBrightness = 0.0; v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
-      scene.screenSpaceCameraController.minimumZoomDistance = 1000000;
-      scene.screenSpaceCameraController.inertiaSpin = 0.9;
-      scene.screenSpaceCameraController.inertiaTranslate = 0.9;
-      const bloom = scene.postProcessStages.bloom;
-      bloom.enabled = true;
-      bloom.uniforms.contrast = 128;
-      bloom.uniforms.brightness = -0.3;
-      bloom.uniforms.delta = 1.0;
-      bloom.uniforms.sigma = 3.78;
-      bloom.uniforms.stepSize = 1.0;
+      const scene = v.scene; const globe = scene.globe; v.resolutionScale = Math.min(window.devicePixelRatio || 1, 2.0); scene.fxaa = true; scene.highDynamicRange = true; if (scene.context.msaaSupported) { scene.msaaSamples = 4; } globe.enableLighting = true; globe.dynamicAtmosphereLighting = true; globe.dynamicAtmosphereLightingFromSun = true; globe.showGroundAtmosphere = true; globe.atmosphereLightIntensity = 2.0; globe.tileCacheSize = 1000; globe.maximumScreenSpaceError = 1.0; globe.preloadAncestors = true; globe.preloadSiblings = true; globe.loadingDescendantLimit = 20; globe.depthTestAgainstTerrain = true; globe.baseColor = Color.fromCssColorString('#020B18'); scene.skyAtmosphere.show = true; scene.skyAtmosphere.perFragmentAtmosphere = true; scene.skyAtmosphere.atmosphereLightIntensity = 5.0; scene.skyBox.show = true; scene.sun.show = true; scene.moon.show = false; scene.fog.enabled = true; scene.fog.density = 0.0002; scene.fog.minimumBrightness = 0.03; v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
+      scene.screenSpaceCameraController.minimumZoomDistance = 200; scene.screenSpaceCameraController.maximumZoomDistance = 25000000;
+      scene.screenSpaceCameraController.inertiaSpin = 0.5;
+      scene.screenSpaceCameraController.inertiaTranslate = 0.5;
+      scene.screenSpaceCameraController.inertiaZoom = 0.5;
+      scene.screenSpaceCameraController.enableCollisionDetection = true;
+      // Bloom disabled: post-process blur degrades satellite tile clarity at zoom
+      scene.postProcessStages.bloom.enabled = false;
       const ds = new CustomDataSource('shipments');
       v.dataSources.add(ds);
       vRef.current = v; dsRef.current = ds;
@@ -106,8 +102,8 @@ export default function GlobeView() {
       v.scene.canvas.addEventListener("touchstart", resetIdleTimer);
       resetIdleTimer();
       const onCam = () => {
-        const h = v.camera.positionCartographic.height / 10000000;
-        const next = h < 1.95 ? 'state' : h < 2.3 ? 'city' : 'far';
+        const altM = v.camera.positionCartographic.height;
+        const next = altM < 500000 ? 'state' : altM < 2000000 ? 'city' : 'far';
         if (next !== zoomRef.current) {
           zoomRef.current = next;
           setZoomLevelDebounced(next);
@@ -162,7 +158,7 @@ export default function GlobeView() {
 
       if (!entityMap.has(x.id)) {
         const point = entities.add({ position: Cartesian3.fromDegrees(x.currentLng, x.currentLat), point: { pixelSize: pointSize, color: Color.fromCssColorString(C[x.status] || C.active), outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` } });
-        const line = entities.add({ polyline: { positions, width: lineWidth, material: Color.fromCssColorString(colorCss), arcType: ArcType.GEODESIC }, properties: { kind: 'route', status: x.status, label: x.status === 'rerouted' ? 'Rerouted Segment' : 'Route Segment' } });
+        const line = entities.add({ polyline: { positions, width: lineWidth, material: Color.fromCssColorString(colorCss), arcType: ArcType.GEODESIC, clampToGround: false }, properties: { kind: 'route', status: x.status, label: x.status === 'rerouted' ? 'Rerouted Segment' : 'Route Segment' } });
         entityMap.set(x.id, { point, line });
       } else {
         const refs = entityMap.get(x.id);
@@ -199,7 +195,7 @@ export default function GlobeView() {
           point: { pixelSize: 5, color: Color.fromCssColorString('#e2e8f0') }, 
           label: {
             text: name,
-            font: "12px Arial",
+            font: "bold 14px sans-serif",
             style: LabelStyle.FILL_AND_OUTLINE,
             fillColor: Color.WHITE,
             outlineColor: Color.BLACK,
@@ -207,6 +203,7 @@ export default function GlobeView() {
             pixelOffset: new Cartesian2(0, -14),
             translucencyByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.0),
             scaleByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.5),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           properties: { kind: 'city', label: name, status: 'city' } 
         });
