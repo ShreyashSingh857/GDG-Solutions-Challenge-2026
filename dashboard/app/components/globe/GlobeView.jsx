@@ -12,6 +12,8 @@ import {
   DistanceDisplayCondition,
   HeightReference,
   ImageryLayer,
+  Ion,
+  IonWorldImageryStyle,
   LabelStyle,
   NearFarScalar,
   PolylineDashMaterialProperty,
@@ -21,6 +23,7 @@ import {
   TileMapServiceImageryProvider,
   Viewer,
   buildModuleUrl,
+  createWorldTerrainAsync,
 } from 'cesium';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 import { useAlertStore } from '../../store/alertStore.js';
@@ -46,43 +49,66 @@ export default function GlobeView() {
   useEffect(() => {
     if (!cRef.current || vRef.current) return;
     let v;
-    try {
-      v = new Viewer(cRef.current, { animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, terrainProvider: new EllipsoidTerrainProvider(), baseLayer: ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(buildModuleUrl('Assets/Textures/NaturalEarthII'))) });
-    } catch (err) {
-      console.error('[GlobeView] Failed to initialize Cesium Viewer:', err);
-      return;
-    }
-    const scene = v.scene; const globe = scene.globe; v.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5); scene.fxaa = true; globe.enableLighting = true; globe.dynamicAtmosphereLighting = true; globe.dynamicAtmosphereLightingFromSun = true; globe.showGroundAtmosphere = true; globe.atmosphereLightIntensity = 10.0; globe.tileCacheSize = 50; globe.baseColor = Color.fromCssColorString('#020B18'); scene.skyAtmosphere.show = true; scene.skyAtmosphere.perFragmentAtmosphere = true; scene.skyAtmosphere.atmosphereLightIntensity = 20.0; scene.skyBox.show = true; scene.sun.show = true; scene.moon.show = false; scene.fog.enabled = true; scene.fog.density = 0.0002; scene.fog.minimumBrightness = 0.0; v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
-    const ds = new CustomDataSource('shipments');
-    v.dataSources.add(ds);
-    vRef.current = v; dsRef.current = ds;
-    const onCam = () => {
-      const h = v.camera.positionCartographic.height / 10000000;
-      const next = h < 1.95 ? 'state' : h < 2.3 ? 'city' : 'far';
-      if (next !== zoomRef.current) {
-        zoomRef.current = next;
-        setZoomLevelDebounced(next);
+    (async () => {
+      try {
+        const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
+        if (ionToken) Ion.defaultAccessToken = ionToken;
+        
+        v = new Viewer(cRef.current, { 
+          animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, 
+          terrainProvider: ionToken
+            ? await createWorldTerrainAsync({ requestVertexNormals: true, requestWaterMask: true })
+            : new EllipsoidTerrainProvider(),
+          baseLayer: ionToken
+            ? ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS })
+            : ImageryLayer.fromProviderAsync(TileMapServiceImageryProvider.fromUrl(buildModuleUrl('Assets/Textures/NaturalEarthII')))
+        });
+      } catch (err) {
+        console.error('[GlobeView] Failed to initialize Cesium Viewer:', err);
+        return;
       }
-    };
-    v.camera.changed.addEventListener(onCam);
-    const events = new ScreenSpaceEventHandler(v.scene.canvas);
-    events.setInputAction((m) => {
-      if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
-      hoverRafRef.current = requestAnimationFrame(() => {
-        const p = v.scene.pick(m.endPosition);
-        const pr = p?.id?.properties;
-        if (!pr) {
-          setT(null);
-          if (tooltipRef.current) tooltipRef.current.style.transform = 'translate(-9999px, -9999px)';
-          return;
+      const scene = v.scene; const globe = scene.globe; v.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5); scene.fxaa = true; globe.enableLighting = true; globe.dynamicAtmosphereLighting = true; globe.dynamicAtmosphereLightingFromSun = true; globe.showGroundAtmosphere = true; globe.atmosphereLightIntensity = 3.0; globe.tileCacheSize = 200; globe.baseColor = Color.fromCssColorString('#020B18'); scene.skyAtmosphere.show = true; scene.skyAtmosphere.perFragmentAtmosphere = true; scene.skyAtmosphere.atmosphereLightIntensity = 5.0; scene.skyBox.show = true; scene.sun.show = true; scene.moon.show = false; scene.fog.enabled = false; scene.fog.minimumBrightness = 0.0; v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
+      scene.screenSpaceCameraController.minimumZoomDistance = 1000000;
+      scene.screenSpaceCameraController.inertiaSpin = 0.9;
+      scene.screenSpaceCameraController.inertiaTranslate = 0.9;
+      const bloom = scene.postProcessStages.bloom;
+      bloom.enabled = true;
+      bloom.uniforms.contrast = 128;
+      bloom.uniforms.brightness = -0.3;
+      bloom.uniforms.delta = 1.0;
+      bloom.uniforms.sigma = 3.78;
+      bloom.uniforms.stepSize = 1.0;
+      const ds = new CustomDataSource('shipments');
+      v.dataSources.add(ds);
+      vRef.current = v; dsRef.current = ds;
+      const onCam = () => {
+        const h = v.camera.positionCartographic.height / 10000000;
+        const next = h < 1.95 ? 'state' : h < 2.3 ? 'city' : 'far';
+        if (next !== zoomRef.current) {
+          zoomRef.current = next;
+          setZoomLevelDebounced(next);
         }
-        const x = Math.min(m.endPosition.x + 12, window.innerWidth - 200);
-        const y = Math.max(m.endPosition.y - 40, 8);
-        if (tooltipRef.current) tooltipRef.current.style.transform = `translate(${x}px, ${y}px)`;
-        setT({ label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
-      });
-    }, ScreenSpaceEventType.MOUSE_MOVE);
-    return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
+      };
+      v.camera.changed.addEventListener(onCam);
+      const events = new ScreenSpaceEventHandler(v.scene.canvas);
+      events.setInputAction((m) => {
+        if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
+        hoverRafRef.current = requestAnimationFrame(() => {
+          const p = v.scene.pick(m.endPosition);
+          const pr = p?.id?.properties;
+          if (!pr) {
+            setT(null);
+            if (tooltipRef.current) tooltipRef.current.style.transform = 'translate(-9999px, -9999px)';
+            return;
+          }
+          const x = Math.min(m.endPosition.x + 12, window.innerWidth - 200);
+          const y = Math.max(m.endPosition.y - 40, 8);
+          if (tooltipRef.current) tooltipRef.current.style.transform = `translate(${x}px, ${y}px)`;
+          setT({ label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
+        });
+      }, ScreenSpaceEventType.MOUSE_MOVE);
+      return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
+    })();
   }, [setZoomLevelDebounced]);
 
   const ss = useMemo(() => (f === 'all' ? s : s.filter((x) => x.status === f)), [f, s]);
