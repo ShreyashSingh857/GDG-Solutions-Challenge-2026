@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 
 const STATUS_FILTERS = ['all', 'active', 'delayed', 'rerouted'];
@@ -25,6 +25,20 @@ export default function GlobeControls({ onFilterChange }) {
     setActiveFilter(filter);
     onFilterChange(filter);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const keyMap = { 'a': 'all', 'v': 'active', 'd': 'delayed', 'r': 'rerouted' };
+      const filter = keyMap[e.key.toLowerCase()];
+      if (filter) {
+        setActiveFilter(filter);
+        onFilterChange(filter);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onFilterChange]);
 
   async function injectScenario(name) {
     setInjecting(name);
@@ -66,7 +80,7 @@ export default function GlobeControls({ onFilterChange }) {
                 activeFilter === filter ? activeColors[filter] : filterColors[filter]
               }`}
             >
-              {filter === 'all' ? `All (${shipments.length})` : `${filter} (${counts[filter]})`}
+              {filter === 'all' ? `All [A] (${shipments.length})` : filter === 'active' ? `Active [V] (${counts[filter]})` : filter === 'delayed' ? `Delayed [D] (${counts[filter]})` : `Rerouted [R] (${counts[filter]})`}
             </button>
           ))}
         </div>
