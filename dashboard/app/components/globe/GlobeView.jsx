@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { shallow } from 'zustand/shallow';
 import {
@@ -41,10 +41,43 @@ function getLineMaterial(status, colorCss) {
 }
 
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
   useGlobeCamera(vRef);
+
+  const startAutoRotate = useCallback(() => {
+    if (isRotatingRef.current) return;
+    isRotatingRef.current = true;
+    function rotateFrame() {
+      if (!isRotatingRef.current || !vRef.current) return;
+      const alt = vRef.current.camera.positionCartographic.height;
+      let speed = 0;
+      if (alt > 5_000_000) speed = -0.0003;
+      else if (alt > 500_000) speed = -0.00005;
+      if (speed !== 0) {
+        vRef.current.camera.rotate(Cartesian3.UNIT_Z, speed);
+        vRef.current.scene.requestRender();
+      }
+      autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
+    }
+    autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
+  }, []);
+
+  const stopAutoRotate = useCallback(() => {
+    isRotatingRef.current = false;
+    if (autoRotateRafRef.current) cancelAnimationFrame(autoRotateRafRef.current);
+  }, []);
+
+  const resetIdleTimer = useCallback(() => {
+    stopAutoRotate();
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(startAutoRotate, 10000);
+  }, [startAutoRotate, stopAutoRotate]);
+
+  useEffect(() => {
+    resetIdleTimerRef.current = resetIdleTimer;
+  }, [resetIdleTimer]);
 
   useEffect(() => {
     if (!cRef.current || vRef.current) return;
@@ -78,32 +111,6 @@ export default function GlobeView() {
       const ds = new CustomDataSource('shipments');
       v.dataSources.add(ds);
       vRef.current = v; dsRef.current = ds;
-      function startAutoRotate() {
-        if (isRotatingRef.current) return;
-        isRotatingRef.current = true;
-        function rotateFrame() {
-          if (!isRotatingRef.current || !vRef.current) return;
-          const alt = vRef.current.camera.positionCartographic.height;
-          let speed = 0;
-          if (alt > 5_000_000) speed = -0.0003;
-          else if (alt > 500_000) speed = -0.00005;
-          if (speed !== 0) {
-            vRef.current.camera.rotate(Cartesian3.UNIT_Z, speed);
-            vRef.current.scene.requestRender();
-          }
-          autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
-        }
-        autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
-      }
-      function stopAutoRotate() {
-        isRotatingRef.current = false;
-        if (autoRotateRafRef.current) cancelAnimationFrame(autoRotateRafRef.current);
-      }
-      function resetIdleTimer() {
-        stopAutoRotate();
-        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-        idleTimerRef.current = setTimeout(startAutoRotate, 10000);
-      }
       v.scene.canvas.addEventListener("mousedown", resetIdleTimer);
       v.scene.canvas.addEventListener("touchstart", resetIdleTimer);
       resetIdleTimer();
@@ -135,7 +142,25 @@ export default function GlobeView() {
       }, ScreenSpaceEventType.MOUSE_MOVE);
       return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); stopAutoRotate(); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
     })();
-  }, [setZoomLevelDebounced]);
+  }, [resetIdleTimer, setZoomLevelDebounced, stopAutoRotate]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (!vRef.current) return;
+      if (document.hidden) {
+        isRotatingRef.current = false;
+        if (autoRotateRafRef.current) cancelAnimationFrame(autoRotateRafRef.current);
+        if (pulseRafRef.current) {
+          cancelAnimationFrame(pulseRafRef.current);
+          pulseRafRef.current = null;
+        }
+      } else {
+        if (vRef.current) resetIdleTimerRef.current?.();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
 
   const ss = useMemo(() => (f === 'all' ? s : s.filter((x) => x.status === f)), [f, s]);
   useEffect(() => {

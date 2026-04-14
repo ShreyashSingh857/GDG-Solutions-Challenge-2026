@@ -30,3 +30,32 @@ body {
   background: rgba(255,255,255,0.1);
   border-radius: 4px;
 }
+
+.sidebar {
+  transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+  overflow: hidden;
+}
+
+.sidebar.expanded  { width: 420px; min-width: 300px; }
+.sidebar.collapsed { width: 48px;  min-width: 48px;  }
+
+.sidebar-panel {
+  width: 420px;
+  min-width: 300px;
+  height: 100%;
+  transition: opacity 180ms ease, transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(0);
+}
+
+.sidebar.collapsed .sidebar-panel {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(12px);
+}
+
+.sidebar.expanded .sidebar-panel {
+  opacity: 1;
+  pointer-events: auto;
+}

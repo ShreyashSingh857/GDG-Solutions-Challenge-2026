@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Toaster } from 'sonner';
 import { useShipments } from './hooks/useShipments.js';
 import { useDisruptions } from './hooks/useDisruptions.js';
 import { useResolutions } from './hooks/useResolutions.js';
+import { useAlertStore } from './store/alertStore.js';
 import AlertToastController from './components/alerts/AlertToast.jsx';
 import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentChatSidebar from './components/agent/AgentChatSidebar.jsx';
@@ -17,6 +19,16 @@ const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
 });
 
 export default function Home() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const unsub = useAlertStore.subscribe(
+      (s) => s.activeDisruptionId,
+      (id) => { if (id) setSidebarOpen(true); }
+    );
+    return unsub;
+  }, []);
+
   useShipments();
   useDisruptions();
   useResolutions();
@@ -33,8 +45,19 @@ export default function Home() {
         </div>
       </ErrorBoundary>
       <ErrorBoundary>
-        <div className="w-[30%] min-w-[300px] max-w-[420px] h-full flex-shrink-0">
-          <AgentChatSidebar />
+        <div className={`sidebar ${sidebarOpen ? 'expanded' : 'collapsed'} h-full flex-shrink-0 relative`}>
+          <button
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white/50" fill="none" stroke="currentColor" strokeWidth="2">
+              {sidebarOpen ? <path d="M13 18l6-6-6-6" /> : <path d="M11 6l-6 6 6 6" />}
+            </svg>
+          </button>
+          <div className="sidebar-panel">
+            <AgentChatSidebar />
+          </div>
         </div>
       </ErrorBoundary>
     </div>
