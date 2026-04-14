@@ -83,8 +83,14 @@ export default function GlobeView() {
         isRotatingRef.current = true;
         function rotateFrame() {
           if (!isRotatingRef.current || !vRef.current) return;
-          vRef.current.camera.rotate(Cartesian3.UNIT_Z, -0.0003);
-          vRef.current.scene.requestRender();
+          const alt = vRef.current.camera.positionCartographic.height;
+          let speed = 0;
+          if (alt > 5_000_000) speed = -0.0003;
+          else if (alt > 500_000) speed = -0.00005;
+          if (speed !== 0) {
+            vRef.current.camera.rotate(Cartesian3.UNIT_Z, speed);
+            vRef.current.scene.requestRender();
+          }
           autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
         }
         autoRotateRafRef.current = requestAnimationFrame(rotateFrame);
