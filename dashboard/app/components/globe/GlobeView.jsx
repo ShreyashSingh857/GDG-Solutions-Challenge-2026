@@ -19,7 +19,6 @@ import {
   NearFarScalar,
   OpenStreetMapImageryProvider,
   PolylineDashMaterialProperty,
-  PolylineGlowMaterialProperty,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Viewer,
@@ -27,6 +26,7 @@ import {
 } from 'cesium';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 import { useAlertStore } from '../../store/alertStore.js';
+import { generateArcPositions } from '../../lib/arcGeometry.js';
 import GlobeControls from './GlobeControls.jsx';
 import { useGlobeCamera } from './useGlobeCamera.js';
 
@@ -34,32 +34,22 @@ const C = { active: '#22c55e', delayed: '#ef4444', rerouted: '#3b82f6', disrupte
 const CITIES = [['Shanghai', 31.2304, 121.4737], ['Singapore', 1.3521, 103.8198], ['Los Angeles', 34.0522, -118.2437], ['Rotterdam', 51.9244, 4.4777], ['Dubai', 25.2048, 55.2708], ['Mumbai', 19.076, 72.8777], ['Hong Kong', 22.3193, 114.1694], ['New York', 40.7128, -74.006]];
 const STATES = [['California', 36.7783, -119.4179], ['Texas', 31.9686, -99.9018], ['Florida', 27.6648, -81.5158], ['New York State', 43, -75], ['Maharashtra', 19.7515, 75.7139], ['Gujarat', 22.2587, 71.1924], ['Tamil Nadu', 11.1271, 78.6569], ['Western Australia', -25.2744, 122]];
 
-function getLineMaterial(status, colorCss) {
-  const color = Color.fromCssColorString(colorCss);
-  if (status === 'delayed') return new PolylineDashMaterialProperty({ color, dashLength: 16.0, dashPattern: 255 });
-  return new PolylineGlowMaterialProperty({ color, glowPower: status === 'rerouted' ? 0.3 : 0.15, taperPower: 1.0 });
+function speedForStatus(status) {
+  return status === 'delayed' ? 0.15 : status === 'rerouted' ? 0.5 : 0.3;
 }
 
-function buildAirArc(coords) {
-  if (!Array.isArray(coords) || coords.length < 4) return Cartesian3.fromDegreesArray(coords);
-  const positions = [];
-  for (let i = 0; i < coords.length - 2; i += 2) {
-    const lng1 = coords[i], lat1 = coords[i + 1];
-    const lng2 = coords[i + 2], lat2 = coords[i + 3];
-    positions.push(Cartesian3.fromDegrees(lng1, lat1, 0));
-    for (let t = 0.1; t < 1; t += 0.1) {
-      const mid_lng = lng1 + (lng2 - lng1) * t;
-      const mid_lat = lat1 + (lat2 - lat1) * t;
-      const height = Math.sin(t * Math.PI) * 350000;
-      positions.push(Cartesian3.fromDegrees(mid_lng, mid_lat, height));
-    }
-  }
-  positions.push(Cartesian3.fromDegrees(coords[coords.length - 2], coords[coords.length - 1], 0));
-  return positions;
+function makeFlowMaterial(colorCss, status) {
+  const color = Color.fromCssColorString(colorCss);
+  return new PolylineDashMaterialProperty({
+    color,
+    gapColor: color.withAlpha(0.06),
+    dashLength: status === 'delayed' ? 30.0 : 60.0,
+    dashPattern: 0b1111111100000000,
+  });
 }
 
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const zoomEntityIdsRef = useRef(new Set()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const zoomEntityIdsRef = useRef(new Set()); const arcMaterialsRef = useRef(new Map()); const flowRafRef = useRef(null); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
   useGlobeCamera(vRef);
@@ -132,6 +122,18 @@ export default function GlobeView() {
       const ds = new CustomDataSource('shipments');
       v.dataSources.add(ds);
       vRef.current = v; dsRef.current = ds;
+      function startFlowLoop() {
+        const loop = () => {
+          const t = performance.now() / 1000;
+          for (const [, entry] of arcMaterialsRef.current) {
+            entry.mat.dashOffset = (t * entry.speed) % 1.0;
+          }
+          if (vRef.current) vRef.current.scene.requestRender();
+          flowRafRef.current = requestAnimationFrame(loop);
+        };
+        flowRafRef.current = requestAnimationFrame(loop);
+      }
+      startFlowLoop();
       v.scene.canvas.addEventListener("mousedown", resetIdleTimer);
       v.scene.canvas.addEventListener("touchstart", resetIdleTimer);
       resetIdleTimer();
@@ -161,7 +163,7 @@ export default function GlobeView() {
           setT({ label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
         });
       }, ScreenSpaceEventType.MOUSE_MOVE);
-      return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); stopAutoRotate(); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
+      return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); if (flowRafRef.current) cancelAnimationFrame(flowRafRef.current); stopAutoRotate(); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
     })();
   }, [resetIdleTimer, setZoomLevelDebounced, stopAutoRotate]);
 
@@ -193,7 +195,9 @@ export default function GlobeView() {
     for (const [id, refs] of entityMap) {
       if (!currentIds.has(id)) {
         if (refs.point) entities.remove(refs.point);
-        if (refs.line) entities.remove(refs.line);
+        if (refs.underlay) entities.remove(refs.underlay);
+        if (refs.overlay) entities.remove(refs.overlay);
+        arcMaterialsRef.current.delete(id);
         entityMap.delete(id);
       }
     }
@@ -201,38 +205,37 @@ export default function GlobeView() {
     ss.forEach((x) => {
       const route = x.status === 'rerouted' && x.disruptionId ? reroutedRoutes[x.disruptionId] : null;
       const coords = route?.geometry?.coordinates || route?.features?.[0]?.geometry?.coordinates;
-      const transportMode = route?.transportMode || 'sea-freight';
-      const isAirFreight = transportMode?.includes('air');
-      let positions;
-      if (isAirFreight && Array.isArray(coords) && coords.length > 0) {
-        const flat = coords.flat();
-        positions = buildAirArc(flat);
-      } else if (Array.isArray(coords) && coords.length > 1) {
-        positions = Cartesian3.fromDegreesArray(coords.flatMap(([lng, lat]) => [lng, lat]));
-      } else {
-        positions = Cartesian3.fromDegreesArray([x.originLng, x.originLat, x.destLng, x.destLat]);
-      }
-      const colorCss = isAirFreight ? '#A78BFA' : (x.status === 'rerouted' ? '#60A5FA' : (C[x.status] || C.active));
+      const positions = Array.isArray(coords) && coords.length > 1 && x.status === 'rerouted'
+        ? generateArcPositions(coords[0][0], coords[0][1], coords[coords.length - 1][0], coords[coords.length - 1][1])
+        : generateArcPositions(x.originLng, x.originLat, x.destLng, x.destLat);
+      const colorCss = x.status === 'rerouted' ? '#60A5FA' : (C[x.status] || C.active);
       const pointSize = x.status === 'delayed' ? 10 : 8;
-      const lineWidth = x.status === 'delayed' ? 2.6 : 1.8;
-      const lineMaterial = isAirFreight 
-        ? new PolylineDashMaterialProperty({ color: Color.fromCssColorString(colorCss), dashLength: 20.0, dashPattern: 0xFF00 })
-        : getLineMaterial(x.status, colorCss);
 
       if (!entityMap.has(x.id)) {
+        const underlay = entities.add({ polyline: { positions, width: 5, material: Color.BLACK.withAlpha(0.40), arcType: ArcType.NONE, clampToGround: false } });
+        const flowMat = makeFlowMaterial(colorCss, x.status);
+        const overlay = entities.add({ polyline: { positions, width: x.status === 'delayed' ? 3 : 2.2, material: flowMat, arcType: ArcType.NONE, clampToGround: false }, properties: { kind: 'route', status: x.status, label: `${x.origin} -> ${x.destination}` } });
         const point = entities.add({ position: Cartesian3.fromDegrees(x.currentLng, x.currentLat), point: { pixelSize: pointSize, color: Color.fromCssColorString(C[x.status] || C.active), outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` } });
-        const line = entities.add({ polyline: { positions, width: lineWidth, material: lineMaterial, arcType: ArcType.GEODESIC, clampToGround: false }, properties: { kind: 'route', status: x.status, label: x.status === 'rerouted' ? 'Rerouted Segment' : 'Route Segment' } });
-        entityMap.set(x.id, { point, line });
+        arcMaterialsRef.current.set(x.id, { mat: flowMat, speed: speedForStatus(x.status) });
+        entityMap.set(x.id, { point, underlay, overlay, prevStatus: x.status });
       } else {
         const refs = entityMap.get(x.id);
         refs.point.position = Cartesian3.fromDegrees(x.currentLng, x.currentLat);
-        refs.point.properties = { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` };
         refs.point.point.color = Color.fromCssColorString(C[x.status] || C.active);
         refs.point.point.pixelSize = pointSize;
-        refs.line.polyline.positions = positions;
-        refs.line.polyline.width = lineWidth;
-        refs.line.polyline.material = lineMaterial;
-        refs.line.properties = { kind: 'route', status: x.status, label: x.status === 'rerouted' ? 'Rerouted Segment' : 'Route Segment' };
+        refs.point.properties = { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` };
+        if (refs.prevStatus !== x.status) {
+          if (refs.underlay) entities.remove(refs.underlay);
+          if (refs.overlay) entities.remove(refs.overlay);
+          const updatedPositions = Array.isArray(coords) && coords.length > 1 && x.status === 'rerouted'
+            ? generateArcPositions(coords[0][0], coords[0][1], coords[coords.length - 1][0], coords[coords.length - 1][1])
+            : generateArcPositions(x.originLng, x.originLat, x.destLng, x.destLat);
+          const flowMat = makeFlowMaterial(colorCss, x.status);
+          refs.underlay = entities.add({ polyline: { positions: updatedPositions, width: 5, material: Color.BLACK.withAlpha(0.40), arcType: ArcType.NONE, clampToGround: false } });
+          refs.overlay = entities.add({ polyline: { positions: updatedPositions, width: x.status === 'delayed' ? 3 : 2.2, material: flowMat, arcType: ArcType.NONE, clampToGround: false }, properties: { kind: 'route', status: x.status, label: `${x.origin} -> ${x.destination}` } });
+          arcMaterialsRef.current.set(x.id, { mat: flowMat, speed: speedForStatus(x.status) });
+          refs.prevStatus = x.status;
+        }
       }
     });
 
