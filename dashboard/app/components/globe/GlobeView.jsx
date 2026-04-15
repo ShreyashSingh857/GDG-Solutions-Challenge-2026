@@ -48,6 +48,16 @@ function makeFlowMaterial(colorCss, status) {
   });
 }
 
+function getArcKey(x, route) {
+  const coords = route?.geometry?.coordinates || route?.features?.[0]?.geometry?.coordinates;
+  if (Array.isArray(coords) && coords.length > 1 && x.status === 'rerouted') {
+    const first = coords[0];
+    const last = coords[coords.length - 1];
+    return `route:${first[0]},${first[1]}->${last[0]},${last[1]}`;
+  }
+  return `direct:${x.originLng},${x.originLat}->${x.destLng},${x.destLat}`;
+}
+
 export default function GlobeView() {
   const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const zoomEntityIdsRef = useRef(new Set()); const arcMaterialsRef = useRef(new Map()); const flowRafRef = useRef(null); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
@@ -205,26 +215,27 @@ export default function GlobeView() {
     ss.forEach((x) => {
       const route = x.status === 'rerouted' && x.disruptionId ? reroutedRoutes[x.disruptionId] : null;
       const coords = route?.geometry?.coordinates || route?.features?.[0]?.geometry?.coordinates;
-      const positions = Array.isArray(coords) && coords.length > 1 && x.status === 'rerouted'
-        ? generateArcPositions(coords[0][0], coords[0][1], coords[coords.length - 1][0], coords[coords.length - 1][1])
-        : generateArcPositions(x.originLng, x.originLat, x.destLng, x.destLat);
+      const arcKey = getArcKey(x, route);
       const colorCss = x.status === 'rerouted' ? '#60A5FA' : (C[x.status] || C.active);
       const pointSize = x.status === 'delayed' ? 10 : 8;
 
       if (!entityMap.has(x.id)) {
+        const positions = Array.isArray(coords) && coords.length > 1 && x.status === 'rerouted'
+          ? generateArcPositions(coords[0][0], coords[0][1], coords[coords.length - 1][0], coords[coords.length - 1][1])
+          : generateArcPositions(x.originLng, x.originLat, x.destLng, x.destLat);
         const underlay = entities.add({ polyline: { positions, width: 5, material: Color.BLACK.withAlpha(0.40), arcType: ArcType.NONE, clampToGround: false } });
         const flowMat = makeFlowMaterial(colorCss, x.status);
         const overlay = entities.add({ polyline: { positions, width: x.status === 'delayed' ? 3 : 2.2, material: flowMat, arcType: ArcType.NONE, clampToGround: false }, properties: { kind: 'route', status: x.status, label: `${x.origin} -> ${x.destination}` } });
         const point = entities.add({ position: Cartesian3.fromDegrees(x.currentLng, x.currentLat), point: { pixelSize: pointSize, color: Color.fromCssColorString(C[x.status] || C.active), outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` } });
         arcMaterialsRef.current.set(x.id, { mat: flowMat, speed: speedForStatus(x.status) });
-        entityMap.set(x.id, { point, underlay, overlay, prevStatus: x.status });
+        entityMap.set(x.id, { point, underlay, overlay, prevStatus: x.status, arcKey, positions });
       } else {
         const refs = entityMap.get(x.id);
         refs.point.position = Cartesian3.fromDegrees(x.currentLng, x.currentLat);
         refs.point.point.color = Color.fromCssColorString(C[x.status] || C.active);
         refs.point.point.pixelSize = pointSize;
         refs.point.properties = { kind: 'shipment', status: x.status, label: `${x.origin} -> ${x.destination}` };
-        if (refs.prevStatus !== x.status) {
+        if (refs.prevStatus !== x.status || refs.arcKey !== arcKey) {
           if (refs.underlay) entities.remove(refs.underlay);
           if (refs.overlay) entities.remove(refs.overlay);
           const updatedPositions = Array.isArray(coords) && coords.length > 1 && x.status === 'rerouted'
@@ -235,6 +246,8 @@ export default function GlobeView() {
           refs.overlay = entities.add({ polyline: { positions: updatedPositions, width: x.status === 'delayed' ? 3 : 2.2, material: flowMat, arcType: ArcType.NONE, clampToGround: false }, properties: { kind: 'route', status: x.status, label: `${x.origin} -> ${x.destination}` } });
           arcMaterialsRef.current.set(x.id, { mat: flowMat, speed: speedForStatus(x.status) });
           refs.prevStatus = x.status;
+          refs.arcKey = arcKey;
+          refs.positions = updatedPositions;
         }
       }
     });
