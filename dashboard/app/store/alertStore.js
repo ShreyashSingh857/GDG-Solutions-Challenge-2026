@@ -44,7 +44,10 @@ export const useAlertStore = create((set, get) => ({
 				reroutedRoutes: selectedOption?.route
 					? {
 						...state.reroutedRoutes,
-						[state.activeResolution.disruptionId]: selectedOption.route,
+						[state.activeResolution.disruptionId]: {
+							...selectedOption.route,
+							transportMode: selectedOption.transportMode || selectedOption.route?.properties?.mode || 'sea-freight',
+						},
 					}
 					: state.reroutedRoutes,
 			};
