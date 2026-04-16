@@ -10,9 +10,13 @@ import { useAlertStore } from '../../store/alertStore.js';
 export function useGlobeCamera(viewerRef) {
   const disruptions = useAlertStore((s) => s.disruptions);
   const lastFlownToId = useRef(null);
-  const lastInteractionRef = useRef(Date.now());
+  const lastInteractionRef = useRef(0);
 
   const setLastInteraction = useCallback(() => {
+    lastInteractionRef.current = Date.now();
+  }, []);
+
+  useEffect(() => {
     lastInteractionRef.current = Date.now();
   }, []);
 

@@ -140,7 +140,7 @@ export default function GlobeView() {
       }, ScreenSpaceEventType.MOUSE_MOVE);
       return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); stopAutoRotate(); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; dsRef.current = null; };
     })();
-  }, [resetIdleTimer, setZoomLevelDebounced, stopAutoRotate]);
+  }, [resetIdleTimer, setLastInteraction, setZoomLevelDebounced, stopAutoRotate]);
 
   useEffect(() => {
     const onVisibility = () => {
