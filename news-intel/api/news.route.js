@@ -26,10 +26,4 @@ export default async function newsRoute(app) {
     const result = await triggerManualPoll();
     return reply.status(result.skipped ? 200 : 201).send({ data: result, error: null });
   });
-
-  app.get('/health', async () => ({
-    status: 'ok',
-    agent: 'news-intel',
-    lastCycle: getLastCycleStats(),
-  }));
 }
