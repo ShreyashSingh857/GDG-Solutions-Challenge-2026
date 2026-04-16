@@ -57,6 +57,24 @@ services:
     depends_on:
       - event-bus
 
+  news-intel:
+    build: ./news-intel
+    ports:
+      - "3005:3005"
+    working_dir: /app
+    command: node index.js
+    volumes:
+      - ./news-intel:/app
+      - ./shared:/shared
+    environment:
+      - NODE_ENV=production
+      - EVENT_BUS_URL=http://event-bus:4000
+      - DISRUPTION_AGENT_URL=http://disruption:3001
+      - NEWS_CRON_SCHEDULE=*/15 * * * *
+    depends_on:
+      - event-bus
+      - disruption
+
   dashboard:
     build: ./dashboard
     ports:

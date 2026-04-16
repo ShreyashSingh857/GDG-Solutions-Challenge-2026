@@ -39,6 +39,7 @@ cd event-bus && npm install && cd ..
 cd disruption && npm install && cd ..
 cd impact && npm install && cd ..
 cd resolution && npm install && cd ..
+cd news-intel && npm install && cd ..
 cd dashboard && npm install && cd ..
 ```
 
@@ -52,7 +53,7 @@ Copy `.env.example` to `.env` in the repo root and fill in all values. Each agen
 node shared/db/seed/seed.js
 ```
 
-### 4. Start services (4 terminals)
+### 4. Start services (6 terminals)
 
 ```bash
 # Terminal 1
@@ -68,6 +69,9 @@ cd impact && npm run dev
 cd resolution && npm run dev
 
 # Terminal 5
+cd news-intel && npm run dev
+
+# Terminal 6
 cd dashboard && npm run dev
 ```
 
@@ -87,7 +91,36 @@ node resolution/simulation/inject.js pacific_storm
 | Disruption Agent | 3001 |
 | Impact Agent | 3002 |
 | Resolution Agent | 3003 |
+| News Intel Agent | 3005 |
 | Dashboard | 3000 |
+
+---
+
+## Deployment Notes
+
+If you deploy with `render.yaml`, add the news service alongside the other web services:
+
+```yaml
+- type: web
+  name: news-intel
+  env: node
+  plan: free
+  buildCommand: cd news-intel && npm install
+  startCommand: cd news-intel && npm start
+  envVars:
+    - key: NEWSAPI_KEY
+      sync: false
+    - key: DISRUPTION_AGENT_URL
+      value: https://disruption.onrender.com
+    - key: EVENT_BUS_URL
+      value: https://event-bus.onrender.com
+    - key: GEMINI_API_KEY
+      sync: false
+    - key: INTERNAL_TOKEN
+      sync: false
+```
+
+Render free tier sleeps after 15 minutes of inactivity. The internal cron scheduler fires every 15 minutes, which helps wake the service automatically. The first poll after a cold start can take 30-60 seconds while Node boots.
 
 ---
 
@@ -103,11 +136,13 @@ Event Bus (Node.js EventEmitter → Render.com :4000)
   |-- disruption-events → Impact Agent
   |-- impact-reports → Resolution Agent
   |-- resolution-options → Dashboard webhook
+  |-- news-alerts → Dashboard feed + Disruption Agent injection
 
 Agents (Fastify → Render.com)
   |-- Monitor Agent :3001 → Gemini AI Studio + Open-Meteo
   |-- Impact Agent :3002 → Gemini AI Studio + haversine scorer + Firestore
   |-- Resolution Agent :3003 → Gemini AI Studio + static routes + Firestore
+  |-- News Intel Agent :3005 → GDELT / NewsAPI + Gemini classifier + Firestore
 ```
 
 ---
