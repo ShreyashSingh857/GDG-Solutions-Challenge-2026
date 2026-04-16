@@ -4,6 +4,7 @@ export const useAlertStore = create((set, get) => ({
 	// Disruption events list
 	disruptions: [],
 	activeDisruptionId: null,
+	newsAlerts: [],
 
 	// Resolution with options combined
 	activeResolution: null,
@@ -16,6 +17,13 @@ export const useAlertStore = create((set, get) => ({
 			activeDisruptionId: disruption.id || disruption.traceId,
 		})),
 
+	addNewsAlert: (alert) =>
+		set((state) => ({
+			newsAlerts: [alert, ...state.newsAlerts]
+				.filter((item, index, arr) => arr.findIndex((candidate) => candidate.id === item.id) === index)
+				.slice(0, 30),
+		})),
+
 	setResolutionWithOptions: (resolutionWithOptions) =>
 		set({
 			activeResolution: resolutionWithOptions,
@@ -25,6 +33,8 @@ export const useAlertStore = create((set, get) => ({
 	setResolutionOptions: (options) => set({ resolutionOptions: options }),
 
 	clearActiveDisruption: () => set({ activeDisruptionId: null, activeResolution: null }),
+
+	clearNewsAlerts: () => set({ newsAlerts: [] }),
 
 	setActiveDisruptionId: (id) => set({ activeDisruptionId: id }),
 
