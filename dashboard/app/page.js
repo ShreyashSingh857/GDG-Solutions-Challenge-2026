@@ -10,6 +10,7 @@ import { useAlertStore } from './store/alertStore.js';
 import AlertToastController from './components/alerts/AlertToast.jsx';
 import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentChatSidebar from './components/agent/AgentChatSidebar.jsx';
+import NewsFeed from './components/news/NewsFeed.jsx';
 import DecisionModal from './components/decision/DecisionModal.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
@@ -45,7 +46,7 @@ export default function Home() {
         </div>
       </ErrorBoundary>
       <ErrorBoundary>
-        <div className={`sidebar ${sidebarOpen ? 'expanded' : 'collapsed'} h-full flex-shrink-0 relative`}>
+        <div className={`sidebar ${sidebarOpen ? 'expanded' : 'collapsed'} h-full shrink-0 relative`}>
           <button
             onClick={() => setSidebarOpen((v) => !v)}
             className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
@@ -55,8 +56,13 @@ export default function Home() {
               {sidebarOpen ? <path d="M13 18l6-6-6-6" /> : <path d="M11 6l-6 6 6 6" />}
             </svg>
           </button>
-          <div className="sidebar-panel">
-            <AgentChatSidebar />
+          <div className="sidebar-panel flex flex-col">
+            <div className="flex-1 min-h-0">
+              <AgentChatSidebar />
+            </div>
+            <div className="border-t border-white/5 bg-black/20 p-3">
+              <NewsFeed />
+            </div>
           </div>
         </div>
       </ErrorBoundary>
