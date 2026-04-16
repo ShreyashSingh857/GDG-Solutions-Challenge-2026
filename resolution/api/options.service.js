@@ -14,8 +14,27 @@ import { readFileSync } from 'fs'; import { fileURLToPath } from 'url'; import {
 const __dirname = dirname(fileURLToPath(import.meta.url)); const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8'); const activeStreams = new Map();
 export function getStreamText(traceId) { return activeStreams.get(traceId) || null; }
 
+export function buildDisruptionContextFromImpactReport(impactReport) {
+	const derivedZones = [...new Set((impactReport.affectedShipments || []).map((shipment) => shipment.corridor).filter(Boolean))];
+
+	return {
+		location: impactReport.disruptionLocation || derivedZones[0] || 'Pacific',
+		type: impactReport.disruptionType || 'WEATHER',
+		affectedZones: Array.isArray(impactReport.affectedZones) && impactReport.affectedZones.length ? impactReport.affectedZones : derivedZones,
+	};
+}
+
+export function pickSupplierRegion(disruptionContext) {
+	return disruptionContext.affectedZones[0] || disruptionContext.location || 'Pacific';
+}
+
 async function processImpactReport(agentPayload) {
-	const impactReport = agentPayload.payload, traceId = agentPayload.traceId; const derivedZones = [...new Set((impactReport.affectedShipments || []).map(s => s.corridor).filter(Boolean))]; const disruption = { location: impactReport.affectedShipments?.[0]?.corridor || 'Pacific', type: impactReport.disruptionType || 'WEATHER', affectedZones: derivedZones }; const routes = getRoutesForScenario(detectScenario(disruption)); const region = impactReport.affectedShipments?.[0]?.corridor || 'Pacific'; const seaSuppliers = await findSuppliers(region, 'sea-freight'); const airSuppliers = await findSuppliers(region, 'air-freight');
+	const impactReport = agentPayload.payload, traceId = agentPayload.traceId;
+	const disruption = buildDisruptionContextFromImpactReport(impactReport);
+	const routes = getRoutesForScenario(detectScenario(disruption));
+	const region = pickSupplierRegion(disruption);
+	const seaSuppliers = await findSuppliers(region, 'sea-freight');
+	const airSuppliers = await findSuppliers(region, 'air-freight');
 	const balancedCost = calculateCostDelta({ distanceKm: routes.balanced.distanceKm, mode: routes.balanced.mode, baseCostUSD: 50000 }); const fastestCost = calculateCostDelta({ distanceKm: routes.fastest.distanceKm, mode: routes.fastest.mode, baseCostUSD: 50000 }); const cheapestCost = calculateCostDelta({ distanceKm: routes.cheapest.distanceKm, mode: routes.cheapest.mode, baseCostUSD: 50000 });
 	const supplierSummary = [...seaSuppliers, ...airSuppliers].map((s) => `- ${s.name} (ID: ${s.id}) | Region: ${s.region} | Reliability: ${s.reliabilityScore}/100`).join('\n');
 	const prompt = `${SYSTEM_PROMPT}\n\n## Impact Report\n- Disruption ID: ${impactReport.disruptionId}\n- Cascade Risk: ${impactReport.cascadeRisk}\n- Urgency: ${impactReport.urgency}/10\n- Affected Shipments: ${impactReport.affectedShipments.length}\n- Total Cargo at Risk: $${impactReport.totalCargoAtRiskUSD.toLocaleString()}\n- Analysis: ${impactReport.analysisText}\n\n## Available Rerouting Options\n1. BALANCED — ${routes.balanced.title}: ${routes.balanced.distanceKm}km via ${routes.balanced.mode}, extra ${routes.balanced.timeDeltaHours}h, cost delta $${balancedCost.costDelta.toLocaleString()}\n2. FASTEST — ${routes.fastest.title}: ${routes.fastest.distanceKm}km via ${routes.fastest.mode}, time delta ${routes.fastest.timeDeltaHours}h, cost delta $${fastestCost.costDelta.toLocaleString()}\n3. CHEAPEST — ${routes.cheapest.title}: ${routes.cheapest.distanceKm}km via ${routes.cheapest.mode}, extra ${routes.cheapest.timeDeltaHours}h, cost delta $${cheapestCost.costDelta.toLocaleString()}\n\n## Available Suppliers\n${supplierSummary || 'No suppliers found'}\nGenerate exactly 3 ranked resolution options.`;

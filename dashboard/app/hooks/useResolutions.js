@@ -23,24 +23,25 @@ export function useResolutions() {
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added') {
-            const resolutionData = { id: change.doc.id, ...change.doc.data() };
+        const latestDoc = snapshot.docs[0];
+        if (!latestDoc) {
+          return;
+        }
 
-            try {
-              const optionsSnap = await getDocs(
-                collection(db, 'resolutions', change.doc.id, 'options')
-              );
-              const options = optionsSnap.docs
-                .map((d) => ({ ...d.data() }))
-                .sort((a, b) => a.rank - b.rank);
+        const resolutionData = { id: latestDoc.id, ...latestDoc.data() };
 
-              setResolutionWithOptions({ ...resolutionData, options });
-            } catch (err) {
-              console.error('[useResolutions] Failed to fetch options subcollection:', err.message);
-              setResolutionWithOptions({ ...resolutionData, options: [] });
-            }
-          }
+        try {
+          const optionsSnap = await getDocs(
+            collection(db, 'resolutions', latestDoc.id, 'options')
+          );
+          const options = optionsSnap.docs
+            .map((d) => ({ ...d.data() }))
+            .sort((a, b) => a.rank - b.rank);
+
+          setResolutionWithOptions({ ...resolutionData, options });
+        } catch (err) {
+          console.error('[useResolutions] Failed to fetch options subcollection:', err.message);
+          setResolutionWithOptions({ ...resolutionData, options: [] });
         }
       },
       (err) => {

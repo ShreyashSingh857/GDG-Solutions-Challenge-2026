@@ -1,6 +1,20 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export function createImpactReport(fields) { return { id: `impact-${uuidv4()}`, createdAt: new Date().toISOString(), affectedShipments: [], cascadeRisk: 'LOW', urgency: 1, totalCargoAtRiskUSD: 0, analysisText: '', ...fields }; }
+export function createImpactReport(fields) {
+	return {
+		id: `impact-${uuidv4()}`,
+		createdAt: new Date().toISOString(),
+		affectedShipments: [],
+		cascadeRisk: 'LOW',
+		urgency: 1,
+		totalCargoAtRiskUSD: 0,
+		analysisText: '',
+		disruptionType: 'OTHER',
+		disruptionLocation: 'Unknown',
+		affectedZones: [],
+		...fields,
+	};
+}
 
 export function validateImpactReport(obj) {
 	const required = ['id','disruptionId','traceId','affectedShipments','cascadeRisk','urgency','totalCargoAtRiskUSD','analysisText'];
