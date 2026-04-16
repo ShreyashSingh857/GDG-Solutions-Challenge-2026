@@ -39,7 +39,7 @@ export default function GlobeView() {
   const cRef = useRef(null); const vRef = useRef(null); const dsRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const portEntitiesRef = useRef(new Map()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
-  useGlobeCamera(vRef);
+  const { setLastInteraction } = useGlobeCamera(vRef);
 
   const startAutoRotate = useCallback(() => {
     if (isRotatingRef.current) return;
@@ -83,7 +83,7 @@ export default function GlobeView() {
         if (ionToken) Ion.defaultAccessToken = ionToken;
         
         v = new Viewer(cRef.current, { 
-          animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: false, 
+          animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, 
           terrainProvider: ionToken
             ? await createWorldTerrainAsync({ requestVertexNormals: true, requestWaterMask: true })
             : new EllipsoidTerrainProvider(),
@@ -109,8 +109,8 @@ export default function GlobeView() {
       const ds = new CustomDataSource('shipments');
       v.dataSources.add(ds);
       vRef.current = v; dsRef.current = ds;
-      v.scene.canvas.addEventListener("mousedown", resetIdleTimer);
-      v.scene.canvas.addEventListener("touchstart", resetIdleTimer);
+      v.scene.canvas.addEventListener("mousedown", () => { resetIdleTimer(); setLastInteraction(); });
+      v.scene.canvas.addEventListener("touchstart", () => { resetIdleTimer(); setLastInteraction(); });
       resetIdleTimer();
       const onCam = () => {
         const altM = v.camera.positionCartographic.height;

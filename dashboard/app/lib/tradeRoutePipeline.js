@@ -1,9 +1,7 @@
 import {
   ArcType,
   Color,
-  CallbackProperty,
   PolylineArrowMaterialProperty,
-  PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
 } from 'cesium';
 
@@ -92,23 +90,15 @@ export function buildCesiumEntities(ds, positions, visual, routeId) {
     },
   });
 
-  let offset = 0;
-  const dashPattern = new CallbackProperty(() => {
-    offset = (offset + visual.animSpeed) % 1.0;
-    const phase = Math.floor(offset * 16) % 16;
-    return ((0xff00 >>> phase) | (0xff00 << (16 - phase))) & 0xffff;
-  }, false);
-
-  const coreMat = new PolylineDashMaterialProperty({
-    color: base.withAlpha(0.9),
-    gapColor: Color.TRANSPARENT,
-    dashLength: 40,
-    dashPattern,
-  });
-
   const coreEntity = ds.entities.add({
     id: `${routeId}-core`,
-    polyline: { positions, width: visual.coreWidth, material: coreMat, arcType: ArcType.NONE, clampToGround: false },
+    polyline: {
+      positions,
+      width: visual.coreWidth,
+      material: base.withAlpha(0.95),
+      arcType: ArcType.NONE,
+      clampToGround: false,
+    },
   });
 
   const tail = positions.slice(Math.max(0, positions.length - 3));
