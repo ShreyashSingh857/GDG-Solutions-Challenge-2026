@@ -1,6 +1,10 @@
 import { db } from '../../shared/db/firebase.js';
 import { getLastCycleStats, getRecentAlerts, triggerManualPoll } from './news.service.js';
 
+function isFirebaseConfigError(err) {
+  return String(err?.message || '').includes('Missing FIREBASE_* env vars');
+}
+
 export default async function newsRoute(app) {
   app.get('/news', async (req) => {
     const limit = Math.min(Number.parseInt(req.query.limit ?? '20', 10), 100);
@@ -8,11 +12,18 @@ export default async function newsRoute(app) {
   });
 
   app.get('/news/:id', async (req, reply) => {
-    const doc = await db.collection('news_alerts').doc(req.params.id).get();
-    if (!doc.exists) {
-      return reply.status(404).send({ error: `Alert not found: ${req.params.id}` });
+    try {
+      const doc = await db.collection('news_alerts').doc(req.params.id).get();
+      if (!doc.exists) {
+        return reply.status(404).send({ error: `Alert not found: ${req.params.id}` });
+      }
+      return { data: { id: doc.id, ...doc.data() }, error: null };
+    } catch (err) {
+      if (isFirebaseConfigError(err)) {
+        return reply.status(503).send({ error: 'Firestore unavailable for news alert lookups' });
+      }
+      throw err;
     }
-    return { data: { id: doc.id, ...doc.data() }, error: null };
   });
 
   app.post('/news/poll', async (req, reply) => {

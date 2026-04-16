@@ -19,6 +19,10 @@ const DISRUPTION_AGENT_URL = process.env.DISRUPTION_AGENT_URL ?? 'http://localho
 
 let lastGdeltFetch = new Date(Date.now() - 30 * 60 * 1000);
 
+function isFirebaseConfigError(err) {
+  return String(err?.message || '').includes('Missing FIREBASE_* env vars');
+}
+
 export async function runPollCycle() {
   const startedAt = Date.now();
   console.log('[NewsAgent] Poll cycle started');
@@ -114,7 +118,15 @@ async function publishNewsAlert(item) {
 
   validateNewsAlert(alert);
 
-  await db.collection('news_alerts').doc(alert.id).set(alert);
+  try {
+    await db.collection('news_alerts').doc(alert.id).set(alert);
+  } catch (err) {
+    if (isFirebaseConfigError(err)) {
+      console.warn('[NewsAgent] Firestore unavailable. Skipping news_alerts persistence for this cycle.');
+    } else {
+      throw err;
+    }
+  }
 
   const payload = createAgentPayload('news-intel', alert);
   await publish(TOPICS.NEWS_ALERTS, payload);
@@ -139,7 +151,13 @@ async function publishNewsAlert(item) {
     throw new Error(`Disruption injection failed: ${errorBody.error ?? response.statusText}`);
   }
 
-  await db.collection('news_alerts').doc(alert.id).update({ injected: true });
+  try {
+    await db.collection('news_alerts').doc(alert.id).update({ injected: true });
+  } catch (err) {
+    if (!isFirebaseConfigError(err)) {
+      throw err;
+    }
+  }
   console.log(`[NewsAgent] Alert published + injected | traceId: ${payload.traceId}`);
   return alert;
 }

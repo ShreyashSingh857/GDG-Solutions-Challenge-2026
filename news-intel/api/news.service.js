@@ -4,6 +4,10 @@ import { runPollCycle } from '../agent/agent.js';
 let lastCycleStats = { fetched: 0, classified: 0, published: 0, runAt: null };
 let isRunning = false;
 
+function isFirebaseConfigError(err) {
+  return String(err?.message || '').includes('Missing FIREBASE_* env vars');
+}
+
 export async function triggerManualPoll() {
   if (isRunning) {
     return { skipped: true, reason: 'Cycle in progress', ...lastCycleStats };
@@ -24,6 +28,13 @@ export function getLastCycleStats() {
 }
 
 export async function getRecentAlerts(limit = 20) {
-  const snapshot = await db.collection('news_alerts').orderBy('detectedAt', 'desc').limit(limit).get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snapshot = await db.collection('news_alerts').orderBy('detectedAt', 'desc').limit(limit).get();
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    if (isFirebaseConfigError(err)) {
+      return [];
+    }
+    throw err;
+  }
 }
