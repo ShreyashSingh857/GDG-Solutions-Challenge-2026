@@ -8,19 +8,20 @@
     "doc": "docs"
   },
   "scripts": {
-    "setup": "cd event-bus && npm install && cd ../disruption && npm install && cd ../impact && npm install && cd ../resolution && npm install && cd ../dashboard && npm install && cd ..",
+    "setup": "cd event-bus && npm install && cd ../disruption && npm install && cd ../impact && npm install && cd ../resolution && npm install && cd ../news-intel && npm install && cd ../dashboard && npm install && cd ..",
     "seed": "node shared/db/seed/seed.js",
-    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,yellow,magenta,blue,green\" -n \"BUS,DISRUPTION,IMPACT,RESOLUTION,DASH\" \"npm run dev:bus\" \"npm run dev:disruption\" \"npm run dev:impact\" \"npm run dev:resolution\" \"npm run dev:dashboard\"",
+    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,yellow,magenta,blue,green,red\" -n \"BUS,DISRUPTION,IMPACT,RESOLUTION,NEWS,DASH\" \"npm run dev:bus\" \"npm run dev:disruption\" \"npm run dev:impact\" \"npm run dev:resolution\" \"npm run dev:news\" \"npm run dev:dashboard\"",
     "dev:all": "npm run dev",
     "dev:bus": "cd event-bus && npm run dev",
     "dev:disruption": "cd disruption && npm run dev",
     "dev:impact": "cd impact && npm run dev",
     "dev:resolution": "cd resolution && npm run dev",
+    "dev:news": "cd news-intel && npm run dev",
     "dev:dashboard": "cd dashboard && npm run dev",
     "inject:pacific": "node resolution/simulation/inject.js pacific_storm",
     "inject:strike": "node resolution/simulation/inject.js port_strike",
     "inject:suez": "node resolution/simulation/inject.js suez_closure",
-    "health": "node -e \"Promise.all(['http://localhost:4000','http://localhost:3001','http://localhost:3002','http://localhost:3003'].map(u=>fetch(u+'/health').then(r=>r.json()).then(d=>console.log(u,d.status,d.agent||'event-bus')).catch(()=>console.log(u,'OFFLINE')))).then(()=>process.exit(0))\""
+    "health": "node -e \"Promise.all(['http://localhost:4000','http://localhost:3001','http://localhost:3002','http://localhost:3003','http://localhost:3005'].map(u=>fetch(u+'/health').then(r=>r.json()).then(d=>console.log(u,d.status,d.agent||'event-bus')).catch(()=>console.log(u,'OFFLINE')))).then(()=>process.exit(0))\""
   },
   "repository": {
     "type": "git",
