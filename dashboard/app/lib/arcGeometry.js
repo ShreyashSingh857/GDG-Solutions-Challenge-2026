@@ -1,6 +1,6 @@
 import { Cartesian3 } from 'cesium';
 
-export function generateArcPositions(originLng, originLat, destLng, destLat, samples = 64, maxAltM = 4_500_000) {
+export function generateArcPositions(originLng, originLat, destLng, destLat, samples = 64, maxAltM = 1_000_000) {
 	const start = Cartesian3.fromDegrees(originLng, originLat);
 	const end = Cartesian3.fromDegrees(destLng, destLat);
 	const angle = Cartesian3.angleBetween(start, end);
