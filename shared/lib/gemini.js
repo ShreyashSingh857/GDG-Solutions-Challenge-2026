@@ -1,8 +1,27 @@
-import 'dotenv/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Best-effort local env loading: skip if dotenv is unavailable in this package context.
+try {
+  await import('dotenv/config');
+} catch {
+  // no-op
+}
 
-function getGenAI() {
+let GoogleGenerativeAIClass = null;
+
+async function getGoogleGenerativeAIClass() {
+  if (GoogleGenerativeAIClass) return GoogleGenerativeAIClass;
+
+  try {
+    const mod = await import('@google/generative-ai');
+    GoogleGenerativeAIClass = mod.GoogleGenerativeAI;
+    return GoogleGenerativeAIClass;
+  } catch (err) {
+    throw new Error(`[Gemini] @google/generative-ai is not available: ${err.message}`);
+  }
+}
+
+async function getGenAI() {
   if (!process.env.GEMINI_API_KEY) throw new Error('[Gemini] GEMINI_API_KEY is not set in environment variables');
+  const GoogleGenerativeAI = await getGoogleGenerativeAIClass();
   return new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 }
 
@@ -16,7 +35,8 @@ const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
  */
 export async function generate(prompt, tools = []) {
   try {
-    const model = getGenAI().getGenerativeModel({
+    const genAI = await getGenAI();
+    const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
       ...(tools.length > 0 && { tools: [{ functionDeclarations: tools }] }),
     });
@@ -42,7 +62,8 @@ export async function generate(prompt, tools = []) {
  */
 export async function* generateStream(prompt, tools = []) {
   try {
-    const model = getGenAI().getGenerativeModel({
+    const genAI = await getGenAI();
+    const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
       ...(tools.length > 0 && { tools: [{ functionDeclarations: tools }] }),
     });

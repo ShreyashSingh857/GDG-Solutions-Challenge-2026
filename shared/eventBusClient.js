@@ -1,5 +1,13 @@
-import 'dotenv/config';
-import EventSource from 'eventsource';
+import { createRequire } from 'node:module';
+
+// Best-effort local env loading: skip if dotenv is unavailable in this package context.
+try {
+  await import('dotenv/config');
+} catch {
+  // no-op
+}
+
+const require = createRequire(import.meta.url);
 
 const EVENT_BUS_URL = process.env.EVENT_BUS_URL || 'http://localhost:4000';
 
@@ -43,7 +51,15 @@ export async function publish(topic, agentPayload) {
  */
 export function subscribe(topic, onMessage) {
   const url = `${EVENT_BUS_URL}/subscribe/${topic}`;
-  const es = new EventSource(url);
+  let EventSourceCtor;
+  try {
+    const mod = require('eventsource');
+    EventSourceCtor = mod.default || mod;
+  } catch (err) {
+    throw new Error(`[EventBusClient] eventsource package is required for subscribe(): ${err.message}`);
+  }
+
+  const es = new EventSourceCtor(url);
 
   es.onmessage = (event) => {
     try {

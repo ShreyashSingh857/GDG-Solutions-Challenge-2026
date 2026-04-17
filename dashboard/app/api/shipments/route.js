@@ -1,5 +1,5 @@
-import { db } from '../../../../lib/firebase-admin.js';
-import { validateShipment } from '../../../../../shared/types/Shipment.js';
+import { db } from '../../../lib/firebase-admin.js';
+import { validateShipment } from '../../../../shared/types/Shipment.js';
 
 /**
  * GET /api/shipments

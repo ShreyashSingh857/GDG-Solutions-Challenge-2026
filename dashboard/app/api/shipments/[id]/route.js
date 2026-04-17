@@ -1,4 +1,4 @@
-import { db } from '../../../../../lib/firebase-admin.js';
+import { db } from '../../../../lib/firebase-admin.js';
 
 /**
  * PATCH /api/shipments/:id

@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
-
 /**
  * @typedef {object} AgentPayload
  * @property {string} agentId - Which agent sent this (e.g. 'monitor', 'impact', 'resolution')
@@ -19,7 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 export function createAgentPayload(agentId, payload, traceId = null) {
 	return {
 		agentId,
-		traceId: traceId || uuidv4(),
+		traceId: traceId || crypto.randomUUID(),
 		timestamp: new Date().toISOString(),
 		payload,
 	};
