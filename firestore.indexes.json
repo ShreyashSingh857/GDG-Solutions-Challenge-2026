@@ -12,16 +12,15 @@
       "collectionGroup": "shipments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "corridor", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "shipments",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "corridor", "order": "ASCENDING" },
-        { "fieldPath": "eta", "order": "ASCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
@@ -36,6 +35,13 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "news_alerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "detectedAt", "order": "DESCENDING" }
       ]
     }
   ],

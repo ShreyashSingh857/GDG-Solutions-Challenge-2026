@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /shipments/{id} { allow read: if true; allow write: if request.auth != null; }
+    match /shipments/{id} { allow read: if true; allow write: if false; }
     match /disruptions/{id} { allow read: if true; allow write: if false; }
     match /impactReports/{id} { allow read: if true; allow write: if false; }
     match /resolutions/{id} {
@@ -9,6 +9,8 @@ service cloud.firestore {
       match /options/{optId} { allow read: if true; allow write: if false; }
     }
     match /suppliers/{id} { allow read: if true; allow write: if false; }
+    match /news_alerts/{id} { allow read: if true; allow write: if false; }
+    match /news_processed_urls/{id} { allow read: if false; allow write: if false; }
     match /errors/{id} { allow read: if false; allow write: if false; }
   }
 }
