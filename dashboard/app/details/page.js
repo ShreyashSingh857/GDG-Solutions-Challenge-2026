@@ -22,6 +22,7 @@ export default function DetailsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingShipment, setEditingShipment] = useState(null);
+  const [modalVersion, setModalVersion] = useState(0);
 
   const { isSaving, saveError, createShipment, updateShipment, deleteShipment } = useShipmentMutations();
 
@@ -31,11 +32,13 @@ export default function DetailsPage() {
 
   const onCreate = () => {
     setEditingShipment(null);
+    setModalVersion((v) => v + 1);
     setModalOpen(true);
   };
 
   const onEdit = (shipment) => {
     setEditingShipment(shipment);
+    setModalVersion((v) => v + 1);
     setModalOpen(true);
   };
 
@@ -96,6 +99,7 @@ export default function DetailsPage() {
           )}
 
           <ShipmentModal
+            key={`shipment-modal-${modalVersion}`}
             open={modalOpen}
             initialShipment={editingShipment}
             onClose={() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 const DEFAULT_VALUES = {
   origin: '',
@@ -30,12 +30,7 @@ const NUMBER_FIELDS = ['originLat', 'originLng', 'destLat', 'destLng', 'currentL
  * @param {{ open:boolean, initialShipment:any, onClose:()=>void, onSubmit:(payload:any)=>Promise<void>, isSaving:boolean, errorMessage:string|null }} props
  */
 export default function ShipmentModal({ open, initialShipment, onClose, onSubmit, isSaving, errorMessage }) {
-  const [form, setForm] = useState(DEFAULT_VALUES);
-
-  useEffect(() => {
-    if (!open) return;
-    setForm({ ...DEFAULT_VALUES, ...(initialShipment || {}) });
-  }, [open, initialShipment]);
+  const [form, setForm] = useState(() => ({ ...DEFAULT_VALUES, ...(initialShipment || {}) }));
 
   const title = useMemo(() => (initialShipment?.id ? 'Edit Shipment' : 'Add Shipment'), [initialShipment?.id]);
 
