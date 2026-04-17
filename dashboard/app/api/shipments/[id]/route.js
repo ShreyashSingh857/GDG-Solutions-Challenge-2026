@@ -1,44 +1,94 @@
-import { db } from '../../../../lib/firebase-admin.js';
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { adminDb } from '../../../../lib/firebase-admin.js';
 
-/**
- * PATCH /api/shipments/:id
- * Updates a shipment document with partial fields.
- */
-export async function PATCH(req, { params }) {
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export async function PATCH(req, context) {
   try {
-    const { id } = await params;
-    const patch = await req.json();
+    const { id } = await context.params;
+    const body = await req.json();
+    const now = new Date().toISOString();
 
-    if (!id) {
-      return Response.json({ data: null, error: 'Missing shipment id' }, { status: 400 });
+    const NUMS = ['originLat', 'originLng', 'destLat', 'destLng', 'currentLat', 'currentLng', 'cargoValueUSD', 'paymentAmountUSD'];
+    const updates = { ...body, updatedAt: now };
+    NUMS.forEach((k) => {
+      if (updates[k] !== undefined && updates[k] !== null) {
+        updates[k] = Number(updates[k]);
+      }
+    });
+    delete updates.id;
+
+    const ref = adminDb.collection('shipments').doc(id);
+    const existing = await ref.get();
+    if (!existing.exists) {
+      return NextResponse.json({ error: `Shipment not found: ${id}`, data: null }, { status: 404 });
     }
 
-    await db.collection('shipments').doc(id).set({ ...patch, updatedAt: new Date().toISOString() }, { merge: true });
-    const updatedDoc = await db.collection('shipments').doc(id).get();
+    await ref.update(updates);
+    const updated = { id, ...existing.data(), ...updates };
 
-    return Response.json({ data: { id: updatedDoc.id, ...updatedDoc.data() }, error: null });
+    await supabase
+      .from('shipments')
+      .update({ ...toSupabaseUpdateRow(updates), id: undefined })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) {
+          console.error('[API/shipments/:id] Supabase update failed:', error.message);
+        }
+      });
+
+    return NextResponse.json({ data: updated, error: null });
   } catch (err) {
-    console.error('[ShipmentByIdRoute] PATCH failed:', err.message);
-    return Response.json({ data: null, error: err.message }, { status: 400 });
+    return NextResponse.json({ error: err.message, data: null }, { status: 500 });
   }
 }
 
-/**
- * DELETE /api/shipments/:id
- * Deletes a shipment document.
- */
-export async function DELETE(_req, { params }) {
+export async function DELETE(_, context) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
 
-    if (!id) {
-      return Response.json({ data: null, error: 'Missing shipment id' }, { status: 400 });
-    }
+    await adminDb.collection('shipments').doc(id).delete();
+    await supabase
+      .from('shipments')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) {
+          console.error('[API/shipments/:id] Supabase delete failed:', error.message);
+        }
+      });
 
-    await db.collection('shipments').doc(id).delete();
-    return Response.json({ data: { id, deleted: true }, error: null });
+    return NextResponse.json({ data: { id }, error: null });
   } catch (err) {
-    console.error('[ShipmentByIdRoute] DELETE failed:', err.message);
-    return Response.json({ data: null, error: err.message }, { status: 400 });
+    return NextResponse.json({ error: err.message, data: null }, { status: 500 });
   }
+}
+
+function toSupabaseUpdateRow(updates) {
+  return {
+    origin: updates.origin,
+    destination: updates.destination,
+    origin_lat: updates.originLat,
+    origin_lng: updates.originLng,
+    dest_lat: updates.destLat,
+    dest_lng: updates.destLng,
+    current_lat: updates.currentLat,
+    current_lng: updates.currentLng,
+    status: updates.status,
+    carrier: updates.carrier,
+    cargo_value_usd: updates.cargoValueUSD,
+    eta: updates.eta,
+    corridor: updates.corridor,
+    mode: updates.mode,
+    payment_amount_usd: updates.paymentAmountUSD,
+    payment_status: updates.paymentStatus,
+    import_export: updates.importExport,
+    departure_date: updates.departureDate,
+    tracking_number: updates.trackingNumber,
+    updated_at: updates.updatedAt,
+  };
 }
