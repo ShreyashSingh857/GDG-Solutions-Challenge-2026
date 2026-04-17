@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { useShipmentMutations } from '../hooks/useShipmentMutations.js';
 
-const DEFAULT_VALUES = {
+const EMPTY = {
   origin: '',
   destination: '',
   originLat: 0,
@@ -12,207 +13,181 @@ const DEFAULT_VALUES = {
   currentLat: 0,
   currentLng: 0,
   status: 'active',
-  mode: 'sea',
   carrier: '',
-  cargoValueUSD: 0,
-  paymentAmountUSD: 0,
-  paymentStatus: 'pending',
-  importExport: 'import',
-  departureDate: '',
-  trackingNumber: '',
+  cargoValueUSD: '',
   eta: '',
   corridor: 'Pacific',
+  mode: 'sea-freight',
+  paymentAmountUSD: '',
+  paymentStatus: 'pending',
+  importExport: 'export',
+  departureDate: '',
+  trackingNumber: '',
 };
 
-const NUMBER_FIELDS = ['originLat', 'originLng', 'destLat', 'destLng', 'currentLat', 'currentLng', 'cargoValueUSD', 'paymentAmountUSD'];
-
 /**
- * @param {{ open:boolean, initialShipment:any, onClose:()=>void, onSubmit:(payload:any)=>Promise<void>, isSaving:boolean, errorMessage:string|null }} props
+ * @param {{ shipment:any, onClose:()=>void }} props
  */
-export default function ShipmentModal({ open, initialShipment, onClose, onSubmit, isSaving, errorMessage }) {
-  const [form, setForm] = useState(() => ({ ...DEFAULT_VALUES, ...(initialShipment || {}) }));
+export default function ShipmentModal({ shipment, onClose }) {
+  const isEdit = Boolean(shipment);
+  const [form, setForm] = useState(isEdit ? { ...EMPTY, ...shipment } : EMPTY);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const { createShipment, updateShipment } = useShipmentMutations();
 
-  const title = useMemo(() => (initialShipment?.id ? 'Edit Shipment' : 'Add Shipment'), [initialShipment?.id]);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  if (!open) return null;
+  const handleSubmit = async () => {
+    setSaving(true);
+    setError(null);
 
-  const updateField = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+    try {
+      const payload = {
+        ...form,
+        originLat: parseFloat(form.originLat),
+        originLng: parseFloat(form.originLng),
+        destLat: parseFloat(form.destLat),
+        destLng: parseFloat(form.destLng),
+        currentLat: parseFloat(form.currentLat),
+        currentLng: parseFloat(form.currentLng),
+        cargoValueUSD: parseInt(form.cargoValueUSD, 10),
+        paymentAmountUSD: form.paymentAmountUSD ? parseInt(form.paymentAmountUSD, 10) : null,
+      };
 
-  const submit = async (e) => {
-    e.preventDefault();
-    const payload = { ...form };
+      if (isEdit) {
+        await updateShipment(shipment.id, payload);
+      } else {
+        await createShipment(payload);
+      }
 
-    for (const key of NUMBER_FIELDS) {
-      payload[key] = Number(payload[key]);
-      if (Number.isNaN(payload[key])) payload[key] = 0;
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
     }
-
-    await onSubmit(payload);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-end md:items-center justify-center p-3 md:p-6">
-      <form onSubmit={submit} className="w-full max-w-5xl max-h-[90vh] overflow-auto rounded-2xl border border-white/15 bg-[#081224] p-4 md:p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">{title}</h2>
-            {initialShipment?.id ? <p className="text-xs text-white/50 mt-0.5">{initialShipment.id}</p> : null}
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl bg-gray-950 border border-white/10 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <h2 className="text-base font-semibold text-white">
+            {isEdit ? `Edit Shipment - ${shipment.trackingNumber ?? shipment.id.slice(-8)}` : 'Add New Shipment'}
+          </h2>
           <button
-            type="button"
             onClick={onClose}
-            disabled={isSaving}
-            className="w-8 h-8 rounded-full border border-white/20 hover:bg-white/10"
-            aria-label="Close modal"
+            className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors text-white/50"
           >
-            x
+            X
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          <Field label="Tracking Number" value={form.trackingNumber} onChange={(v) => updateField('trackingNumber', v)} required />
-          <Field label="Carrier" value={form.carrier} onChange={(v) => updateField('carrier', v)} required />
-          <Field label="Corridor" value={form.corridor} onChange={(v) => updateField('corridor', v)} required />
-
-          <Field label="Origin" value={form.origin} onChange={(v) => updateField('origin', v)} required />
-          <Field label="Destination" value={form.destination} onChange={(v) => updateField('destination', v)} required />
-          <SelectField
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 grid grid-cols-2 gap-4">
+          <Field label="Origin Port" k="origin" form={form} set={set} />
+          <Field label="Destination Port" k="destination" form={form} set={set} />
+          <Field label="Origin Lat" k="originLat" form={form} set={set} type="number" />
+          <Field label="Origin Lng" k="originLng" form={form} set={set} type="number" />
+          <Field label="Dest Lat" k="destLat" form={form} set={set} type="number" />
+          <Field label="Dest Lng" k="destLng" form={form} set={set} type="number" />
+          <Field label="Current Lat" k="currentLat" form={form} set={set} type="number" />
+          <Field label="Current Lng" k="currentLng" form={form} set={set} type="number" />
+          <Field
+            label="Corridor"
+            k="corridor"
+            form={form}
+            set={set}
+            options={['Pacific', 'Suez', 'Indian Ocean', 'Atlantic', 'Malacca Strait']}
+          />
+          <Field
             label="Mode"
-            value={form.mode}
-            onChange={(v) => updateField('mode', v)}
-            options={[
-              { value: 'sea', label: 'Sea' },
-              { value: 'air', label: 'Air' },
-              { value: 'rail', label: 'Rail' },
-              { value: 'road', label: 'Road' },
-            ]}
+            k="mode"
+            form={form}
+            set={set}
+            options={['sea-freight', 'air-freight', 'rail', 'road']}
           />
-
-          <SelectField
-            label="Shipment Status"
-            value={form.status}
-            onChange={(v) => updateField('status', v)}
-            options={[
-              { value: 'active', label: 'Active' },
-              { value: 'delayed', label: 'Delayed' },
-              { value: 'rerouted', label: 'Rerouted' },
-              { value: 'disrupted', label: 'Disrupted' },
-            ]}
-          />
-          <SelectField
-            label="Payment Status"
-            value={form.paymentStatus}
-            onChange={(v) => updateField('paymentStatus', v)}
-            options={[
-              { value: 'pending', label: 'Pending' },
-              { value: 'paid', label: 'Paid' },
-              { value: 'failed', label: 'Failed' },
-              { value: 'refunded', label: 'Refunded' },
-            ]}
-          />
-          <SelectField
+          <Field
             label="Import / Export"
-            value={form.importExport}
-            onChange={(v) => updateField('importExport', v)}
-            options={[
-              { value: 'import', label: 'Import' },
-              { value: 'export', label: 'Export' },
-            ]}
+            k="importExport"
+            form={form}
+            set={set}
+            options={['import', 'export', 'transit']}
           />
-
-          <NumberField label="Cargo Value (USD)" value={form.cargoValueUSD} onChange={(v) => updateField('cargoValueUSD', v)} min={0} />
-          <NumberField label="Payment Amount (USD)" value={form.paymentAmountUSD} onChange={(v) => updateField('paymentAmountUSD', v)} min={0} />
-          <Field label="Departure Date" value={form.departureDate} onChange={(v) => updateField('departureDate', v)} type="datetime-local" />
-          <Field label="ETA" value={form.eta} onChange={(v) => updateField('eta', v)} type="datetime-local" />
-
-          <NumberField label="Origin Latitude" value={form.originLat} onChange={(v) => updateField('originLat', v)} step="any" />
-          <NumberField label="Origin Longitude" value={form.originLng} onChange={(v) => updateField('originLng', v)} step="any" />
-          <NumberField label="Destination Latitude" value={form.destLat} onChange={(v) => updateField('destLat', v)} step="any" />
-          <NumberField label="Destination Longitude" value={form.destLng} onChange={(v) => updateField('destLng', v)} step="any" />
-          <NumberField label="Current Latitude" value={form.currentLat} onChange={(v) => updateField('currentLat', v)} step="any" />
-          <NumberField label="Current Longitude" value={form.currentLng} onChange={(v) => updateField('currentLng', v)} step="any" />
+          <Field
+            label="Status"
+            k="status"
+            form={form}
+            set={set}
+            options={['active', 'delayed', 'rerouted', 'disrupted']}
+          />
+          <Field label="Carrier" k="carrier" form={form} set={set} />
+          <Field label="Tracking Number" k="trackingNumber" form={form} set={set} />
+          <Field label="Cargo Value (USD)" k="cargoValueUSD" form={form} set={set} type="number" />
+          <Field label="Payment Amount (USD)" k="paymentAmountUSD" form={form} set={set} type="number" />
+          <Field
+            label="Payment Status"
+            k="paymentStatus"
+            form={form}
+            set={set}
+            options={['pending', 'paid', 'overdue', 'partial']}
+          />
+          <Field label="ETA" k="eta" form={form} set={set} type="datetime-local" />
+          <Field label="Departure Date" k="departureDate" form={form} set={set} type="datetime-local" />
         </div>
 
-        {errorMessage ? <p className="mt-4 text-sm text-red-300">{errorMessage}</p> : null}
+        {error && <p className="px-6 py-2 text-sm text-red-400 bg-red-950/30 border-t border-red-500/10">{error}</p>}
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/5">
           <button
-            type="button"
             onClick={onClose}
-            disabled={isSaving}
-            className="px-4 py-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/10"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-white/50 hover:bg-white/5 border border-white/10 transition-colors"
           >
             Cancel
           </button>
           <button
-            type="submit"
-            disabled={isSaving}
-            className="px-4 py-2 rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 disabled:opacity-60"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            {isSaving ? 'Saving...' : 'Save Shipment'}
+            {saving && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/50 border-t-transparent animate-spin" />}
+            {isEdit ? 'Save Changes' : 'Create Shipment'}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, type = 'text', required = false }) {
-  const formattedValue = type === 'datetime-local' ? toDateTimeLocal(value) : value;
-
+function Field({ label, k, type = 'text', options, form, set }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-white/60">{label}</span>
-      <input
-        type={type}
-        required={required}
-        value={formattedValue}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
-      />
-    </label>
+    <div className="flex flex-col gap-1">
+      <label className="text-[11px] font-semibold uppercase tracking-wide text-white/40">{label}</label>
+      {options ? (
+        <select
+          value={form[k]}
+          onChange={set(k)}
+          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-400/50"
+        >
+          {options.map((option) => (
+            <option key={option} value={option} className="bg-gray-900">
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          value={formatDateValue(type, form[k])}
+          onChange={set(k)}
+          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-blue-400/50"
+        />
+      )}
+    </div>
   );
 }
 
-function NumberField({ label, value, onChange, min, step = 1 }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-white/60">{label}</span>
-      <input
-        type="number"
-        min={min}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
-      />
-    </label>
-  );
-}
-
-function SelectField({ label, value, onChange, options }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-white/60">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function toDateTimeLocal(value) {
-  if (!value) return '';
+function formatDateValue(type, value) {
+  if (type !== 'datetime-local' || !value) return value;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);

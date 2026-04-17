@@ -1,119 +1,78 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Toaster } from 'sonner';
+import { useState } from 'react';
 import NavBar from '../components/NavBar.jsx';
 import { useShipments } from '../hooks/useShipments.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
-import { useShipmentMutations } from './hooks/useShipmentMutations.js';
 import OverviewTab from './components/OverviewTab.jsx';
 import ShipmentsTab from './components/ShipmentsTab.jsx';
 import ShipmentModal from './components/ShipmentModal.jsx';
 
 const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'shipments', label: 'Shipments' },
+  { id: 'overview', label: 'Overview', icon: '📊' },
+  { id: 'shipments', label: 'Shipments', icon: '🚢' },
 ];
 
 export default function DetailsPage() {
-  useShipments();
-
-  const shipments = useShipmentStore((s) => s.shipments);
   const [activeTab, setActiveTab] = useState('overview');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingShipment, setEditingShipment] = useState(null);
-  const [modalVersion, setModalVersion] = useState(0);
+  const [modalState, setModalState] = useState({ open: false, shipment: null });
 
-  const { isSaving, saveError, createShipment, updateShipment, deleteShipment } = useShipmentMutations();
+  // Mount Firestore subscription (same hook as Globe page)
+  useShipments();
+  const shipments = useShipmentStore((s) => s.shipments);
+  const isLoading = useShipmentStore((s) => s.isLoading);
 
-  const sortedShipments = useMemo(() => {
-    return [...shipments].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-  }, [shipments]);
-
-  const onCreate = () => {
-    setEditingShipment(null);
-    setModalVersion((v) => v + 1);
-    setModalOpen(true);
-  };
-
-  const onEdit = (shipment) => {
-    setEditingShipment(shipment);
-    setModalVersion((v) => v + 1);
-    setModalOpen(true);
-  };
-
-  const onSave = async (payload) => {
-    if (editingShipment?.id) {
-      await updateShipment(editingShipment.id, payload);
-    } else {
-      await createShipment(payload);
-    }
-    setModalOpen(false);
-    setEditingShipment(null);
-  };
+  const openAdd = () => setModalState({ open: true, shipment: null });
+  const openEdit = (shipment) => setModalState({ open: true, shipment });
+  const closeModal = () => setModalState({ open: false, shipment: null });
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#040B18] text-white">
-      <Toaster position="bottom-right" theme="dark" />
+    <div className="flex flex-col h-screen bg-[#020617] text-white overflow-hidden">
       <NavBar />
-      <main className="flex-1 overflow-auto p-4 md:p-6">
-        <div className="mx-auto max-w-350">
-          <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Shipment Intelligence</h1>
-              <p className="text-sm text-white/60 mt-1">
-                Operational visibility, payment health, and corridor risk at shipment level.
-              </p>
-            </div>
+      <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-black/40">
+        <div className="flex gap-1">
+          {TABS.map((tab) => (
             <button
-              onClick={onCreate}
-              className="self-start md:self-auto px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/30 transition-colors"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={[
+                'px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+                activeTab === tab.id
+                  ? 'bg-blue-600/30 border border-blue-500/40 text-blue-200'
+                  : 'text-white/40 hover:text-white/70 hover:bg-white/5',
+              ].join(' ')}
             >
-              Add Shipment
+              <span>{tab.icon}</span>
+              {tab.label}
             </button>
-          </header>
-
-          <div className="mb-5 inline-flex rounded-xl p-1 bg-white/5 border border-white/10">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                  activeTab === tab.id ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === 'overview' && <OverviewTab shipments={sortedShipments} />}
-          {activeTab === 'shipments' && (
-            <ShipmentsTab
-              shipments={sortedShipments}
-              onCreate={onCreate}
-              onEdit={onEdit}
-              onDelete={deleteShipment}
-              isSaving={isSaving}
-            />
-          )}
-
-          <ShipmentModal
-            key={`shipment-modal-${modalVersion}`}
-            open={modalOpen}
-            initialShipment={editingShipment}
-            onClose={() => {
-              if (!isSaving) {
-                setModalOpen(false);
-                setEditingShipment(null);
-              }
-            }}
-            onSubmit={onSave}
-            isSaving={isSaving}
-            errorMessage={saveError}
-          />
+          ))}
         </div>
-      </main>
+        {activeTab === 'shipments' && (
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+          >
+            <svg viewBox="0 0 16 16" className="w-4 h-4" fill="currentColor" aria-hidden="true">
+              <path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2H9v4a1 1 0 0 1-2 0V9H3a1 1 0 0 1 0-2h4V3a1 1 0 0 1 1-1z" />
+            </svg>
+            Add Shipment
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {activeTab === 'overview' && <OverviewTab shipments={shipments} isLoading={isLoading} />}
+        {activeTab === 'shipments' && (
+          <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
+        )}
+      </div>
+
+      {modalState.open && (
+        <ShipmentModal
+          shipment={modalState.shipment}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 }

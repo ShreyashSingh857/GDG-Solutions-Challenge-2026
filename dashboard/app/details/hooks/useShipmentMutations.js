@@ -1,102 +1,47 @@
 'use client';
 
-import { useState } from 'react';
-import { toast } from 'sonner';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 
-async function parseJson(res) {
-  const json = await res.json().catch(() => ({ data: null, error: 'Invalid JSON response' }));
-  return json;
-}
+const API = '/api/shipments';
 
 export function useShipmentMutations() {
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
+  const { updateShipment: storeUpdate } = useShipmentStore();
 
-  const setShipments = useShipmentStore((s) => s.setShipments);
-  const shipments = useShipmentStore((s) => s.shipments);
-
-  const createShipment = async (payload) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const res = await fetch('/api/shipments', {
+  async function createShipment(data) {
+    const res = await fetch(API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+        body: JSON.stringify(data),
+    });
 
-      const body = await parseJson(res);
-      if (!res.ok || body.error) throw new Error(body.error || 'Failed to create shipment');
-
-      setShipments([body.data, ...shipments]);
-      toast.success('Shipment created');
-      return body.data;
-    } catch (err) {
-      const message = err.message || 'Failed to create shipment';
-      setSaveError(message);
-      toast.error(message);
-      throw err;
-    } finally {
-      setIsSaving(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? `HTTP ${res.status}`);
     }
-  };
 
-  const updateShipment = async (id, payload) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const res = await fetch(`/api/shipments/${id}`, {
+    const { data: created } = await res.json();
+    useShipmentStore.setState((s) => ({
+      shipments: [created, ...s.shipments],
+    }));
+    return created;
+  }
+
+  async function updateShipment(id, data) {
+    const res = await fetch(`${API}/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+        body: JSON.stringify(data),
+    });
 
-      const body = await parseJson(res);
-      if (!res.ok || body.error) throw new Error(body.error || 'Failed to update shipment');
-
-      setShipments(shipments.map((s) => (s.id === id ? body.data : s)));
-      toast.success('Shipment updated');
-      return body.data;
-    } catch (err) {
-      const message = err.message || 'Failed to update shipment';
-      setSaveError(message);
-      toast.error(message);
-      throw err;
-    } finally {
-      setIsSaving(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? `HTTP ${res.status}`);
     }
-  };
 
-  const deleteShipment = async (id) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const res = await fetch(`/api/shipments/${id}`, {
-        method: 'DELETE',
-      });
+    const { data: updated } = await res.json();
+    storeUpdate(updated);
+    return updated;
+  }
 
-      const body = await parseJson(res);
-      if (!res.ok || body.error) throw new Error(body.error || 'Failed to delete shipment');
-
-      setShipments(shipments.filter((s) => s.id !== id));
-      toast.success('Shipment deleted');
-      return body.data;
-    } catch (err) {
-      const message = err.message || 'Failed to delete shipment';
-      setSaveError(message);
-      toast.error(message);
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return {
-    isSaving,
-    saveError,
-    createShipment,
-    updateShipment,
-    deleteShipment,
-  };
+  return { createShipment, updateShipment };
 }

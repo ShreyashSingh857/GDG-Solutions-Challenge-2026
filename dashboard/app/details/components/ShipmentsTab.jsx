@@ -3,130 +3,176 @@
 import { useMemo, useState } from 'react';
 import StatusPill from './StatusPill.jsx';
 
-const currency = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-});
+const MODE_ICONS = {
+  'sea-freight': '🚢',
+  'air-freight': '✈️',
+  rail: '🚆',
+  road: '🚚',
+};
+
+const PAY_COLORS = {
+  paid: 'bg-green-500/15 text-green-300 border-green-400/20',
+  pending: 'bg-yellow-500/15 text-yellow-300 border-yellow-400/20',
+  overdue: 'bg-red-500/15 text-red-300 border-red-400/20',
+  partial: 'bg-orange-500/15 text-orange-300 border-orange-400/20',
+};
 
 /**
- * @param {{ shipments:any[], onCreate:()=>void, onEdit:(shipment:any)=>void, onDelete:(id:string)=>Promise<void>, isSaving:boolean }} props
+ * @param {{ shipments:any[], isLoading:boolean, onEdit:(shipment:any)=>void }} props
  */
-export default function ShipmentsTab({ shipments, onCreate, onEdit, onDelete, isSaving }) {
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
+  const [sortKey, setSortKey] = useState('createdAt');
+  const [sortDir, setSortDir] = useState('desc');
+  const [search, setSearch] = useState('');
 
-  const filtered = useMemo(() => {
-    return shipments.filter((s) => {
-      const q = query.trim().toLowerCase();
-      const searchMatch =
-        !q ||
-        String(s.id || '').toLowerCase().includes(q) ||
-        String(s.trackingNumber || '').toLowerCase().includes(q) ||
-        String(s.origin || '').toLowerCase().includes(q) ||
-        String(s.destination || '').toLowerCase().includes(q) ||
-        String(s.carrier || '').toLowerCase().includes(q);
+  const toggleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(key);
+    setSortDir('asc');
+  };
 
-      const statusMatch = statusFilter === 'all' || String(s.status || '').toLowerCase() === statusFilter;
-      return searchMatch && statusMatch;
+  const displayed = useMemo(() => {
+    let rows = [...shipments];
+
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter((s) =>
+        String(s.origin ?? '').toLowerCase().includes(q) ||
+        String(s.destination ?? '').toLowerCase().includes(q) ||
+        String(s.carrier ?? '').toLowerCase().includes(q) ||
+        String(s.trackingNumber ?? '').toLowerCase().includes(q)
+      );
+    }
+
+    rows.sort((a, b) => {
+      const va = a[sortKey] ?? '';
+      const vb = b[sortKey] ?? '';
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
     });
-  }, [query, shipments, statusFilter]);
+
+    return rows;
+  }, [shipments, sortKey, sortDir, search]);
+
+  const renderSortIcon = (key) => {
+    if (sortKey !== key) return null;
+    return <span className="ml-1 text-[10px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
+  };
+
+  const renderHeader = (key, label) => (
+    <th
+      onClick={() => toggleSort(key)}
+      className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-white/40 cursor-pointer hover:text-white/70 select-none whitespace-nowrap"
+    >
+      {label}
+      {renderSortIcon(key)}
+    </th>
+  );
+
+  const fmt = (n) =>
+    n != null
+      ? new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          notation: 'compact',
+        }).format(n)
+      : '—';
+
+  const fmtDate = (iso) =>
+    iso
+      ? new Date(iso).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '—';
+
+  if (isLoading) return <div className="p-8 text-white/40 text-sm">Loading...</div>;
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/3 p-4">
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by ID, tracking, route, carrier"
-            className="w-full sm:w-80 rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
-          >
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="delayed">Delayed</option>
-            <option value="rerouted">Rerouted</option>
-            <option value="disrupted">Disrupted</option>
-          </select>
-        </div>
-        <button
-          onClick={onCreate}
-          className="self-start md:self-auto px-3 py-2 text-sm rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/30 transition-colors"
-        >
-          New Shipment
-        </button>
-      </div>
+    <div className="p-4 flex flex-col gap-3">
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by origin, destination, carrier, or tracking..."
+        className="w-full max-w-md bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-400/50 focus:bg-white/8 transition-colors"
+      />
 
-      <div className="overflow-auto rounded-xl border border-white/10">
-        <table className="w-full text-sm min-w-280">
-          <thead className="bg-black/40 text-white/65">
+      <div className="rounded-xl border border-white/5 overflow-auto">
+        <table className="w-full min-w-225 text-sm border-collapse">
+          <thead className="bg-white/3 border-b border-white/5">
             <tr>
-              <th className="px-3 py-2 text-left font-medium">Tracking</th>
-              <th className="px-3 py-2 text-left font-medium">Route</th>
-              <th className="px-3 py-2 text-left font-medium">Status</th>
-              <th className="px-3 py-2 text-left font-medium">Mode</th>
-              <th className="px-3 py-2 text-left font-medium">Carrier</th>
-              <th className="px-3 py-2 text-left font-medium">Cargo</th>
-              <th className="px-3 py-2 text-left font-medium">Payment</th>
-              <th className="px-3 py-2 text-left font-medium">Direction</th>
-              <th className="px-3 py-2 text-left font-medium">ETA</th>
-              <th className="px-3 py-2 text-right font-medium">Actions</th>
+              {renderHeader('importExport', 'Type')}
+              {renderHeader('origin', 'Route')}
+              {renderHeader('mode', 'Mode')}
+              {renderHeader('carrier', 'Carrier')}
+              {renderHeader('cargoValueUSD', 'Cargo Value')}
+              {renderHeader('paymentStatus', 'Payment')}
+              {renderHeader('status', 'Status')}
+              {renderHeader('eta', 'ETA')}
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-white/40">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {filtered.map((s) => (
-              <tr key={s.id} className="border-t border-white/10 hover:bg-white/3">
-                <td className="px-3 py-2">
-                  <p className="font-medium text-white/90">{s.trackingNumber || '-'}</p>
-                  <p className="text-xs text-white/45">{s.id}</p>
+          <tbody className="divide-y divide-white/3">
+            {displayed.map((s) => (
+              <tr key={s.id} className="hover:bg-white/3 transition-colors group">
+                <td className="px-4 py-3">
+                  <span
+                    className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
+                      s.importExport === 'export'
+                        ? 'bg-amber-500/10 text-amber-300 border-amber-400/20'
+                        : s.importExport === 'import'
+                          ? 'bg-cyan-500/10 text-cyan-300 border-cyan-400/20'
+                          : 'bg-white/5 text-white/40 border-white/10'
+                    }`}
+                  >
+                    {s.importExport ?? '—'}
+                  </span>
                 </td>
-                <td className="px-3 py-2">{s.origin} to {s.destination}</td>
-                <td className="px-3 py-2"><StatusPill status={s.status} /></td>
-                <td className="px-3 py-2 uppercase text-white/75">{s.mode || '-'}</td>
-                <td className="px-3 py-2">{s.carrier || '-'}</td>
-                <td className="px-3 py-2">{currency.format(Number(s.cargoValueUSD || 0))}</td>
-                <td className="px-3 py-2">
-                  <div className="flex flex-col gap-1">
-                    <span>{currency.format(Number(s.paymentAmountUSD || 0))}</span>
-                    <StatusPill status={s.paymentStatus} />
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-white">{s.origin}</span>
+                    <svg viewBox="0 0 16 8" className="w-4 h-3 text-white/30" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                      <path d="M1 4h14M11 1l3 3-3 3" />
+                    </svg>
+                    <span className="text-white/70">{s.destination}</span>
                   </div>
+                  {s.trackingNumber && <p className="text-[10px] text-white/30 font-mono mt-0.5">{s.trackingNumber}</p>}
                 </td>
-                <td className="px-3 py-2 capitalize">{s.importExport || '-'}</td>
-                <td className="px-3 py-2">{s.eta ? new Date(s.eta).toLocaleDateString() : '-'}</td>
-                <td className="px-3 py-2">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => onEdit(s)}
-                      className="px-2.5 py-1.5 rounded-lg border border-white/15 text-white/80 hover:bg-white/10"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => onDelete(s.id)}
-                      disabled={isSaving}
-                      className="px-2.5 py-1.5 rounded-lg border border-red-400/30 text-red-300 hover:bg-red-500/15 disabled:opacity-60"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                <td className="px-4 py-3 text-white/70">
+                  {MODE_ICONS[s.mode ?? 'sea-freight']} <span className="ml-1 capitalize">{String(s.mode ?? 'sea-freight').replace('-', ' ')}</span>
+                </td>
+                <td className="px-4 py-3 text-white/70">{s.carrier}</td>
+                <td className="px-4 py-3 font-mono text-white/70">{fmt(s.cargoValueUSD)}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded border capitalize ${PAY_COLORS[s.paymentStatus] ?? 'bg-white/5 text-white/40 border-white/10'}`}>
+                    {s.paymentStatus ?? 'unknown'}
+                  </span>
+                </td>
+                <td className="px-4 py-3"><StatusPill status={s.status} /></td>
+                <td className="px-4 py-3 text-white/50 text-xs">{fmtDate(s.eta)}</td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => onEdit(s)}
+                    className="opacity-0 group-hover:opacity-100 text-xs px-2.5 py-1 rounded-lg border border-white/10 text-white/60 hover:border-blue-400/40 hover:text-blue-300 transition-all"
+                  >
+                    Edit
+                  </button>
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td className="px-3 py-8 text-center text-white/50" colSpan={10}>
-                  No shipments match the current filters.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
+
+        {displayed.length === 0 && (
+          <div className="py-12 text-center text-white/30 text-sm">No shipments match your search.</div>
+        )}
       </div>
-    </section>
+      <p className="text-xs text-white/25 pl-1">{displayed.length} of {shipments.length} shipments</p>
+    </div>
   );
 }

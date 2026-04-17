@@ -1,21 +1,21 @@
-'use client';
+const COLORS = {
+  default: 'border-white/5 bg-white/2',
+  green: 'border-green-500/20 bg-green-500/5',
+  red: 'border-red-500/20 bg-red-500/5',
+  blue: 'border-blue-500/20 bg-blue-500/5',
+  cyan: 'border-cyan-500/20 bg-cyan-500/5',
+  amber: 'border-amber-500/20 bg-amber-500/5',
+  purple: 'border-purple-500/20 bg-purple-500/5',
+};
 
-/**
- * @param {{ title: string, value: string, subtitle?: string, tone?: 'neutral'|'green'|'amber'|'blue' }} props
- */
-export default function MetricCard({ title, value, subtitle, tone = 'neutral' }) {
-  const toneClass = {
-    neutral: 'border-white/10 bg-white/[0.03]',
-    green: 'border-emerald-400/25 bg-emerald-500/[0.08]',
-    amber: 'border-amber-400/25 bg-amber-500/[0.08]',
-    blue: 'border-cyan-400/25 bg-cyan-500/[0.08]',
-  }[tone];
-
+export default function MetricCard({ label, value, icon, color = 'default' }) {
   return (
-    <article className={`rounded-2xl border p-4 backdrop-blur-sm ${toneClass}`}>
-      <p className="text-xs uppercase tracking-wider text-white/60">{title}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
-      {subtitle ? <p className="mt-1 text-xs text-white/55">{subtitle}</p> : null}
-    </article>
+    <div className={`rounded-xl border p-4 flex flex-col gap-2 ${COLORS[color]}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-lg">{icon}</span>
+      </div>
+      <p className="text-2xl font-bold text-white">{value}</p>
+      <p className="text-xs text-white/40 uppercase tracking-widest">{label}</p>
+    </div>
   );
 }
