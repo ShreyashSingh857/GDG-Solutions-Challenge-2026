@@ -22,7 +22,7 @@ export async function firebaseAuthMiddleware(req, reply) {
 			email: decoded.email,
 			role: decoded.role || 'viewer', // custom claim - set via Firebase Admin in future
 		};
-	} catch (err) {
+	} catch (_err) {
 		return reply.status(401).send({ error: 'Invalid or expired token', traceId: null });
 	}
 }

@@ -23,9 +23,9 @@ export async function publish(topic, agentPayload) {
     }
 
     console.log(`[EventBusClient] Published to ${topic} | traceId: ${agentPayload.traceId}`);
-  } catch (err) {
-    console.error('[EventBusClient] publish() error:', err.message);
-    throw err;
+  } catch (_err) {
+    console.error('[EventBusClient] publish() error:', _err.message);
+    throw _err;
   }
 }
 
@@ -50,12 +50,12 @@ export function subscribe(topic, onMessage) {
       const data = JSON.parse(event.data);
       if (data.type === 'replay') return;
       onMessage(data);
-    } catch (err) {
-      console.error(`[EventBusClient] Failed to parse message from ${topic}:`, err.message);
+    } catch (_err) {
+      console.error(`[EventBusClient] Failed to parse message from ${topic}:`, _err.message);
     }
   };
 
-  es.onerror = (err) => {
+  es.onerror = (_err) => {
     console.error(`[EventBusClient] SSE connection error on topic: ${topic}. Will auto-reconnect.`);
   };
 

@@ -32,8 +32,6 @@ git clone <repo-url>
 cd GDG-Solutions-Challenge-2026-main
 ```
 
-Install deps for each service:
-
 ```bash
 cd event-bus && npm install && cd ..
 cd disruption && npm install && cd ..
@@ -121,6 +119,17 @@ If you deploy with `render.yaml`, add the news service alongside the other web s
 ```
 
 Render free tier sleeps after 15 minutes of inactivity. The internal cron scheduler fires every 15 minutes, which helps wake the service automatically. The first poll after a cold start can take 30-60 seconds while Node boots.
+
+If you use the GitHub Actions workflow in `.github/workflows/deploy.yml`, add these repository secrets:
+
+- `RENDER_DEPLOY_HOOK_EVENT_BUS`
+- `VERCEL_DEPLOY_HOOK_DASHBOARD`
+- `RENDER_DEPLOY_HOOK_IMPACT`
+- `RENDER_DEPLOY_HOOK_DISRUPTION`
+- `RENDER_DEPLOY_HOOK_RESOLUTION`
+- `RENDER_DEPLOY_HOOK_NEWS_INTEL`
+
+Each backend service package now has its own lint script, and the GitHub Actions workflow runs them individually; the dashboard keeps its own Next.js lint job.
 
 ---
 

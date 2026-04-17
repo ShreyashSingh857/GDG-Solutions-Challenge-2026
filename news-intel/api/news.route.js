@@ -1,5 +1,5 @@
 import { db } from '../../shared/db/firebase.js';
-import { getLastCycleStats, getRecentAlerts, triggerManualPoll } from './news.service.js';
+import { getRecentAlerts, triggerManualPoll } from './news.service.js';
 
 function isFirebaseConfigError(err) {
   return String(err?.message || '').includes('Missing FIREBASE_* env vars');

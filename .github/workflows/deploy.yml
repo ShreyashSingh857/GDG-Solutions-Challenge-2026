@@ -1,33 +1,213 @@
 name: CI/CD Pipeline
 
 on:
+  pull_request:
+    paths:
+      - 'shared/**'
+      - 'dashboard/**'
+      - 'event-bus/**'
+      - 'disruption/**'
+      - 'impact/**'
+      - 'resolution/**'
+      - 'news-intel/**'
+      - '.github/workflows/deploy.yml'
+      - 'package.json'
+      - 'package-lock.json'
   push:
     branches: [main]
+    paths:
+      - 'shared/**'
+      - 'dashboard/**'
+      - 'event-bus/**'
+      - 'disruption/**'
+      - 'impact/**'
+      - 'resolution/**'
+      - 'news-intel/**'
+      - '.github/workflows/deploy.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
-  lint-and-check:
+  validate-dashboard:
+    name: Dashboard lint and build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Install event-bus deps
-        run: cd event-bus && npm install
-      - name: Install disruption deps
-        run: cd disruption && npm install
-      - name: Install impact deps
-        run: cd impact && npm install
-      - name: Install resolution deps
-        run: cd resolution && npm install
-      - name: Install dashboard deps
-        run: cd dashboard && npm install
-      - name: Lint dashboard
-        run: cd dashboard && npm run lint
-      - name: Deploy event-bus to Render (stub)
-        run: echo "Add RENDER_DEPLOY_HOOK_EVENT_BUS secret and uncomment curl call in Phase 4"
-      - name: Deploy agents to Render (stub)
-        run: echo "Add RENDER_DEPLOY_HOOK_* secrets and uncomment in Phase 4"
-      - name: Deploy dashboard to Vercel (stub)
-        run: echo "Add VERCEL_TOKEN secret and uncomment in Phase 4"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dashboard dependencies
+        run: npm ci
+
+      - name: Run dashboard lint
+        run: npm run lint
+
+      - name: Build dashboard
+        run: npm run build
+
+  validate-backend:
+    name: Backend lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Run event-bus lint
+        run: cd event-bus && npm run lint
+
+      - name: Run disruption lint
+        run: cd disruption && npm run lint
+
+      - name: Run impact lint
+        run: cd impact && npm run lint
+
+      - name: Run resolution lint
+        run: cd resolution && npm run lint
+
+      - name: Run news-intel lint
+        run: cd news-intel && npm run lint
+
+  validate-resolution:
+    name: Resolution tests and lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: resolution
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: resolution/package-lock.json
+
+      - name: Install resolution dependencies
+        run: npm ci
+
+      - name: Run resolution tests
+        run: npm test
+
+  deploy-dashboard:
+    name: Deploy dashboard to Vercel
+    needs:
+      - validate-dashboard
+      - validate-backend
+      - validate-resolution
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Trigger dashboard deployment
+        run: |
+          curl -fsSL -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_DASHBOARD }}"
+
+  deploy-disruption:
+    name: Deploy disruption to Render
+    needs:
+      - validate-dashboard
+      - validate-backend
+      - validate-resolution
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Trigger disruption deployment
+        run: |
+          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_DISRUPTION }}"
+
+  deploy-news-intel:
+    name: Deploy news-intel to Render
+    needs:
+      - validate-dashboard
+      - validate-backend
+      - validate-resolution
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Trigger news-intel deployment
+        run: |
+          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_NEWS_INTEL }}"
+
+  deploy-event-bus:
+    name: Deploy event-bus to Render
+    needs:
+      - validate-dashboard
+      - validate-backend
+      - validate-resolution
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Trigger event-bus deployment
+        run: |
+          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_EVENT_BUS }}"
+
+  deploy-impact:
+    name: Deploy impact to Render
+    needs:
+      - validate-dashboard
+      - validate-backend
+      - validate-resolution
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Trigger impact deployment
+        run: |
+          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_IMPACT }}"
+
+  deploy-resolution:
+    name: Deploy resolution to Render
+    needs:
+      - validate-dashboard
+      - validate-backend
+      - validate-resolution
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Trigger resolution deployment
+        run: |
+          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_RESOLUTION }}"

@@ -1,22 +1,23 @@
+import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const cesiumRoot = dirname(require.resolve('cesium/package.json'));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	turbopack: {
-		root: __dirname,
-	},
 	webpack: (config, { webpack }) => {
 		config.plugins.push(
 			new CopyWebpackPlugin({
 				patterns: [
-					{ from: 'node_modules/cesium/Build/Cesium/Workers', to: 'static/cesium/Workers' },
-					{ from: 'node_modules/cesium/Build/Cesium/Assets', to: 'static/cesium/Assets' },
-					{ from: 'node_modules/cesium/Build/Cesium/Widgets', to: 'static/cesium/Widgets' },
-					{ from: 'node_modules/cesium/Build/Cesium/ThirdParty', to: 'static/cesium/ThirdParty', noErrorOnMissing: true },
+					{ from: resolve(cesiumRoot, 'Build/Cesium/Workers'), to: 'static/cesium/Workers' },
+					{ from: resolve(cesiumRoot, 'Build/Cesium/Assets'), to: 'static/cesium/Assets' },
+					{ from: resolve(cesiumRoot, 'Build/Cesium/Widgets'), to: 'static/cesium/Widgets' },
+					{ from: resolve(cesiumRoot, 'Build/Cesium/ThirdParty'), to: 'static/cesium/ThirdParty', noErrorOnMissing: true },
 				],
 			})
 		);

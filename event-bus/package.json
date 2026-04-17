@@ -4,6 +4,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "lint": "node ../node_modules/eslint/bin/eslint.js . --max-warnings 0",
     "dev": "nodemon index.js",
     "start": "node index.js"
   },

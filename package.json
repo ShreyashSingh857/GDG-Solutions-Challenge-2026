@@ -9,6 +9,7 @@
   },
   "scripts": {
     "setup": "cd event-bus && npm install && cd ../disruption && npm install && cd ../impact && npm install && cd ../resolution && npm install && cd ../news-intel && npm install && cd ../dashboard && npm install && cd ..",
+    "lint": "eslint event-bus disruption impact resolution news-intel shared --max-warnings 0",
     "seed": "node shared/db/seed/seed.js",
     "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,yellow,magenta,blue,green,red\" -n \"BUS,DISRUPTION,IMPACT,RESOLUTION,NEWS,DASH\" \"npm run dev:bus\" \"npm run dev:disruption\" \"npm run dev:impact\" \"npm run dev:resolution\" \"npm run dev:news\" \"npm run dev:dashboard\"",
     "dev:all": "npm run dev",
@@ -46,6 +47,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "eslint": "^9",
     "concurrently": "^9.0.0",
     "nodemon": "^3.1.0"
   }
