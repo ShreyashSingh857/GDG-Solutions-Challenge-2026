@@ -8,11 +8,11 @@ const COLORS = {
   purple: 'border-purple-500/20 bg-purple-500/5',
 };
 
-export default function MetricCard({ label, value, icon, color = 'default' }) {
+export default function MetricCard({ label, value, icon: Icon, color = 'default' }) {
   return (
     <div className={`rounded-xl border p-4 flex flex-col gap-2 ${COLORS[color]}`}>
       <div className="flex items-center justify-between">
-        <span className="text-lg">{icon}</span>
+        {Icon ? <Icon className="w-5 h-5 text-white/80" aria-hidden="true" /> : null}
       </div>
       <p className="text-2xl font-bold text-white">{value}</p>
       <p className="text-xs text-white/40 uppercase tracking-widest">{label}</p>

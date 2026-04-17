@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PackageSearch, Plus, ShipWheel } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useShipments } from '../hooks/useShipments.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
@@ -9,8 +10,8 @@ import ShipmentsTab from './components/ShipmentsTab.jsx';
 import ShipmentModal from './components/ShipmentModal.jsx';
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: '📊' },
-  { id: 'shipments', label: 'Shipments', icon: '🚢' },
+  { id: 'overview', label: 'Overview', icon: PackageSearch },
+  { id: 'shipments', label: 'Shipments', icon: ShipWheel },
 ];
 
 export default function DetailsPage() {
@@ -42,7 +43,7 @@ export default function DetailsPage() {
                   : 'text-white/40 hover:text-white/70 hover:bg-white/5',
               ].join(' ')}
             >
-              <span>{tab.icon}</span>
+              <tab.icon className="w-4 h-4" aria-hidden="true" />
               {tab.label}
             </button>
           ))}
@@ -52,9 +53,7 @@ export default function DetailsPage() {
             onClick={openAdd}
             className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
           >
-            <svg viewBox="0 0 16 16" className="w-4 h-4" fill="currentColor" aria-hidden="true">
-              <path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2H9v4a1 1 0 0 1-2 0V9H3a1 1 0 0 1 0-2h4V3a1 1 0 0 1 1-1z" />
-            </svg>
+            <Plus className="w-4 h-4" aria-hidden="true" />
             Add Shipment
           </button>
         )}

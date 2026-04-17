@@ -1,6 +1,17 @@
 'use client';
 
 import { useMemo } from 'react';
+import {
+  ArrowRightLeft,
+  Banknote,
+  CheckCircle2,
+  CircleAlert,
+  ReceiptText,
+  Route,
+  Ship,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import MetricCard from './MetricCard.jsx';
 
@@ -45,18 +56,18 @@ export default function OverviewTab({ shipments, isLoading }) {
   return (
     <div className="p-6 flex flex-col gap-6">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <MetricCard label="Total Shipments" value={shipments.length} icon="🚢" />
-        <MetricCard label="Active" value={metrics.byStatus.active?.length ?? 0} color="green" icon="✅" />
-        <MetricCard label="Delayed" value={metrics.byStatus.delayed?.length ?? 0} color="red" icon="⚠️" />
-        <MetricCard label="Rerouted" value={metrics.byStatus.rerouted?.length ?? 0} color="blue" icon="🔃" />
-        <MetricCard label="Total Cargo Value" value={fmt(metrics.totalValue)} icon="💰" />
-        <MetricCard label="Payments Cleared" value={`${metrics.paidCount}/${shipments.length}`} icon="🧾" />
+        <MetricCard label="Total Shipments" value={shipments.length} icon={Ship} />
+        <MetricCard label="Active" value={metrics.byStatus.active?.length ?? 0} color="green" icon={CheckCircle2} />
+        <MetricCard label="Delayed" value={metrics.byStatus.delayed?.length ?? 0} color="red" icon={CircleAlert} />
+        <MetricCard label="Rerouted" value={metrics.byStatus.rerouted?.length ?? 0} color="blue" icon={Route} />
+        <MetricCard label="Total Cargo Value" value={fmt(metrics.totalValue)} icon={Banknote} />
+        <MetricCard label="Payments Cleared" value={`${metrics.paidCount}/${shipments.length}`} icon={ReceiptText} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <MetricCard label="Imports" value={metrics.byIE.import?.length ?? 0} color="cyan" icon="📥" />
-        <MetricCard label="Exports" value={metrics.byIE.export?.length ?? 0} color="amber" icon="📤" />
-        <MetricCard label="Transit" value={metrics.byIE.transit?.length ?? 0} color="purple" icon="🔁" />
+        <MetricCard label="Imports" value={metrics.byIE.import?.length ?? 0} color="cyan" icon={TrendingDown} />
+        <MetricCard label="Exports" value={metrics.byIE.export?.length ?? 0} color="amber" icon={TrendingUp} />
+        <MetricCard label="Transit" value={metrics.byIE.transit?.length ?? 0} color="purple" icon={ArrowRightLeft} />
       </div>
 
       <div className="rounded-2xl border border-white/5 bg-white/2 p-5">

@@ -1,13 +1,21 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Plane,
+  Ship,
+  Train,
+  Truck,
+} from 'lucide-react';
 import StatusPill from './StatusPill.jsx';
 
 const MODE_ICONS = {
-  'sea-freight': '🚢',
-  'air-freight': '✈️',
-  rail: '🚆',
-  road: '🚚',
+  'sea-freight': Ship,
+  'air-freight': Plane,
+  rail: Train,
+  road: Truck,
 };
 
 const PAY_COLORS = {
@@ -60,7 +68,9 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
 
   const renderSortIcon = (key) => {
     if (sortKey !== key) return null;
-    return <span className="ml-1 text-[10px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
+    return sortDir === 'asc'
+      ? <ArrowUp className="ml-1 inline w-3 h-3" aria-hidden="true" />
+      : <ArrowDown className="ml-1 inline w-3 h-3" aria-hidden="true" />;
   };
 
   const renderHeader = (key, label) => (
@@ -144,7 +154,15 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                   {s.trackingNumber && <p className="text-[10px] text-white/30 font-mono mt-0.5">{s.trackingNumber}</p>}
                 </td>
                 <td className="px-4 py-3 text-white/70">
-                  {MODE_ICONS[s.mode ?? 'sea-freight']} <span className="ml-1 capitalize">{String(s.mode ?? 'sea-freight').replace('-', ' ')}</span>
+                  {(() => {
+                    const ModeIcon = MODE_ICONS[s.mode ?? 'sea-freight'] ?? Ship;
+                    return (
+                      <span className="inline-flex items-center gap-1.5">
+                        <ModeIcon className="w-4 h-4 text-white/60" aria-hidden="true" />
+                        <span className="capitalize">{String(s.mode ?? 'sea-freight').replace('-', ' ')}</span>
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td className="px-4 py-3 text-white/70">{s.carrier}</td>
                 <td className="px-4 py-3 font-mono text-white/70">{fmt(s.cargoValueUSD)}</td>
