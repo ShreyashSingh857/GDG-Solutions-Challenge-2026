@@ -10,6 +10,7 @@ const cesiumRoot = dirname(require.resolve('cesium/package.json'));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+	outputFileTracingRoot: resolve(__dirname, '..'),
 	webpack: (config, { webpack }) => {
 		config.plugins.push(
 			new CopyWebpackPlugin({

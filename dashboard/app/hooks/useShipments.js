@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase.js';
+import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
 
 /**
@@ -14,6 +14,10 @@ export function useShipments() {
   const { setShipments, updateShipment } = useShipmentStore();
 
   useEffect(() => {
+    if (!isFirebaseConfigured || !db) {
+      return;
+    }
+
     const unsubscribe = onSnapshot(
       collection(db, 'shipments'),
       (snapshot) => {

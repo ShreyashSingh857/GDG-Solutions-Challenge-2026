@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { collection, onSnapshot, orderBy, query, limit, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase.js';
+import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
 /**
@@ -14,6 +14,10 @@ export function useResolutions() {
   const { setResolutionWithOptions } = useAlertStore();
 
   useEffect(() => {
+    if (!isFirebaseConfigured || !db) {
+      return;
+    }
+
     const q = query(
       collection(db, 'resolutions'),
       orderBy('createdAt', 'desc'),

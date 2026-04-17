@@ -42,6 +42,8 @@ jobs:
   validate-dashboard:
     name: Dashboard lint and build
     runs-on: ubuntu-latest
+    env:
+      CI: 'true'
     defaults:
       run:
         working-directory: dashboard
@@ -60,10 +62,18 @@ jobs:
       - name: Install dashboard dependencies
         run: npm ci
 
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('dashboard/package-lock.json') }}-${{ hashFiles('dashboard/next.config.mjs', 'dashboard/app/**/*.js', 'dashboard/components/**/*.js') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('dashboard/package-lock.json') }}-
+
       - name: Run dashboard lint
         run: npm run lint
 
-      - name: Build dashboard
+      - name: Build dashboard (single invocation)
         run: npm run build
 
   validate-backend:

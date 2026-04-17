@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { collection, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
-import { db } from '../lib/firebase.js';
+import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
 /**
@@ -13,6 +13,10 @@ export function useDisruptions() {
   const { addDisruption } = useAlertStore();
 
   useEffect(() => {
+    if (!isFirebaseConfigured || !db) {
+      return;
+    }
+
     const q = query(
       collection(db, 'disruptions'),
       orderBy('detectedAt', 'desc'),

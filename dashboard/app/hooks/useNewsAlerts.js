@@ -2,13 +2,17 @@
 
 import { useEffect } from 'react';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from '../lib/firebase.js';
+import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
 export function useNewsAlerts() {
   const addNewsAlert = useAlertStore((state) => state.addNewsAlert);
 
   useEffect(() => {
+    if (!isFirebaseConfigured || !db) {
+      return;
+    }
+
     const newsQuery = query(
       collection(db, 'news_alerts'),
       orderBy('detectedAt', 'desc'),

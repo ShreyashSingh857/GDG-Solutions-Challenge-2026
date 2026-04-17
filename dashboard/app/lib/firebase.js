@@ -2,7 +2,6 @@
 
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,18 +12,28 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Prevent re-initialization on hot reloads in Next.js dev mode
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
+export const isFirebaseConfigured = requiredKeys.every((key) => {
+  const value = firebaseConfig[key];
+  return typeof value === 'string' && value.trim().length > 0;
+});
 
-let db;
-try {
-  db = initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true,
-    useFetchStreams: false,
-  });
-} catch {
-  db = getFirestore(app);
+let app = null;
+if (isFirebaseConfigured) {
+  // Prevent re-initialization on hot reloads in Next.js dev mode
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+}
+
+let db = null;
+if (app) {
+  try {
+    db = initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      useFetchStreams: false,
+    });
+  } catch {
+    db = getFirestore(app);
+  }
 }
 
 export { db };
-export const auth = getAuth(app);
