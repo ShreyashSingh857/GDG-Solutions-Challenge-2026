@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { RotateCw } from 'lucide-react';
 import { useNewsAlerts } from '../../hooks/useNewsAlerts.js';
 import { useAlertStore } from '../../store/alertStore.js';
 
@@ -22,6 +24,36 @@ const CHIP_STYLES = {
 export default function NewsFeed() {
   useNewsAlerts();
   const newsAlerts = useAlertStore((state) => state.newsAlerts);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState(null);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setRefreshError(null);
+    try {
+      const newsAgentUrl = process.env.NEXT_PUBLIC_NEWS_AGENT_URL || 'http://localhost:3005';
+      const response = await fetch(`${newsAgentUrl}/news/poll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to refresh news: HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.error) {
+        throw new Error(result.error);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to refresh news';
+      setRefreshError(message);
+      setTimeout(() => setRefreshError(null), 3000);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!newsAlerts.length) {
     return (
@@ -50,10 +82,26 @@ export default function NewsFeed() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-300/80">News Intelligence</p>
           <p className="text-xs text-white/40">Auto-classified supply-chain signals</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/50">
-          {newsAlerts.length} alerts
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/50">
+            {newsAlerts.length} alerts
+          </span>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="rounded-lg border border-white/10 bg-white/5 p-1 text-white/50 hover:border-cyan-400/40 hover:bg-cyan-400/10 hover:text-cyan-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={isRefreshing ? 'Refreshing news...' : 'Refresh news from GDELT'}
+            aria-label="Refresh news alerts"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+          </button>
+        </div>
       </div>
+      {refreshError && (
+        <div className="rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-300">
+          {refreshError}
+        </div>
+      )}
 
       <div className="flex max-h-[28vh] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
         {newsAlerts.map((alert) => {
