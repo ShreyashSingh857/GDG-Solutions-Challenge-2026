@@ -1,13 +1,26 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { PackageSearch, Plus, ShipWheel } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useShipments } from '../hooks/useShipments.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
-import OverviewTab from './components/OverviewTab.jsx';
-import ShipmentsTab from './components/ShipmentsTab.jsx';
-import ShipmentModal from './components/ShipmentModal.jsx';
+
+const OverviewTab = dynamic(() => import('./components/OverviewTab.jsx'), {
+  ssr: false,
+  loading: () => <div className="p-8 text-white/40 text-sm">Loading overview...</div>,
+});
+
+const ShipmentsTab = dynamic(() => import('./components/ShipmentsTab.jsx'), {
+  ssr: false,
+  loading: () => <div className="p-8 text-white/40 text-sm">Loading shipments...</div>,
+});
+
+const ShipmentModal = dynamic(() => import('./components/ShipmentModal.jsx'), {
+  ssr: false,
+  loading: () => null,
+});
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: PackageSearch },

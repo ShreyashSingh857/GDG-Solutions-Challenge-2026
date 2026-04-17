@@ -1,9 +1,18 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { AnimatePresence, motion } from 'framer-motion';
-import AgentChatSidebar from './agent/AgentChatSidebar.jsx';
-import NewsFeed from './news/NewsFeed.jsx';
+
+const AgentChatSidebar = dynamic(() => import('./agent/AgentChatSidebar.jsx'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-xs text-white/40">Loading agent reasoning...</div>,
+});
+
+const NewsFeed = dynamic(() => import('./news/NewsFeed.jsx'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-xs text-white/40">Loading news intelligence...</div>,
+});
 
 const TABS = [
   { id: 'agent', label: 'Agent' },
