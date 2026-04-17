@@ -7,14 +7,27 @@ import { useShipments } from './hooks/useShipments.js';
 import { useDisruptions } from './hooks/useDisruptions.js';
 import { useResolutions } from './hooks/useResolutions.js';
 import { useAlertStore } from './store/alertStore.js';
-import AlertToastController from './components/alerts/AlertToast.jsx';
 import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentTrigger from './components/AgentTrigger.jsx';
-import AgentPanel from './components/AgentPanel.jsx';
-import DecisionModal from './components/decision/DecisionModal.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import NavBar from './components/NavBar.jsx';
 
+const AlertToastController = dynamic(() => import('./components/alerts/AlertToast.jsx'), {
+  ssr: false,
+  loading: () => null,
+});
+const AgentPanel = dynamic(() => import('./components/AgentPanel.jsx'), {
+  ssr: false,
+  loading: () => null,
+});
+const DecisionModal = dynamic(() => import('./components/decision/DecisionModal.jsx'), {
+  ssr: false,
+  loading: () => null,
+});
+const GlobeActivationToggle = dynamic(() => import('./components/globe/GlobeActivationToggle.jsx'), {
+  ssr: false,
+  loading: () => null,
+});
 const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
   ssr: false,
   loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>,
@@ -23,6 +36,9 @@ const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
 export default function Home() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('agent');
+  const [globeEnabled, setGlobeEnabled] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const isGlobeActive = globeEnabled && isPageVisible;
 
   useEffect(() => {
     const unsub = useAlertStore.subscribe(
@@ -37,6 +53,16 @@ export default function Home() {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsPageVisible(document.visibilityState === 'visible');
+    };
+
+    handleVisibility();
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   useShipments();
   useDisruptions();
   useResolutions();
@@ -48,19 +74,32 @@ export default function Home() {
         <Toaster position="bottom-right" theme="dark" />
         <AlertToastController />
         <DecisionModal />
-        <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable - WebGL may not be supported</div>}>
-          <div className="absolute inset-0">
-            <GlobeView />
+        {isGlobeActive ? (
+          <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable - WebGL may not be supported</div>}>
+            <div className="absolute inset-0">
+              <GlobeView />
+            </div>
+          </ErrorBoundary>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#020617] text-sm text-white/45">
+            Globe is paused while inactive.
           </div>
-          <AgentStatusBadge />
-          <AgentTrigger isOpen={panelOpen} onClick={() => setPanelOpen((v) => !v)} />
+        )}
+        <AgentStatusBadge />
+        <GlobeActivationToggle
+          isActive={globeEnabled}
+          isPageVisible={isPageVisible}
+          onToggle={() => setGlobeEnabled((prev) => !prev)}
+        />
+        <AgentTrigger isOpen={panelOpen} onClick={() => setPanelOpen((v) => !v)} />
+        {panelOpen ? (
           <AgentPanel
             isOpen={panelOpen}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onClose={() => setPanelOpen(false)}
           />
-        </ErrorBoundary>
+        ) : null}
       </div>
     </div>
   );
