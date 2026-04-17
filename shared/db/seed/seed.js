@@ -5,6 +5,8 @@ import 'dotenv/config';
 
 const CARRIERS = ['Maersk', 'MSC', 'COSCO', 'Evergreen', 'Hapag-Lloyd'];
 const STATUSES = ['active', 'active', 'active', 'active', 'delayed'];
+const MODES = ['sea', 'air', 'rail', 'road'];
+const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
 
 function generateShipment(index) {
   const isPacific = index < 10;
@@ -28,7 +30,12 @@ function generateShipment(index) {
 
   const currentLat = (originLat + destLat) / 2 + (Math.random() * 4 - 2);
   const currentLng = (originLng + destLng) / 2 + (Math.random() * 4 - 2);
+  const departureDate = new Date(Date.now() - (1 + Math.random() * 7) * 24 * 60 * 60 * 1000).toISOString();
   const eta = new Date(Date.now() + (3 + Math.random() * 25) * 24 * 60 * 60 * 1000).toISOString();
+  const cargoValueUSD = Math.floor(500000 + Math.random() * 9500000);
+  const paymentAmountUSD = Math.floor(cargoValueUSD * (0.75 + Math.random() * 0.3));
+  const importExport = Math.random() > 0.5 ? 'import' : 'export';
+  const trackingNumber = `TRK-${Math.random().toString(36).slice(2, 8).toUpperCase()}-${index}`;
 
   return {
     id: `ship-${uuidv4()}`,
@@ -41,8 +48,14 @@ function generateShipment(index) {
     currentLat,
     currentLng,
     status: STATUSES[Math.floor(Math.random() * STATUSES.length)],
+    mode: MODES[Math.floor(Math.random() * MODES.length)],
     carrier: CARRIERS[Math.floor(Math.random() * CARRIERS.length)],
-    cargoValueUSD: Math.floor(500000 + Math.random() * 9500000),
+    cargoValueUSD,
+    paymentAmountUSD,
+    paymentStatus: PAYMENT_STATUSES[Math.floor(Math.random() * PAYMENT_STATUSES.length)],
+    importExport,
+    departureDate,
+    trackingNumber,
     eta,
     corridor,
     createdAt: new Date().toISOString(),
