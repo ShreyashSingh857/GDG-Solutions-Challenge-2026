@@ -32,9 +32,15 @@ export default function NewsFeed() {
     setRefreshError(null);
     try {
       const newsAgentUrl = process.env.NEXT_PUBLIC_NEWS_AGENT_URL || 'http://localhost:3005';
+      const internalToken = process.env.NEXT_PUBLIC_INTERNAL_TOKEN;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(internalToken ? { Authorization: `Bearer ${internalToken}` } : {}),
+      };
       const response = await fetch(`${newsAgentUrl}/news/poll`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
+        body: JSON.stringify({}),
         signal: AbortSignal.timeout(30000),
       });
 
@@ -54,23 +60,6 @@ export default function NewsFeed() {
       setIsRefreshing(false);
     }
   };
-
-  if (!newsAlerts.length) {
-    return (
-      <div
-        className="flex h-full flex-col items-center justify-center rounded-2xl border border-white/5 px-4 text-center shadow-[0_24px_70px_rgba(0,0,0,0.35)]"
-        style={{ minHeight: 220, background: 'linear-gradient(180deg,rgba(2,6,23,0.88),rgba(15,23,42,0.72))' }}
-      >
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10 text-xl text-cyan-200">
-          📡
-        </div>
-        <p className="text-sm font-semibold tracking-wide text-white">Monitoring global news</p>
-        <p className="mt-1 text-xs leading-5 text-white/45" style={{ maxWidth: 240 }}>
-          Live headlines will appear here when supply-chain relevant events cross the relevance gate.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -103,58 +92,73 @@ export default function NewsFeed() {
         </div>
       )}
 
-      <div className="flex max-h-[28vh] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
-        {newsAlerts.map((alert) => {
-          const pct = Math.round((alert.relevanceScore || 0) * 100);
-          const icon = ICONS[alert.disruptionType] || ICONS.OTHER;
-          const chipClass = CHIP_STYLES[alert.disruptionType] || CHIP_STYLES.OTHER;
-          const corridors = Array.isArray(alert.affectedCorridors) ? alert.affectedCorridors.slice(0, 3) : [];
+      {!newsAlerts.length ? (
+        <div
+          className="flex h-full flex-col items-center justify-center rounded-2xl border border-white/5 px-4 text-center shadow-[0_24px_70px_rgba(0,0,0,0.35)]"
+          style={{ minHeight: 220, background: 'linear-gradient(180deg,rgba(2,6,23,0.88),rgba(15,23,42,0.72))' }}
+        >
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/10 text-xl text-cyan-200">
+            📡
+          </div>
+          <p className="text-sm font-semibold tracking-wide text-white">Monitoring global news</p>
+          <p className="mt-1 text-xs leading-5 text-white/45" style={{ maxWidth: 240 }}>
+            Live headlines will appear here when supply-chain relevant events cross the relevance gate.
+          </p>
+        </div>
+      ) : (
+        <div className="flex max-h-[28vh] flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
+          {newsAlerts.map((alert) => {
+            const pct = Math.round((alert.relevanceScore || 0) * 100);
+            const icon = ICONS[alert.disruptionType] || ICONS.OTHER;
+            const chipClass = CHIP_STYLES[alert.disruptionType] || CHIP_STYLES.OTHER;
+            const corridors = Array.isArray(alert.affectedCorridors) ? alert.affectedCorridors.slice(0, 3) : [];
 
-          return (
-            <article
-              key={alert.id}
-              className="group rounded-xl border border-white/5 bg-white/3 p-3 transition-colors duration-200 hover:border-cyan-400/20 hover:bg-white/5"
-            >
-              <div className="flex items-start gap-3">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${chipClass}`}>
-                  <span className="text-lg leading-none">{icon}</span>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
-                      {alert.disruptionType || 'OTHER'}
-                    </span>
-                    <span className="text-[11px] text-white/35">Sev {alert.severity}/10</span>
+            return (
+              <article
+                key={alert.id}
+                className="group rounded-xl border border-white/5 bg-white/3 p-3 transition-colors duration-200 hover:border-cyan-400/20 hover:bg-white/5"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${chipClass}`}>
+                    <span className="text-lg leading-none">{icon}</span>
                   </div>
 
-                  <h3 className="mt-2 text-sm font-semibold leading-5 text-white">
-                    {alert.headline}
-                  </h3>
-                  <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-white/55">
-                    {alert.summary || alert.location || 'No summary available.'}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                        {alert.disruptionType || 'OTHER'}
+                      </span>
+                      <span className="text-[11px] text-white/35">Sev {alert.severity}/10</span>
+                    </div>
+
+                    <h3 className="mt-2 text-sm font-semibold leading-5 text-white">
+                      {alert.headline}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-white/55">
+                      {alert.summary || alert.location || 'No summary available.'}
+                    </p>
+                  </div>
+
+                  <div className={`shrink-0 rounded-lg border px-2 py-1 text-[11px] font-bold ${pct >= 85 ? 'border-red-400/25 bg-red-400/10 text-red-200' : pct >= 70 ? 'border-orange-400/25 bg-orange-400/10 text-orange-200' : 'border-white/10 bg-white/5 text-white/55'}`}>
+                    {pct}%
+                  </div>
                 </div>
 
-                <div className={`shrink-0 rounded-lg border px-2 py-1 text-[11px] font-bold ${pct >= 85 ? 'border-red-400/25 bg-red-400/10 text-red-200' : pct >= 70 ? 'border-orange-400/25 bg-orange-400/10 text-orange-200' : 'border-white/10 bg-white/5 text-white/55'}`}>
-                  {pct}%
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {corridors.map((corridor) => (
-                  <span key={corridor} className="rounded-full border border-white/10 bg-white/4 px-2 py-0.5 text-[10px] text-white/55">
-                    {corridor}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {corridors.map((corridor) => (
+                    <span key={corridor} className="rounded-full border border-white/10 bg-white/4 px-2 py-0.5 text-[10px] text-white/55">
+                      {corridor}
+                    </span>
+                  ))}
+                  <span className="ml-auto text-[10px] uppercase tracking-[0.2em] text-white/30">
+                    {alert.source || 'Unknown source'}
                   </span>
-                ))}
-                <span className="ml-auto text-[10px] uppercase tracking-[0.2em] text-white/30">
-                  {alert.source || 'Unknown source'}
-                </span>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

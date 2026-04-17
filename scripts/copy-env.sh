@@ -14,6 +14,7 @@ cp .env event-bus/.env
 cp .env disruption/.env
 cp .env impact/.env
 cp .env resolution/.env
+cp .env news-intel/.env
 cp .env dashboard/.env.local
 
-echo "Done. .env copied to: event-bus, disruption, impact, resolution, dashboard (.env.local)"
+echo "Done. .env copied to: event-bus, disruption, impact, resolution, news-intel, dashboard (.env.local)"
