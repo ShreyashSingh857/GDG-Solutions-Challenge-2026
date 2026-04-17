@@ -22,6 +22,18 @@ body {
   overflow: hidden;
 }
 
+.hex-pulse {
+  animation: hex-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes hex-ping {
+  75%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
