@@ -21,6 +21,8 @@ services:
     volumes:
       - ./disruption:/app
       - ./shared:/shared
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
       - EVENT_BUS_URL=http://event-bus:4000
@@ -36,6 +38,8 @@ services:
     volumes:
       - ./impact:/app
       - ./shared:/shared
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
       - EVENT_BUS_URL=http://event-bus:4000
@@ -51,6 +55,8 @@ services:
     volumes:
       - ./resolution:/app
       - ./shared:/shared
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
       - EVENT_BUS_URL=http://event-bus:4000
@@ -66,11 +72,12 @@ services:
     volumes:
       - ./news-intel:/app
       - ./shared:/shared
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
       - EVENT_BUS_URL=http://event-bus:4000
       - DISRUPTION_AGENT_URL=http://disruption:3001
-      - NEWS_CRON_SCHEDULE=*/15 * * * *
     depends_on:
       - event-bus
       - disruption

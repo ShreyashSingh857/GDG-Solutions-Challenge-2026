@@ -10,14 +10,14 @@
  * @property {number} currentLat - Current position latitude
  * @property {number} currentLng - Current position longitude
  * @property {'active'|'delayed'|'rerouted'|'disrupted'} status
- * @property {'sea'|'air'|'rail'|'road'} mode - Transport mode
+ * @property {'sea-freight'|'air-freight'|'rail'|'road'} mode - Transport mode
  * @property {string} carrier - Carrier name
  * @property {number} cargoValueUSD - Cargo value in USD
- * @property {number} paymentAmountUSD - Payment amount in USD
- * @property {'pending'|'paid'|'failed'|'refunded'} paymentStatus - Payment settlement status
- * @property {'import'|'export'} importExport - Shipment direction
- * @property {string} departureDate - ISO 8601 departure timestamp
- * @property {string} trackingNumber - Carrier tracking identifier
+ * @property {number|null} paymentAmountUSD - Invoiced amount in USD
+ * @property {'pending'|'paid'|'overdue'|'partial'} paymentStatus - Payment settlement status
+ * @property {'import'|'export'|'transit'} importExport - Shipment direction
+ * @property {string|null} departureDate - ISO 8601 departure timestamp
+ * @property {string|null} trackingNumber - Carrier tracking identifier
  * @property {string} eta - ISO 8601 estimated time of arrival
  * @property {string} corridor - Shipping corridor (e.g. 'Pacific', 'Suez', 'Atlantic')
  */
@@ -29,7 +29,7 @@
  * @returns {Shipment}
  */
 export function validateShipment(obj) {
-	const required = ['id', 'origin', 'destination', 'originLat', 'originLng', 'destLat', 'destLng', 'currentLat', 'currentLng', 'status', 'mode', 'carrier', 'cargoValueUSD', 'paymentAmountUSD', 'paymentStatus', 'importExport', 'departureDate', 'trackingNumber', 'eta', 'corridor'];
+	const required = ['id', 'origin', 'destination', 'originLat', 'originLng', 'destLat', 'destLng', 'currentLat', 'currentLng', 'status', 'carrier', 'cargoValueUSD', 'eta', 'corridor'];
 	for (const field of required) {
 		if (obj[field] === undefined || obj[field] === null) {
 			throw new Error(`Shipment missing required field: ${field}`);

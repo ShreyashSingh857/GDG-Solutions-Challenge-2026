@@ -22,8 +22,8 @@ export default function NavBar() {
           Globe
         </Link>
         <Link
-          href="/details"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pathname === '/details' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white hover:bg-white/5'}`}
+          href="/shipments"
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pathname === '/shipments' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white hover:bg-white/5'}`}
         >
           Shipments
         </Link>

@@ -10,12 +10,14 @@
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@supabase/supabase-js": "^2.49.8",
     "cesium": "^1.140.0",
     "clsx": "^2.1.1",
     "copy-webpack-plugin": "^14.0.0",
     "firebase": "^10.12.0",
     "firebase-admin": "^12.0.0",
     "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -25,6 +27,7 @@
     "sonner": "^1.5.0",
     "tailwind-merge": "^3.5.0",
     "use-debounce": "^10.1.1",
+    "uuid": "^11.1.0",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
