@@ -9,6 +9,22 @@
       ]
     },
     {
+      "collectionGroup": "shipments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "shipments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "corridor", "order": "ASCENDING" },
+        { "fieldPath": "eta", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "disruptions",
       "queryScope": "COLLECTION",
       "fields": [
