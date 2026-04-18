@@ -40,12 +40,16 @@ function dominantStatus(statuses) {
   return 'active';
 }
 
+function getCoordValue(item, primary, fallback) {
+  return item?.[primary] ?? item?.[fallback];
+}
+
 function getRoutePoints(shipment, reroutedRoute) {
   const source = reroutedRoute || shipment;
   const points = [
-    { lat: source.originLat, lon: source.originLon },
-    ...((source.waypoints || []).map((w) => ({ lat: w.lat, lon: w.lon }))),
-    { lat: source.destLat, lon: source.destLon },
+    { lat: getCoordValue(source, 'originLat', 'originLatitude'), lon: getCoordValue(source, 'originLon', 'originLng') },
+    ...((source.waypoints || []).map((w) => ({ lat: getCoordValue(w, 'lat', 'latitude'), lon: getCoordValue(w, 'lon', 'lng') }))),
+    { lat: getCoordValue(source, 'destLat', 'destLatitude'), lon: getCoordValue(source, 'destLon', 'destLng') },
   ];
   return points.filter((point) => isValidCoord(point.lat, point.lon));
 }
@@ -184,10 +188,10 @@ export default function GlobeView() {
           routeKey,
           originCode: shipment.originCode,
           destCode: shipment.destCode,
-          originLat: shipment.originLat,
-          originLon: shipment.originLon,
-          destLat: shipment.destLat,
-          destLon: shipment.destLon,
+          originLat: getCoordValue(shipment, 'originLat', 'originLatitude'),
+          originLon: getCoordValue(shipment, 'originLon', 'originLng'),
+          destLat: getCoordValue(shipment, 'destLat', 'destLatitude'),
+          destLon: getCoordValue(shipment, 'destLon', 'destLng'),
           waypoints: reroutedRoute?.waypoints || shipment.waypoints || [],
           statuses: new Set(),
           count: 0,
@@ -200,7 +204,11 @@ export default function GlobeView() {
       route.ids.push(shipment.id);
       if (reroutedRoute?.waypoints?.length) route.waypoints = reroutedRoute.waypoints;
     });
-    return [...routeMap.values()].map((route) => ({ ...route, status: dominantStatus(route.statuses) }));
+    const result = [...routeMap.values()].map((route) => ({ ...route, status: dominantStatus(route.statuses) }));
+    if (result.length > 0) {
+      console.log('[Globe] Route grouping:', { uniqueRoutes: result.length, totalShipments: s.length, routes: result.map(r => ({ key: r.routeKey, count: r.count, status: r.status })) });
+    }
+    return result;
   }, [s, reroutedRoutes]);
 
   useEffect(() => {
@@ -248,8 +256,12 @@ export default function GlobeView() {
 
       const ports = new Map();
       groupedRoutes.forEach((route) => {
-        ports.set(route.originCode, { lat: route.originLat, lon: route.originLon });
-        ports.set(route.destCode, { lat: route.destLat, lon: route.destLon });
+        const originLat = getCoordValue(route, 'originLat', 'originLatitude');
+        const originLon = getCoordValue(route, 'originLon', 'originLng');
+        const destLat = getCoordValue(route, 'destLat', 'destLatitude');
+        const destLon = getCoordValue(route, 'destLon', 'destLng');
+        ports.set(route.originCode, { lat: originLat, lon: originLon });
+        ports.set(route.destCode, { lat: destLat, lon: destLon });
       });
 
     for (const [name, labelEntity] of portEntitiesRef.current) {

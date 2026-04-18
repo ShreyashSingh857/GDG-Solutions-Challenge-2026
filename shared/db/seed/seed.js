@@ -13,20 +13,20 @@ function generateShipment(index) {
   const isPacific = index < 10;
   const isSuez = index >= 10 && index < 22;
 
-  let originLat, originLng, destLat, destLng, origin, destination, corridor;
+  let originLat, originLng, destLat, destLng, origin, destination, originCode, destCode, corridor;
 
   if (isPacific) {
     originLat = 20 + Math.random() * 15; originLng = 120 + Math.random() * 20;
     destLat = 33 + Math.random() * 5; destLng = -118 + Math.random() * -10;
-    origin = 'Shanghai'; destination = 'Los Angeles'; corridor = 'Pacific';
+    origin = 'Shanghai'; destination = 'Los Angeles'; originCode = 'PVG'; destCode = 'LAX'; corridor = 'Pacific';
   } else if (isSuez) {
     originLat = 1 + Math.random() * 5; originLng = 103 + Math.random() * 4;
     destLat = 51 + Math.random() * 3; destLng = 0 + Math.random() * 4;
-    origin = 'Singapore'; destination = 'Rotterdam'; corridor = 'Suez';
+    origin = 'Singapore'; destination = 'Rotterdam'; originCode = 'SIN'; destCode = 'RTM'; corridor = 'Suez';
   } else {
     originLat = 18 + Math.random() * 4; originLng = 72 + Math.random() * 3;
     destLat = 25 + Math.random() * 5; destLng = 55 + Math.random() * 5;
-    origin = 'Mumbai'; destination = 'Dubai'; corridor = 'Indian Ocean';
+    origin = 'Mumbai'; destination = 'Dubai'; originCode = 'BOM'; destCode = 'DXB'; corridor = 'Indian Ocean';
   }
 
   const currentLat = (originLat + destLat) / 2 + (Math.random() * 4 - 2);
@@ -42,6 +42,8 @@ function generateShipment(index) {
     id: `ship-${uuidv4()}`,
     origin,
     destination,
+    originCode,
+    destCode,
     originLat,
     originLng,
     destLat,
