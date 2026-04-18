@@ -74,37 +74,25 @@ export default function DecisionModal() {
   const [isApproving, setIsApproving] = useState(false);
   const [approvedRank, setApprovedRank] = useState(null);
   const [agentStage, setAgentStage] = useState(0);
-  const prevDisruptionsCountRef = useRef(0);
   const approveRef = useRef(null);
 
   useEffect(() => {
-    let monitorTimer;
-    let impactTimer;
-
     if (!activeDisruptionId) {
       setAgentStage(0);
-      prevDisruptionsCountRef.current = disruptions.length;
       return () => {};
     }
-
-    if (disruptions.length > prevDisruptionsCountRef.current) {
-      monitorTimer = setTimeout(() => setAgentStage((s) => Math.max(s, 1)), 2000);
-    }
-    prevDisruptionsCountRef.current = disruptions.length;
-
-    if (activeResolution && !activeResolution?.options?.length) {
-      impactTimer = setTimeout(() => setAgentStage((s) => Math.max(s, 2)), 3000);
-    }
-
+    let t1, t2;
+    // Stage 1: Monitor complete — fire 1.5s after disruption detected
+    t1 = setTimeout(() => setAgentStage(s => Math.max(s, 1)), 1500);
+    // Stage 2: Impact being analyzed — fire 5s after modal opens
+    t2 = setTimeout(() => setAgentStage(s => Math.max(s, 2)), 5000);
+    // Stage 3: Resolution options ready
     if (activeResolution?.options?.length > 0) {
       setAgentStage(3);
     }
 
-    return () => {
-      if (monitorTimer) clearTimeout(monitorTimer);
-      if (impactTimer) clearTimeout(impactTimer);
-    };
-  }, [disruptions.length, activeResolution, activeDisruptionId]);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [activeDisruptionId, activeResolution]);
 
   const traceId = activeResolution?.traceId || activeResolution?.id;
   const disruption = disruptions.find((d) => d.id === activeResolution?.disruptionId || d.traceId === activeResolution?.disruptionId);
