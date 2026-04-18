@@ -9,8 +9,6 @@ import { db, isFirebaseConfigured } from '../../lib/firebase.js';
 import OptionCard from './OptionCard.jsx';
 import SeverityBadge from '../alerts/SeverityBadge.jsx';
 
-const URL = process.env.NEXT_PUBLIC_RESOLUTION_AGENT_URL || 'http://localhost:3003';
-
 function LoadingSkeleton({ stage, onDismiss }) {
   const renderStageIcon = (idx) => {
     if (idx === 1) {
@@ -119,7 +117,7 @@ export default function DecisionModal() {
     if (isApproving || !traceId) return;
     setIsApproving(true);
     try {
-      const res = await fetch(`${URL}/execute`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ traceId, rank }) });
+      const res = await fetch('/api/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ traceId, rank }) });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`);
       setApprovedRank(rank);
