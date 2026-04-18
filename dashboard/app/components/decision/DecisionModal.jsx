@@ -67,6 +67,7 @@ function LoadingSkeleton({ stage, onDismiss }) {
 
 export default function DecisionModal() {
   const activeResolution = useAlertStore((s) => s.activeResolution);
+  const disruptions = useAlertStore((s) => s.disruptions);
   const activeDisruptionId = useAlertStore((s) => s.activeDisruptionId);
   const clearActiveDisruption = useAlertStore((s) => s.clearActiveDisruption);
   const markResolutionExecuted = useAlertStore((s) => s.markResolutionExecuted);
