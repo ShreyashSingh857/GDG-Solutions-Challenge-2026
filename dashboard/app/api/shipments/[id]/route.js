@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { adminDb } from '../../../../lib/firebase-admin.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey)
+  : null;
 
 export async function PATCH(req, context) {
   try {
@@ -31,15 +32,17 @@ export async function PATCH(req, context) {
     await ref.update(updates);
     const updated = { id, ...existing.data(), ...updates };
 
-    await supabase
-      .from('shipments')
-      .update({ ...toSupabaseUpdateRow(updates), id: undefined })
-      .eq('id', id)
-      .then(({ error }) => {
-        if (error) {
-          console.error('[API/shipments/:id] Supabase update failed:', error.message);
-        }
-      });
+    if (supabase) {
+      await supabase
+        .from('shipments')
+        .update({ ...toSupabaseUpdateRow(updates), id: undefined })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('[API/shipments/:id] Supabase update failed:', error.message);
+          }
+        });
+    }
 
     return NextResponse.json({ data: updated, error: null });
   } catch (err) {
@@ -52,15 +55,17 @@ export async function DELETE(_, context) {
     const { id } = await context.params;
 
     await adminDb.collection('shipments').doc(id).delete();
-    await supabase
-      .from('shipments')
-      .delete()
-      .eq('id', id)
-      .then(({ error }) => {
-        if (error) {
-          console.error('[API/shipments/:id] Supabase delete failed:', error.message);
-        }
-      });
+    if (supabase) {
+      await supabase
+        .from('shipments')
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('[API/shipments/:id] Supabase delete failed:', error.message);
+          }
+        });
+    }
 
     return NextResponse.json({ data: { id }, error: null });
   } catch (err) {
