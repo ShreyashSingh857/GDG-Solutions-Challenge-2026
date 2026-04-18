@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { PackageSearch, Plus, ShipWheel } from 'lucide-react';
+import { Download, PackageSearch, Plus, ShipWheel, Upload } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useShipments } from '../hooks/useShipments.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
@@ -22,6 +22,11 @@ const ShipmentModal = dynamic(() => import('./components/ShipmentModal.jsx'), {
   loading: () => null,
 });
 
+const ShipmentImportModal = dynamic(() => import('./components/ShipmentImportModal.jsx'), {
+  ssr: false,
+  loading: () => null,
+});
+
 const TABS = [
   { id: 'overview', label: 'Overview', icon: PackageSearch },
   { id: 'shipments', label: 'Shipments', icon: ShipWheel },
@@ -30,6 +35,8 @@ const TABS = [
 export default function DetailsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [modalState, setModalState] = useState({ open: false, shipment: null });
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Mount Firestore subscription (same hook as Globe page)
   useShipments();
@@ -39,6 +46,46 @@ export default function DetailsPage() {
   const openAdd = () => setModalState({ open: true, shipment: null });
   const openEdit = (shipment) => setModalState({ open: true, shipment });
   const closeModal = () => setModalState({ open: false, shipment: null });
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const XLSX = await import('xlsx');
+      const rows = shipments.map((shipment) => ({
+        ID: shipment.id,
+        Origin: shipment.origin,
+        Destination: shipment.destination,
+        OriginLat: shipment.originLat,
+        OriginLng: shipment.originLng,
+        DestLat: shipment.destLat,
+        DestLng: shipment.destLng,
+        CurrentLat: shipment.currentLat,
+        CurrentLng: shipment.currentLng,
+        Status: shipment.status,
+        Carrier: shipment.carrier,
+        CargoValueUSD: shipment.cargoValueUSD,
+        ETA: shipment.eta,
+        Corridor: shipment.corridor,
+        Mode: shipment.mode,
+        PaymentAmountUSD: shipment.paymentAmountUSD,
+        PaymentStatus: shipment.paymentStatus,
+        ImportExport: shipment.importExport,
+        DepartureDate: shipment.departureDate,
+        TrackingNumber: shipment.trackingNumber,
+        CreatedAt: shipment.createdAt,
+        UpdatedAt: shipment.updatedAt,
+      }));
+
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Shipments');
+
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+      XLSX.writeFile(workbook, `shipments-${stamp}.xlsx`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-[#020617] text-white overflow-hidden">
@@ -62,13 +109,30 @@ export default function DetailsPage() {
           ))}
         </div>
         {activeTab === 'shipments' && (
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-          >
-            <Plus className="w-4 h-4" aria-hidden="true" />
-            Add Shipment
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-white/15 bg-white/5 hover:bg-white/10 text-white transition-colors"
+            >
+              <Upload className="w-4 h-4" aria-hidden="true" />
+              Import
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={isExporting || isLoading || shipments.length === 0}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-white/15 bg-white/5 hover:bg-white/10 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="w-4 h-4" aria-hidden="true" />
+              {isExporting ? 'Exporting...' : 'Export'}
+            </button>
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+            >
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Add Shipment
+            </button>
+          </div>
         )}
       </div>
 
@@ -84,6 +148,9 @@ export default function DetailsPage() {
           shipment={modalState.shipment}
           onClose={closeModal}
         />
+      )}
+      {isImportModalOpen && (
+        <ShipmentImportModal onClose={() => setIsImportModalOpen(false)} />
       )}
     </div>
   );
