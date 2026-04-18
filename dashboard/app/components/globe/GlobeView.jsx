@@ -44,6 +44,18 @@ function getCoordValue(item, primary, fallback) {
   return item?.[primary] ?? item?.[fallback];
 }
 
+function getEndpointLabel(item, codeKey, nameKey, fallback) {
+  return item?.[codeKey] || item?.[nameKey] || fallback;
+}
+
+function getEndpointKey(item, codeKey, nameKey, latKey, lonKey, prefix) {
+  const label = item?.[codeKey] || item?.[nameKey];
+  if (label) return String(label).trim().toUpperCase();
+  const lat = getCoordValue(item, latKey, latKey === 'originLat' ? 'originLatitude' : 'destLatitude');
+  const lon = getCoordValue(item, lonKey, lonKey === 'originLon' ? 'originLng' : 'destLng');
+  return isValidCoord(lat, lon) ? `${prefix}:${lat.toFixed(2)},${lon.toFixed(2)}` : `${prefix}:unknown`;
+}
+
 function getRoutePoints(shipment, reroutedRoute) {
   const source = reroutedRoute || shipment;
   const points = [
@@ -181,13 +193,17 @@ export default function GlobeView() {
   const groupedRoutes = useMemo(() => {
     const routeMap = new Map();
     s.forEach((shipment) => {
-      const routeKey = [shipment.originCode, shipment.destCode].sort().join('|');
+      const originKey = getEndpointKey(shipment, 'originCode', 'origin', 'originLat', 'originLon', 'origin');
+      const destKey = getEndpointKey(shipment, 'destCode', 'destination', 'destLat', 'destLon', 'dest');
+      const routeKey = [originKey, destKey].sort().join('|');
       const reroutedRoute = shipment.status === 'rerouted' && shipment.disruptionId ? reroutedRoutes[shipment.disruptionId] : null;
       if (!routeMap.has(routeKey)) {
         routeMap.set(routeKey, {
           routeKey,
-          originCode: shipment.originCode,
-          destCode: shipment.destCode,
+          originKey,
+          destKey,
+          originLabel: getEndpointLabel(shipment, 'originCode', 'origin', 'Origin'),
+          destLabel: getEndpointLabel(shipment, 'destCode', 'destination', 'Destination'),
           originLat: getCoordValue(shipment, 'originLat', 'originLatitude'),
           originLon: getCoordValue(shipment, 'originLon', 'originLng'),
           destLat: getCoordValue(shipment, 'destLat', 'destLatitude'),
@@ -240,16 +256,17 @@ export default function GlobeView() {
         const color = Color.fromCssColorString(colorMap[route.status] || colorMap.active).withAlpha(0.75);
         const positions = generateGeodesicRoutePositions(getRoutePoints(route), routeIndex, 48);
         const width = Math.min(1 + Math.floor(route.count / 3), 5);
+        const routeLabel = `${route.originLabel} -> ${route.destLabel}`;
         const arc = entities.add({
           id: `${route.routeKey}-arc`,
           polyline: { positions, width, material: color, clampToGround: false },
-          properties: { kind: 'route', status: route.status, routeKey: route.routeKey, label: `${route.originCode} -> ${route.destCode}` },
+          properties: { kind: 'route', status: route.status, routeKey: route.routeKey, label: routeLabel },
         });
         const originDot = isValidCoord(route.originLat, route.originLon)
-          ? entities.add({ id: `${route.routeKey}-origin-dot`, position: Cartesian3.fromDegrees(route.originLon, route.originLat), point: { pixelSize: 7, color, outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'dot', status: route.status, routeKey: route.routeKey, label: route.originCode } })
+          ? entities.add({ id: `${route.routeKey}-origin-dot`, position: Cartesian3.fromDegrees(route.originLon, route.originLat), point: { pixelSize: 7, color, outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'dot', status: route.status, routeKey: route.routeKey, label: route.originLabel } })
           : null;
         const destinationDot = isValidCoord(route.destLat, route.destLon)
-          ? entities.add({ id: `${route.routeKey}-destination-dot`, position: Cartesian3.fromDegrees(route.destLon, route.destLat), point: { pixelSize: 7, color, outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'dot', status: route.status, routeKey: route.routeKey, label: route.destCode } })
+          ? entities.add({ id: `${route.routeKey}-destination-dot`, position: Cartesian3.fromDegrees(route.destLon, route.destLat), point: { pixelSize: 7, color, outlineColor: Color.BLACK, outlineWidth: 1 }, properties: { kind: 'dot', status: route.status, routeKey: route.routeKey, label: route.destLabel } })
           : null;
         routeEntities.set(route.routeKey, { arc, originDot, destinationDot });
       });
@@ -260,8 +277,8 @@ export default function GlobeView() {
         const originLon = getCoordValue(route, 'originLon', 'originLng');
         const destLat = getCoordValue(route, 'destLat', 'destLatitude');
         const destLon = getCoordValue(route, 'destLon', 'destLng');
-        ports.set(route.originCode, { lat: originLat, lon: originLon });
-        ports.set(route.destCode, { lat: destLat, lon: destLon });
+        ports.set(route.originKey, { label: route.originLabel, lat: originLat, lon: originLon });
+        ports.set(route.destKey, { label: route.destLabel, lat: destLat, lon: destLon });
       });
 
     for (const [name, labelEntity] of portEntitiesRef.current) {
@@ -275,7 +292,7 @@ export default function GlobeView() {
       const existing = portEntitiesRef.current.get(name);
       if (existing) {
         existing.position = Cartesian3.fromDegrees(port.lon, port.lat);
-        existing.label.text = name;
+        existing.label.text = port.label;
       } else {
         const labelEntity = entities.add({
           id: `port-${name}`,

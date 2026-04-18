@@ -9,25 +9,26 @@ const MODES = ['sea-freight', 'sea-freight', 'sea-freight', 'air-freight', 'rail
 const PAYMENT_STATUSES = ['pending', 'paid', 'paid', 'paid', 'overdue', 'partial'];
 const IMPORT_EXPORT_TYPES = ['import', 'export', 'export', 'export', 'transit'];
 
+const ROUTE_TEMPLATES = [
+  { corridor: 'Pacific', origin: 'Shanghai', originCode: 'SHA', originLat: 31.2304, originLng: 121.4737, destination: 'Los Angeles', destCode: 'LAX', destLat: 34.0522, destLng: -118.2437 },
+  { corridor: 'Suez', origin: 'Singapore', originCode: 'SIN', originLat: 1.3521, originLng: 103.8198, destination: 'Rotterdam', destCode: 'RTM', destLat: 51.9244, destLng: 4.4777 },
+  { corridor: 'Cape of Good Hope', origin: 'Dubai', originCode: 'DXB', originLat: 25.2048, originLng: 55.2708, destination: 'Cape Town', destCode: 'CPT', destLat: -33.9249, destLng: 18.4241 },
+  { corridor: 'Malacca Strait', origin: 'Chennai', originCode: 'MAA', originLat: 13.0827, originLng: 80.2707, destination: 'Singapore', destCode: 'SIN', destLat: 1.3521, destLng: 103.8198 },
+  { corridor: 'Panama', origin: 'Busan', originCode: 'PUS', originLat: 35.1796, originLng: 129.0756, destination: 'New York', destCode: 'JFK', destLat: 40.7128, destLng: -74.0060 },
+  { corridor: 'Transatlantic', origin: 'Hamburg', originCode: 'HAM', originLat: 53.5511, originLng: 9.9937, destination: 'Lagos', destCode: 'LOS', destLat: 6.5244, destLng: 3.3792 },
+  { corridor: 'Intra-Asia', origin: 'Shanghai', originCode: 'SHA', originLat: 31.2304, originLng: 121.4737, destination: 'Singapore', destCode: 'SIN', destLat: 1.3521, destLng: 103.8198 },
+  { corridor: 'Americas', origin: 'Sao Paulo', originCode: 'GRU', originLat: -23.5505, originLng: -46.6333, destination: 'Antwerp', destCode: 'ANR', destLat: 51.2194, destLng: 4.4025 },
+];
+
 function generateShipment(index) {
-  const isPacific = index < 10;
-  const isSuez = index >= 10 && index < 22;
+  const template = ROUTE_TEMPLATES[index % ROUTE_TEMPLATES.length];
+  const jitter = () => (Math.random() * 2 - 1) * 1.25;
 
-  let originLat, originLng, destLat, destLng, origin, destination, originCode, destCode, corridor;
-
-  if (isPacific) {
-    originLat = 20 + Math.random() * 15; originLng = 120 + Math.random() * 20;
-    destLat = 33 + Math.random() * 5; destLng = -118 + Math.random() * -10;
-    origin = 'Shanghai'; destination = 'Los Angeles'; originCode = 'PVG'; destCode = 'LAX'; corridor = 'Pacific';
-  } else if (isSuez) {
-    originLat = 1 + Math.random() * 5; originLng = 103 + Math.random() * 4;
-    destLat = 51 + Math.random() * 3; destLng = 0 + Math.random() * 4;
-    origin = 'Singapore'; destination = 'Rotterdam'; originCode = 'SIN'; destCode = 'RTM'; corridor = 'Suez';
-  } else {
-    originLat = 18 + Math.random() * 4; originLng = 72 + Math.random() * 3;
-    destLat = 25 + Math.random() * 5; destLng = 55 + Math.random() * 5;
-    origin = 'Mumbai'; destination = 'Dubai'; originCode = 'BOM'; destCode = 'DXB'; corridor = 'Indian Ocean';
-  }
+  const originLat = template.originLat + jitter();
+  const originLng = template.originLng + jitter();
+  const destLat = template.destLat + jitter();
+  const destLng = template.destLng + jitter();
+  const { origin, destination, originCode, destCode, corridor } = template;
 
   const currentLat = (originLat + destLat) / 2 + (Math.random() * 4 - 2);
   const currentLng = (originLng + destLng) / 2 + (Math.random() * 4 - 2);
@@ -81,15 +82,15 @@ const SUPPLIER_DATA = [
 ];
 
 async function seedFirestoreShipments() {
-  console.log('[Seed] Writing 50 shipments to Firestore...');
+  console.log('[Seed] Writing 64 shipments to Firestore...');
   const batch = db.batch();
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 64; i++) {
     const s = generateShipment(i);
     batch.set(db.collection('shipments').doc(s.id), s);
   }
   await batch.commit();
-  console.log('[Seed] ✅ 50 shipments in Firestore (10 Pacific, 12 Suez, 28 Indian Ocean)');
+  console.log('[Seed] ✅ 64 shipments in Firestore across 8 global route templates');
 }
 
 async function seedSupabaseSuppliers() {
