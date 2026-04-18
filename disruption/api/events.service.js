@@ -8,6 +8,7 @@ import { createDisruptionEvent, validateDisruptionEvent } from '../types/Disrupt
 import { weatherToolDeclaration, getWeatherData } from '../tools/weatherTool.js';
 import { searchToolDeclaration, searchWeb } from '../tools/searchTool.js';
 import { detectPortCongestionEvents } from '../tools/portWatchTool.js';
+import { checkSuezCanalStatus, checkPanamaWaterLevel } from '../tools/canalStatusTool.js';
 import { setLastEventAt } from '../state.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -84,5 +85,22 @@ export async function pollPortCongestion() {
 		}
 	} catch (err) {
 		console.warn('[DisruptionService] PortWatch poll failed:', err.message);
+	}
+}
+
+export async function pollCanalStatus() {
+	try {
+		const [suez, panama] = await Promise.all([
+			checkSuezCanalStatus(),
+			checkPanamaWaterLevel(),
+		]);
+		if (suez?.disrupted) {
+			await classifyAndPublish(`Suez Canal disruption detected: ${suez.latestHeadline || suez.note}`);
+		}
+		if (panama?.draftRestricted) {
+			await classifyAndPublish(`Panama Canal draft restriction: ${panama.note}`);
+		}
+	} catch (err) {
+		console.warn('[DisruptionService] Canal poll failed:', err.message);
 	}
 }

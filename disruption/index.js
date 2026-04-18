@@ -10,7 +10,7 @@ const startTime = Date.now();
 
 const { default: eventsRoute } = await import('./api/events.route.js');
 if (typeof eventsRoute === 'function') app.register(eventsRoute);
-const { pollPortCongestion } = await import('./api/events.service.js');
+const { pollPortCongestion, pollCanalStatus } = await import('./api/events.service.js');
 const { startAISStream, MAJOR_CORRIDORS } = await import('./tools/aisStreamTool.js');
 
 // Poll live port congestion signals hourly to auto-generate disruption events.
@@ -18,10 +18,17 @@ setInterval(() => {
 	pollPortCongestion().catch((err) =>
 		console.warn('[DisruptionAgent] pollPortCongestion failed:', err.message)
 	);
+	pollCanalStatus().catch((err) =>
+		console.warn('[DisruptionAgent] pollCanalStatus failed:', err.message)
+	);
 }, 3600000);
 
 pollPortCongestion().catch((err) =>
 	console.warn('[DisruptionAgent] initial pollPortCongestion failed:', err.message)
+);
+
+pollCanalStatus().catch((err) =>
+	console.warn('[DisruptionAgent] initial pollCanalStatus failed:', err.message)
 );
 
 startAISStream(MAJOR_CORRIDORS);
