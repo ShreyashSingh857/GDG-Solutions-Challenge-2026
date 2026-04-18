@@ -53,6 +53,30 @@ export async function generate(prompt, tools = []) {
   }
 }
 
+export async function generateWithTools(prompt, tools = [], toolHandlers = {}) {
+  const genAI = await getGenAI();
+  const model = genAI.getGenerativeModel({
+    model: MODEL_NAME,
+    tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
+  });
+  const chat = model.startChat();
+  let result = await chat.sendMessage(prompt);
+  for (let i = 0; i < 5; i++) {
+    const parts = result.response.candidates?.[0]?.content?.parts ?? [];
+    const toolCalls = parts.filter((p) => p.functionCall);
+    if (toolCalls.length === 0) break;
+    const toolResults = await Promise.all(toolCalls.map(async (p) => {
+      const fn = p.functionCall;
+      const handler = toolHandlers[fn.name];
+      const output = handler ? await handler(fn.args).catch((e) => ({ error: e.message })) : { error: 'no handler' };
+      return { functionResponse: { name: fn.name, response: output } };
+    }));
+    result = await chat.sendMessage(toolResults);
+  }
+  const text = result.response.text();
+  return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+}
+
 /**
  * Streaming Gemini generation - yields text chunks as they arrive.
  * Used by the Resolution Agent to stream reasoning tokens to the dashboard via SSE.
