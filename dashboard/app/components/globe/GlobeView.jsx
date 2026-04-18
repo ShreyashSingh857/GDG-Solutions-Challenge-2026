@@ -27,6 +27,7 @@ import { useAlertStore } from '../../store/alertStore.js';
 import { generateGeodesicRoutePositions } from '../../lib/arcGeometry.js';
 import GlobeControls from './GlobeControls.jsx';
 import { useGlobeCamera } from './useGlobeCamera.js';
+import { useVesselPositions } from '../../hooks/useVesselPositions.js';
 
 const C = { active: '#22c55e', delayed: '#f97316', rerouted: '#38bdf8', disrupted: '#ef4444' };
 
@@ -67,9 +68,10 @@ function getRoutePoints(shipment, reroutedRoute) {
 }
 
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const portEntitiesRef = useRef(new Map()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const cRef = useRef(null); const vRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const portEntitiesRef = useRef(new Map()); const vesselEntitiesRef = useRef(new Map()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
+  const vessels = useVesselPositions();
   const { setLastInteraction } = useGlobeCamera(vRef);
 
   const startAutoRotate = useCallback(() => {
@@ -402,6 +404,46 @@ export default function GlobeView() {
       }
     };
   }, [disruptions]);
+
+  useEffect(() => {
+    if (!vRef.current) return;
+    const viewer = vRef.current;
+    const entities = viewer.entities;
+    const nextIds = new Set(vessels.map((v) => String(v.id || v.mmsi || '')));
+
+    for (const [id, entity] of vesselEntitiesRef.current) {
+      if (!nextIds.has(id)) {
+        entities.remove(entity);
+        vesselEntitiesRef.current.delete(id);
+      }
+    }
+
+    vessels.forEach((v) => {
+      const id = String(v.id || v.mmsi || '');
+      if (!id || !isValidCoord(Number(v.lat), Number(v.lng))) return;
+      const speed = Number(v.speed || 0);
+      const color = speed < 0.5
+        ? Color.fromCssColorString('#ef4444')
+        : speed < 8
+          ? Color.fromCssColorString('#f59e0b')
+          : Color.fromCssColorString('#22c55e');
+      const existing = vesselEntitiesRef.current.get(id);
+      if (existing) {
+        existing.position = Cartesian3.fromDegrees(Number(v.lng), Number(v.lat));
+        existing.point.color = color;
+      } else {
+        const entity = entities.add({
+          id: `vessel-${id}`,
+          position: Cartesian3.fromDegrees(Number(v.lng), Number(v.lat)),
+          point: { pixelSize: 4, color, outlineColor: Color.BLACK, outlineWidth: 1 },
+          properties: { kind: 'vessel', label: `MMSI ${id}`, status: `speed ${speed.toFixed(1)} kn` },
+        });
+        vesselEntitiesRef.current.set(id, entity);
+      }
+    });
+
+    viewer.scene.requestRender();
+  }, [vessels]);
 
   return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" /><div ref={tooltipRef} style={{ position: "fixed", top: 0, left: 0, transform: "translate(-9999px, -9999px)", zIndex: 20, pointerEvents: "none", transition: "none" }} className={`bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white ${t ? 'visible' : 'invisible'}`}><p className="font-medium">{t?.label || ''}</p><p className="text-white/60 capitalize">{t?.kind || ''} • {t?.status || ''}</p></div></div>;
 }
