@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
 import { useAlertStore } from '../../store/alertStore.js';
+import { db, isFirebaseConfigured } from '../../lib/firebase.js';
 import OptionCard from './OptionCard.jsx';
 import SeverityBadge from '../alerts/SeverityBadge.jsx';
 
@@ -81,18 +83,34 @@ export default function DecisionModal() {
       setAgentStage(0);
       return () => {};
     }
-    let t1, t2;
-    // Stage 1: Monitor complete — fire 1.5s after disruption detected
-    t1 = setTimeout(() => setAgentStage(s => Math.max(s, 1)), 1500);
-    // Stage 2: Impact being analyzed — fire 5s after modal opens
-    t2 = setTimeout(() => setAgentStage(s => Math.max(s, 2)), 5000);
-    // Stage 3: Resolution options ready
-    if (activeResolution?.options?.length > 0) {
-      setAgentStage(3);
+    setAgentStage(1);
+    if (!isFirebaseConfigured || !db) {
+      if (activeResolution?.options?.length > 0) setAgentStage(3);
+      return () => {};
     }
 
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [activeDisruptionId, activeResolution]);
+    const impactUnsub = onSnapshot(
+      query(collection(db, 'impactReports'), where('disruptionId', '==', activeDisruptionId), limit(1)),
+      (snap) => {
+        if (!snap.empty) setAgentStage((s) => Math.max(s, 2));
+      }
+    );
+
+    const resolutionUnsub = onSnapshot(
+      query(collection(db, 'resolutions'), where('disruptionId', '==', activeDisruptionId), limit(1)),
+      (snap) => {
+        if (!snap.empty) {
+          const status = snap.docs[0].data()?.status;
+          if (status === 'pending') setAgentStage(3);
+        }
+      }
+    );
+
+    return () => {
+      impactUnsub();
+      resolutionUnsub();
+    };
+  }, [activeDisruptionId, activeResolution?.options?.length]);
 
   const traceId = activeResolution?.traceId || activeResolution?.id;
   const disruption = disruptions.find((d) => d.id === activeResolution?.disruptionId || d.traceId === activeResolution?.disruptionId);
