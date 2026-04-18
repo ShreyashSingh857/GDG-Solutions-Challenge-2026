@@ -32,6 +32,22 @@ export function pickSupplierRegion(disruptionContext) {
 	return disruptionContext.affectedZones[0] || disruptionContext.location || 'Pacific';
 }
 
+function toFirestoreSafeOption(option) {
+	const { route, ...rest } = option;
+	const routeWaypoints = Array.isArray(route?.geometry?.coordinates)
+		? route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }))
+		: [];
+	return {
+		...rest,
+		routeWaypoints,
+		routeSummary: {
+			mode: route?.properties?.mode || 'sea-freight',
+			distanceKm: route?.properties?.distanceKm ?? null,
+			timeDeltaHours: route?.properties?.timeDeltaHours ?? null,
+		},
+	};
+}
+
 async function processImpactReport(agentPayload) {
 	const impactReport = agentPayload.payload, traceId = agentPayload.traceId;
 	const disruption = buildDisruptionContextFromImpactReport(impactReport);
@@ -56,14 +72,18 @@ async function processImpactReport(agentPayload) {
 	const optionRows = validatedOptions.map((opt) => ({ resolution_id: traceId, trace_id: traceId, rank: opt.rank, title: opt.title, description: opt.description, cost_delta: opt.costDelta, time_delta: opt.timeDelta, supplier_id: opt.supplierId || null, supplier_name: opt.supplierName, confidence: opt.confidence, route_geojson: opt.route, transport_mode: opt.route?.properties?.mode || 'sea-freight', selected: false }));
 	const { error: optErr } = await supabase.from('resolution_options').upsert(optionRows, { onConflict: 'resolution_id,rank' });
 	if (optErr) console.error('[ResolutionService] Supabase resolution_options write failed (non-fatal):', optErr.message);
-	const batch = db.batch(); validatedOptions.forEach((opt) => batch.set(db.collection('resolutions').doc(traceId).collection('options').doc(String(opt.rank)), opt)); batch.set(db.collection('resolutions').doc(traceId), { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, cascadeRisk: impactReport.cascadeRisk, urgency: impactReport.urgency, totalCargoAtRiskUSD: impactReport.totalCargoAtRiskUSD, analysisText: impactReport.analysisText, optionCount: validatedOptions.length, createdAt: new Date().toISOString(), status: 'pending' }); await batch.commit(); await publish(TOPICS.RESOLUTION_OPTIONS, createAgentPayload('resolution', { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, options: validatedOptions }, traceId)); setLastEventAt(new Date().toISOString()); setTimeout(() => activeStreams.delete(traceId), 300000);
+	const batch = db.batch(); validatedOptions.forEach((opt) => batch.set(db.collection('resolutions').doc(traceId).collection('options').doc(String(opt.rank)), toFirestoreSafeOption(opt))); batch.set(db.collection('resolutions').doc(traceId), { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, cascadeRisk: impactReport.cascadeRisk, urgency: impactReport.urgency, totalCargoAtRiskUSD: impactReport.totalCargoAtRiskUSD, analysisText: impactReport.analysisText, optionCount: validatedOptions.length, createdAt: new Date().toISOString(), status: 'pending' }); await batch.commit(); await publish(TOPICS.RESOLUTION_OPTIONS, createAgentPayload('resolution', { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, options: validatedOptions }, traceId)); setLastEventAt(new Date().toISOString()); setTimeout(() => activeStreams.delete(traceId), 300000);
 }
 
 export function startResolutionSubscriber() {
 	function connect() {
 		if (_subscription) { try { _subscription.close(); } catch {} }
-		_subscription = subscribe(TOPICS.IMPACT_REPORTS, (message) => {
+		_subscription = subscribe(TOPICS.IMPACT_REPORTS, (message, isReplay) => {
 			_lastMessageAt = Date.now();
+			if (isReplay) {
+				const publishedAt = message?._publishedAt ? new Date(message._publishedAt).getTime() : 0;
+				if (!publishedAt || Date.now() - publishedAt > 600000) return;
+			}
 			processImpactReport(message).catch(err =>
 				console.error('[ResolutionService] processImpactReport error:', err.message)
 			);

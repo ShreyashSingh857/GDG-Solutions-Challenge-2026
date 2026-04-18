@@ -67,8 +67,12 @@ export async function processDisruptionEvent(agentPayload) {
 export function startImpactSubscriber() {
 	function connect() {
 		if (_subscription) { try { _subscription.close(); } catch {} }
-		_subscription = subscribe(TOPICS.DISRUPTION_EVENTS, (message) => {
+		_subscription = subscribe(TOPICS.DISRUPTION_EVENTS, (message, isReplay) => {
 			_lastMessageAt = Date.now();
+			if (isReplay) {
+				const publishedAt = message?._publishedAt ? new Date(message._publishedAt).getTime() : 0;
+				if (!publishedAt || Date.now() - publishedAt > 600000) return;
+			}
 			processDisruptionEvent(message).catch(err =>
 				console.error('[ImpactService] processDisruptionEvent error:', err.message)
 			);

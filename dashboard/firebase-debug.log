@@ -1,0 +1,55 @@
+[debug] [2026-04-18T18:29:47.618Z] ----------------------------------------------------------------------
+[debug] [2026-04-18T18:29:47.619Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\singh\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:indexes --project gdg-solutions-challenge-d27c3
+[debug] [2026-04-18T18:29:47.620Z] CLI Version:   14.17.0
+[debug] [2026-04-18T18:29:47.620Z] Platform:      win32
+[debug] [2026-04-18T18:29:47.620Z] Node Version:  v22.17.1
+[debug] [2026-04-18T18:29:47.620Z] Time:          Sat Apr 18 2026 23:59:47 GMT+0530 (India Standard Time)
+[debug] [2026-04-18T18:29:47.620Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-18T18:29:47.758Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-18T18:29:47.758Z] > authorizing via signed-in user (singhshreyash857@gmail.com)
+[debug] [2026-04-18T18:29:47.759Z] [iam] checking project gdg-solutions-challenge-d27c3 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-04-18T18:29:47.759Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:47.759Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:47.760Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:testIamPermissions [none]
+[debug] [2026-04-18T18:29:47.760Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:testIamPermissions x-goog-quota-user=projects/gdg-solutions-challenge-d27c3
+[debug] [2026-04-18T18:29:47.760Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-04-18T18:29:49.513Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:testIamPermissions 200
+[debug] [2026-04-18T18:29:49.514Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'gdg-solutions-challenge-d27c3'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-04-18T18:29:49.517Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:49.517Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:49.517Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:test [none]
+[debug] [2026-04-18T18:29:49.517Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:test [omitted]
+[debug] [2026-04-18T18:29:51.065Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:test 200
+[debug] [2026-04-18T18:29:51.065Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-04-18T18:29:51.066Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.066Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.066Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default) [none]
+[debug] [2026-04-18T18:29:51.377Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default) 200
+[debug] [2026-04-18T18:29:51.377Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default) {"name":"projects/gdg-solutions-challenge-d27c3/databases/(default)","uid":"2a9ee4fb-0c96-4c79-8c77-790c43fe0f2e","createTime":"2026-04-12T07:20:20.992599Z","updateTime":"2026-04-12T07:20:20.992599Z","locationId":"asia-south1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-04-18T17:29:51.075493Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"j","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"ILqUooKE+JMDMMD6qJ7j55MD"}
+[info] i  firestore: deploying indexes... 
+[debug] [2026-04-18T18:29:51.378Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.378Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.378Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-04-18T18:29:51.576Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-04-18T18:29:51.577Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/-/indexes {"indexes":[{"name":"projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/shipments/indexes/CICAgOjXh4EK","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"currentLat","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/shipments/indexes/CICAgJiUpoMK","queryScope":"COLLECTION","fields":[{"fieldPath":"currentLat","order":"ASCENDING"},{"fieldPath":"currentLng","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"CREATING","density":"SPARSE_ALL"},{"name":"projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/shipments/indexes/CICAgJiUsZIK","queryScope":"COLLECTION","fields":[{"fieldPath":"corridor","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"CREATING","density":"SPARSE_ALL"}]}
+[debug] [2026-04-18T18:29:51.577Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.577Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.577Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-04-18T18:29:51.674Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-04-18T18:29:51.674Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/gdg-solutions-challenge-d27c3/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-04-18T18:29:51.674Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.674Z] Checked if tokens are valid: true, expires at: 1776540398544
+[debug] [2026-04-18T18:29:51.674Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default) [none]
+[debug] [2026-04-18T18:29:51.782Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default) 200
+[debug] [2026-04-18T18:29:51.782Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/gdg-solutions-challenge-d27c3/databases/(default) {"name":"projects/gdg-solutions-challenge-d27c3/databases/(default)","uid":"2a9ee4fb-0c96-4c79-8c77-790c43fe0f2e","createTime":"2026-04-12T07:20:20.992599Z","updateTime":"2026-04-12T07:20:20.992599Z","locationId":"asia-south1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-04-18T17:29:51.434714Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"j","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IOKLuIKE+JMDMMD6qJ7j55MD"}
+[info] i  firestore: The following indexes are defined in your project but are not present in your firestore indexes file:
+	(shipments) -- (status,ASCENDING) (currentLat,ASCENDING)  -- Density:SPARSE_ALL 
+	(shipments) -- (currentLat,ASCENDING) (currentLng,ASCENDING)  -- Density:SPARSE_ALL  

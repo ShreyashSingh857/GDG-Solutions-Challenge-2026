@@ -5,6 +5,27 @@ import { collection, onSnapshot, orderBy, query, limit, getDocs } from 'firebase
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
+function rebuildRoute(option) {
+  const waypoints = Array.isArray(option.routeWaypoints) ? option.routeWaypoints : [];
+  const coordinates = waypoints.map((point) => [point.lng, point.lat]);
+  const first = waypoints[0] || {};
+  const last = waypoints[waypoints.length - 1] || {};
+  return {
+    id: option.traceId || option.id || `route-${option.rank}`,
+    originLat: first.lat ?? null,
+    originLon: first.lng ?? null,
+    destLat: last.lat ?? null,
+    destLon: last.lng ?? null,
+    waypoints,
+    geometry: coordinates.length ? { type: 'LineString', coordinates } : null,
+    properties: {
+      mode: option.routeSummary?.mode || option.transportMode || 'sea-freight',
+      distanceKm: option.routeSummary?.distanceKm ?? null,
+      timeDeltaHours: option.routeSummary?.timeDeltaHours ?? null,
+    },
+  };
+}
+
 /**
  * Subscribes to Firestore resolutions collection.
  * When a new resolution parent document appears, fetches its options subcollection
@@ -39,7 +60,10 @@ export function useResolutions() {
             collection(db, 'resolutions', latestDoc.id, 'options')
           );
           const options = optionsSnap.docs
-            .map((d) => ({ ...d.data() }))
+            .map((d) => {
+              const data = { ...d.data() };
+              return { ...data, route: data.route || rebuildRoute(data) };
+            })
             .sort((a, b) => a.rank - b.rank);
 
           setResolutionWithOptions({ ...resolutionData, options });

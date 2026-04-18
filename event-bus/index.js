@@ -7,6 +7,13 @@ const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
 
 const startTime = Date.now();
+const deadLetterLog = [];
+
+broker.on('dead-letter', (dlq) => {
+  console.error('[EventBus] DEAD-LETTER:', JSON.stringify(dlq));
+  deadLetterLog.push({ ...dlq, _at: new Date().toISOString() });
+  if (deadLetterLog.length > 100) deadLetterLog.shift();
+});
 
 /**
  * Health check - used by UptimeRobot and agents to verify the bus is live.
@@ -85,6 +92,10 @@ app.get('/subscribe/:topic', async (req, reply) => {
   }, 30000);
 
   req.raw.on('close', () => clearInterval(keepAlive));
+});
+
+app.get('/dead-letters', async (req, reply) => {
+  reply.send({ count: deadLetterLog.length, items: deadLetterLog });
 });
 
 try {

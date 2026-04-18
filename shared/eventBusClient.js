@@ -46,7 +46,7 @@ export async function publish(topic, agentPayload) {
  * install the `eventsource` npm package and import it here.
  *
  * @param {string} topic - One of the TOPICS constants
- * @param {function(object): void} onMessage - Callback called with each parsed message
+ * @param {function(object, boolean): void} onMessage - Callback called with each parsed message and replay flag
  * @returns {EventSource} - The EventSource instance (call .close() to unsubscribe)
  */
 export function subscribe(topic, onMessage) {
@@ -64,8 +64,7 @@ export function subscribe(topic, onMessage) {
   es.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      if (data.type === 'replay') return;
-      onMessage(data);
+      onMessage(data, data.type === 'replay');
     } catch (_err) {
       console.error(`[EventBusClient] Failed to parse message from ${topic}:`, _err.message);
     }
