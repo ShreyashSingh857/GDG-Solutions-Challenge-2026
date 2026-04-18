@@ -3,6 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { adminDb } from '../../../lib/firebase-admin.js';
 
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey)
+  : null;
+
 export async function GET() {
   try {
     const snap = await adminDb
@@ -16,11 +22,6 @@ export async function GET() {
     return NextResponse.json({ error: err.message, data: null }, { status: 500 });
   }
 }
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 export async function POST(req) {
   try {
@@ -61,14 +62,16 @@ export async function POST(req) {
 
     await adminDb.collection('shipments').doc(shipment.id).set(shipment);
 
-    await supabase
-      .from('shipments')
-      .insert([toSupabaseRow(shipment)])
-      .then(({ error }) => {
-        if (error) {
-          console.error('[API/shipments] Supabase insert failed:', error.message);
-        }
-      });
+    if (supabase) {
+      await supabase
+        .from('shipments')
+        .insert([toSupabaseRow(shipment)])
+        .then(({ error }) => {
+          if (error) {
+            console.error('[API/shipments] Supabase insert failed:', error.message);
+          }
+        });
+    }
 
     return NextResponse.json({ data: shipment, error: null }, { status: 201 });
   } catch (err) {

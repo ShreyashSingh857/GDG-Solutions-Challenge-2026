@@ -6,10 +6,11 @@ import { adminDb } from '../../../../lib/firebase-admin.js';
 
 export const runtime = 'nodejs';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey)
+  : null;
 
 const REQUIRED_FIELDS = [
   'origin',
@@ -127,19 +128,21 @@ export async function POST(req) {
       );
     }
 
-    const { error: supabaseError } = await supabase
-      .from('shipments')
-      .upsert(shipments.map(toSupabaseRow), { onConflict: 'id' });
+    if (supabase) {
+      const { error: supabaseError } = await supabase
+        .from('shipments')
+        .upsert(shipments.map(toSupabaseRow), { onConflict: 'id' });
 
-    if (supabaseError) {
-      console.error('[API/shipments/import] Supabase upsert failed:', supabaseError.message);
-      return NextResponse.json(
-        {
-          error: `Supabase import failed: ${supabaseError.message}`,
-          data: null,
-        },
-        { status: 500 }
-      );
+      if (supabaseError) {
+        console.error('[API/shipments/import] Supabase upsert failed:', supabaseError.message);
+        return NextResponse.json(
+          {
+            error: `Supabase import failed: ${supabaseError.message}`,
+            data: null,
+          },
+          { status: 500 }
+        );
+      }
     }
 
     for (let i = 0; i < shipments.length; i += 400) {
