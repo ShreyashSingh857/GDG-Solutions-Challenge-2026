@@ -28,15 +28,15 @@ import { generateGeodesicRoutePositions } from '../../lib/arcGeometry.js';
 import GlobeControls from './GlobeControls.jsx';
 import { useGlobeCamera } from './useGlobeCamera.js';
 
-const C = { active: '#22c55e', delayed: '#ef4444', rerouted: '#3b82f6', disrupted: '#f97316' };
+const C = { active: '#22c55e', delayed: '#f97316', rerouted: '#38bdf8', disrupted: '#ef4444' };
 
 function isValidCoord(lat, lon) {
   return !(lat === 0 && lon === 0) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 }
 
 function dominantStatus(statuses) {
-  if (statuses.has('delayed')) return 'delayed';
   if (statuses.has('rerouted')) return 'rerouted';
+  if (statuses.has('delayed')) return 'delayed';
   return 'active';
 }
 
@@ -252,7 +252,7 @@ export default function GlobeView() {
           if (existing.destinationDot) entities.remove(existing.destinationDot);
         }
 
-        const colorMap = { active: '#00FF88', delayed: '#FF4444', rerouted: '#FFB300' };
+        const colorMap = { active: C.active, delayed: C.delayed, rerouted: C.rerouted };
         const color = Color.fromCssColorString(colorMap[route.status] || colorMap.active).withAlpha(0.75);
         const positions = generateGeodesicRoutePositions(getRoutePoints(route), routeIndex, 48);
         const width = Math.min(1 + Math.floor(route.count / 3), 5);

@@ -12,6 +12,12 @@ import { useAlertStore } from '../store/alertStore.js';
 export function useDisruptions() {
   const { addDisruption } = useAlertStore();
 
+  async function loadFallback() {
+    const res = await fetch('/api/disruptions', { cache: 'no-store' });
+    const json = await res.json();
+    (json.data || []).forEach((item) => addDisruption(item));
+  }
+
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
       return;
@@ -35,6 +41,9 @@ export function useDisruptions() {
       },
       (err) => {
         console.error('[useDisruptions] Firestore listener error:', err.message);
+        if (String(err.message || '').includes('insufficient permissions')) {
+          loadFallback().catch(() => {});
+        }
       }
     );
 

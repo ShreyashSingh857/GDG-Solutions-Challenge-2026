@@ -34,6 +34,12 @@ function rebuildRoute(option) {
 export function useResolutions() {
   const { setResolutionWithOptions } = useAlertStore();
 
+  async function loadFallback() {
+    const res = await fetch('/api/resolutions', { cache: 'no-store' });
+    const json = await res.json();
+    if (json.data) setResolutionWithOptions(json.data);
+  }
+
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
       return;
@@ -69,11 +75,18 @@ export function useResolutions() {
           setResolutionWithOptions({ ...resolutionData, options });
         } catch (err) {
           console.error('[useResolutions] Failed to fetch options subcollection:', err.message);
+          if (String(err.message || '').includes('insufficient permissions')) {
+            loadFallback().catch(() => {});
+            return;
+          }
           setResolutionWithOptions({ ...resolutionData, options: [] });
         }
       },
       (err) => {
         console.error('[useResolutions] Firestore listener error:', err.message);
+        if (String(err.message || '').includes('insufficient permissions')) {
+          loadFallback().catch(() => {});
+        }
       }
     );
 

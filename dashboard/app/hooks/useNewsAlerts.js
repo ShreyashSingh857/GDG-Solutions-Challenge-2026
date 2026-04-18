@@ -8,6 +8,12 @@ import { useAlertStore } from '../store/alertStore.js';
 export function useNewsAlerts() {
   const addNewsAlert = useAlertStore((state) => state.addNewsAlert);
 
+  async function loadFallback() {
+    const res = await fetch('/api/news-alerts', { cache: 'no-store' });
+    const json = await res.json();
+    (json.data || []).forEach((item) => addNewsAlert(item));
+  }
+
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
       return;
@@ -30,6 +36,9 @@ export function useNewsAlerts() {
       },
       (err) => {
         console.error('[useNewsAlerts] Firestore listener error:', err.message);
+        if (String(err.message || '').includes('insufficient permissions')) {
+          loadFallback().catch(() => {});
+        }
       }
     );
 
