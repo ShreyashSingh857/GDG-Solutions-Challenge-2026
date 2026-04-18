@@ -1,4 +1,4 @@
-import { Cartesian3, Quaternion, Math as CesiumMath } from 'cesium';
+import { Cartesian3, Cartographic, EllipsoidGeodesic, Quaternion, Math as CesiumMath } from 'cesium';
 
 export function generateArcPositions(originLng, originLat, destLng, destLat, samples = 64, maxAltM = 1_000_000, maxAltFactor = 0.55) {
 	const start = Cartesian3.fromDegrees(originLng, originLat);
@@ -47,4 +47,23 @@ export function generateArcFromWaypoints(waypoints, samplesPerSegment = 48) {
 		merged.push(...seg);
 	}
 	return merged;
+}
+
+export function generateGeodesicRoutePositions(points, routeIndex = 0, segments = 48) {
+	if (!Array.isArray(points) || points.length < 2) return [];
+	const peakAlt = 300000 + routeIndex * 30000;
+	const positions = [];
+	for (let i = 0; i < points.length - 1; i += 1) {
+		const start = Cartographic.fromDegrees(points[i].lon, points[i].lat);
+		const end = Cartographic.fromDegrees(points[i + 1].lon, points[i + 1].lat);
+		const geodesic = new EllipsoidGeodesic(start, end);
+		for (let step = 0; step <= segments; step += 1) {
+			if (i > 0 && step === 0) continue;
+			const fraction = step / segments;
+			const surface = geodesic.interpolateUsingFraction(fraction, new Cartographic());
+			const altitude = peakAlt * Math.sin(CesiumMath.PI * fraction);
+			positions.push(Cartesian3.fromRadians(surface.longitude, surface.latitude, altitude));
+		}
+	}
+	return positions;
 }
