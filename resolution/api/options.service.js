@@ -1,6 +1,6 @@
 import { generateStream } from '../../shared/lib/gemini.js';
 import { db } from '../../shared/db/firebase.js';
-import { supabase } from '../../shared/db/supabase.js';
+import { resilientUpsert } from '../../shared/db/supabase.js';
 import { publish, subscribe } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
 import { createAgentPayload } from '../../shared/types/AgentPayload.js';
@@ -70,11 +70,11 @@ async function processImpactReport(agentPayload) {
 		{ rank: 3, title: routes.cheapest.title, description: 'Cheapest extended sea route.', costDelta: cheapestCost.costDelta, timeDelta: routes.cheapest.timeDeltaHours, supplierName: seaSuppliers[1]?.name || 'Alaska Northern Route Ltd.', supplierId: seaSuppliers[1]?.id || 'sup-003', confidence: 0.70 },
 	];
 	const validatedOptions = options.slice(0, 3).map((opt, i) => { let safeOpt; try { const normalized = { ...opt, rank: Number(opt.rank), costDelta: parseInt(opt.costDelta, 10) || fallbackOptions[i].costDelta, timeDelta: parseInt(opt.timeDelta, 10) || fallbackOptions[i].timeDelta, confidence: parseFloat(opt.confidence) || fallbackOptions[i].confidence, supplierName: opt.supplierName || fallbackOptions[i].supplierName, supplierId: opt.supplierId || fallbackOptions[i].supplierId }; safeOpt = validateResolutionOption(normalized); } catch (err) { console.warn(`[ResolutionService] Option rank ${i + 1} failed validation, using fallback:`, err.message); safeOpt = fallbackOptions[i]; } return { ...safeOpt, route: toGeoJSON(routesByRank[i]), impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, traceId, selected: false, createdAt: new Date().toISOString() }; });
-	const { error: resErr } = await supabase.from('resolutions').upsert({ id: traceId, trace_id: traceId, impact_report_id: impactReport.id, disruption_id: impactReport.disruptionId, cascade_risk: impactReport.cascadeRisk, urgency: impactReport.urgency, total_cargo_at_risk_usd: impactReport.totalCargoAtRiskUSD, analysis_text: impactReport.analysisText, option_count: validatedOptions.length, status: 'pending' }, { onConflict: 'id' });
-	if (resErr) console.error('[ResolutionService] Supabase resolutions write failed (non-fatal):', resErr.message);
+	const { queued: resQueued } = await resilientUpsert('resolutions', { id: traceId, trace_id: traceId, impact_report_id: impactReport.id, disruption_id: impactReport.disruptionId, cascade_risk: impactReport.cascadeRisk, urgency: impactReport.urgency, total_cargo_at_risk_usd: impactReport.totalCargoAtRiskUSD, analysis_text: impactReport.analysisText, option_count: validatedOptions.length, status: 'pending' }, { onConflict: 'id' });
+	if (resQueued) console.warn('[ResolutionService] resolutions write queued for retry');
 	const optionRows = validatedOptions.map((opt) => ({ resolution_id: traceId, trace_id: traceId, rank: opt.rank, title: opt.title, description: opt.description, cost_delta: opt.costDelta, time_delta: opt.timeDelta, supplier_id: opt.supplierId || null, supplier_name: opt.supplierName, confidence: opt.confidence, route_geojson: opt.route, transport_mode: opt.route?.properties?.mode || 'sea-freight', selected: false }));
-	const { error: optErr } = await supabase.from('resolution_options').upsert(optionRows, { onConflict: 'resolution_id,rank' });
-	if (optErr) console.error('[ResolutionService] Supabase resolution_options write failed (non-fatal):', optErr.message);
+	const { queued: optQueued } = await resilientUpsert('resolution_options', optionRows, { onConflict: 'resolution_id,rank' });
+	if (optQueued) console.warn('[ResolutionService] resolution_options write queued for retry');
 	const batch = db.batch(); validatedOptions.forEach((opt) => batch.set(db.collection('resolutions').doc(traceId).collection('options').doc(String(opt.rank)), toFirestoreSafeOption(opt))); batch.set(db.collection('resolutions').doc(traceId), { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, cascadeRisk: impactReport.cascadeRisk, urgency: impactReport.urgency, totalCargoAtRiskUSD: impactReport.totalCargoAtRiskUSD, analysisText: impactReport.analysisText, optionCount: validatedOptions.length, createdAt: new Date().toISOString(), status: 'pending' }); await batch.commit(); await publish(TOPICS.RESOLUTION_OPTIONS, createAgentPayload('resolution', { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, options: validatedOptions }, traceId)); setLastEventAt(new Date().toISOString()); setTimeout(() => activeStreams.delete(traceId), 300000);
 }
 

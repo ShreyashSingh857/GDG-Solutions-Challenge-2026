@@ -26,23 +26,41 @@ async function getGenAI() {
 }
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const rateLimitState = { blocked: false, unblockAt: 0 };
+const rateLimitState = { blocked: false, unblockAt: 0, strikes: 0 };
+
+function makeCooldownError(retryAfterMs) {
+  const err = new Error('[Gemini] Rate-limited, cooling down before next request');
+  err.code = 'GEMINI_RATE_LIMITED';
+  err.retryAfterMs = retryAfterMs;
+  return err;
+}
 
 function ensureNotRateLimited() {
-  if (rateLimitState.blocked && Date.now() < rateLimitState.unblockAt) {
-    throw new Error('[Gemini] Rate-limited, cooling down before next request');
+  const now = Date.now();
+  if (rateLimitState.blocked && now < rateLimitState.unblockAt) {
+    throw makeCooldownError(rateLimitState.unblockAt - now);
   }
-  if (Date.now() >= rateLimitState.unblockAt) {
+  if (now >= rateLimitState.unblockAt) {
     rateLimitState.blocked = false;
   }
+}
+
+function clearRateLimitState() {
+  rateLimitState.blocked = false;
+  rateLimitState.unblockAt = 0;
+  rateLimitState.strikes = 0;
 }
 
 function handleRateLimit(err) {
   const msg = String(err?.message || '').toLowerCase();
   if (msg.includes('429') || msg.includes('quota') || msg.includes('rate limit')) {
+    const baseMs = 60_000;
+    const maxMs = 10 * 60_000;
+    rateLimitState.strikes = Math.min(rateLimitState.strikes + 1, 8);
+    const cooldownMs = Math.min(baseMs * (2 ** (rateLimitState.strikes - 1)), maxMs);
     rateLimitState.blocked = true;
-    rateLimitState.unblockAt = Date.now() + 60_000;
-    console.warn('[Gemini] Rate limit detected; cooling down 60s');
+    rateLimitState.unblockAt = Date.now() + cooldownMs;
+    console.warn(`[Gemini] Rate limit detected; cooling down ${Math.round(cooldownMs / 1000)}s`);
   }
 }
 
@@ -63,6 +81,7 @@ export async function generate(prompt, tools = []) {
 
     const result = await model.generateContent(prompt);
     const response = result.response;
+    clearRateLimitState();
 
     // Strip markdown code fences if present - Gemini sometimes wraps JSON in ```json
     const text = response.text();
@@ -97,6 +116,7 @@ export async function generateWithTools(prompt, tools = [], toolHandlers = {}) {
       result = await chat.sendMessage(toolResults);
     }
     const text = result.response.text();
+    clearRateLimitState();
     return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
   } catch (err) {
     handleRateLimit(err);
@@ -126,6 +146,7 @@ export async function* generateStream(prompt, tools = []) {
       const text = chunk.text();
       if (text) yield text;
     }
+    clearRateLimitState();
   } catch (err) {
     handleRateLimit(err);
     console.error('[Gemini] generateStream() error:', err.message);
