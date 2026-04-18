@@ -12,6 +12,10 @@ import { setLastEventAt } from '../state.js';
 import { readFileSync } from 'fs'; import { fileURLToPath } from 'url'; import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url)); const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8'); const activeStreams = new Map();
+let _subscription = null;
+let _lastMessageAt = null;
+const HEALTH_CHECK_INTERVAL = 60000;
+const STALE_THRESHOLD = 300000;
 export function getStreamText(traceId) { return activeStreams.get(traceId) || null; }
 
 export function buildDisruptionContextFromImpactReport(impactReport) {
@@ -55,4 +59,23 @@ async function processImpactReport(agentPayload) {
 	const batch = db.batch(); validatedOptions.forEach((opt) => batch.set(db.collection('resolutions').doc(traceId).collection('options').doc(String(opt.rank)), opt)); batch.set(db.collection('resolutions').doc(traceId), { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, cascadeRisk: impactReport.cascadeRisk, urgency: impactReport.urgency, totalCargoAtRiskUSD: impactReport.totalCargoAtRiskUSD, analysisText: impactReport.analysisText, optionCount: validatedOptions.length, createdAt: new Date().toISOString(), status: 'pending' }); await batch.commit(); await publish(TOPICS.RESOLUTION_OPTIONS, createAgentPayload('resolution', { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, options: validatedOptions }, traceId)); setLastEventAt(new Date().toISOString()); setTimeout(() => activeStreams.delete(traceId), 300000);
 }
 
-export function startResolutionSubscriber() { subscribe(TOPICS.IMPACT_REPORTS, (message) => processImpactReport(message).catch((err) => console.error('[ResolutionService] Unhandled error in processImpactReport:', err.message))); }
+export function startResolutionSubscriber() {
+	function connect() {
+		if (_subscription) { try { _subscription.close(); } catch {} }
+		_subscription = subscribe(TOPICS.IMPACT_REPORTS, (message) => {
+			_lastMessageAt = Date.now();
+			processImpactReport(message).catch(err =>
+				console.error('[ResolutionService] processImpactReport error:', err.message)
+			);
+		});
+		console.log('[ResolutionService] SSE subscription established');
+	}
+	connect();
+	setInterval(() => {
+		const stale = _lastMessageAt && (Date.now() - _lastMessageAt > STALE_THRESHOLD);
+		if (stale || !_subscription || _subscription.readyState === 2) {
+			console.warn('[ResolutionService] SSE connection stale, reconnecting...');
+			connect();
+		}
+	}, HEALTH_CHECK_INTERVAL);
+}

@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import { useShipments } from './hooks/useShipments.js';
 import { useDisruptions } from './hooks/useDisruptions.js';
 import { useResolutions } from './hooks/useResolutions.js';
+import { useNewsAlerts } from './hooks/useNewsAlerts.js';
 import { useAlertStore } from './store/alertStore.js';
 import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentTrigger from './components/AgentTrigger.jsx';
@@ -66,6 +67,7 @@ export default function Home() {
   useShipments();
   useDisruptions();
   useResolutions();
+  useNewsAlerts();
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#020617]">

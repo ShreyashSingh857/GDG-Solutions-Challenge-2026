@@ -7,7 +7,16 @@
         { "fieldPath": "currentLat", "order": "ASCENDING" },
         { "fieldPath": "currentLng", "order": "ASCENDING" }
       ]
-    },
+        "indexes": [
+          {
+            "collectionGroup": "shipments",
+            "queryScope": "COLLECTION",
+            "fields": [
+              { "fieldPath": "status", "order": "ASCENDING" },
+              { "fieldPath": "currentLat", "order": "ASCENDING" }
+            ]
+          }
+        ],
     {
       "collectionGroup": "shipments",
       "queryScope": "COLLECTION",

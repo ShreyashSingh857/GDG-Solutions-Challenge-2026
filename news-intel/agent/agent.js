@@ -8,6 +8,7 @@ import { TOPICS } from '../../event-bus/topics.js';
 import { generate } from '../../shared/lib/gemini.js';
 import { fetchGdeltArticles } from '../tools/gdeltFetcher.js';
 import { fetchNewsApiArticles } from '../tools/newsApiFetcher.js';
+import { fetchGdacsAlerts } from '../tools/gdacsFetcher.js';
 import { isDuplicate, markProcessed } from '../tools/dedupStore.js';
 import { createNewsAlert, validateNewsAlert } from '../types/NewsAlert.js';
 
@@ -27,9 +28,10 @@ export async function runPollCycle() {
   const startedAt = Date.now();
   console.log('[NewsAgent] Poll cycle started');
 
-  const [gdeltResult, newsApiResult] = await Promise.allSettled([
+  const [gdeltResult, newsApiResult, gdacsResult] = await Promise.allSettled([
     fetchGdeltArticles(lastGdeltFetch),
     fetchNewsApiArticles(),
+    fetchGdacsAlerts(),
   ]);
 
   lastGdeltFetch = new Date();
@@ -37,6 +39,7 @@ export async function runPollCycle() {
   const allArticles = [
     ...(gdeltResult.status === 'fulfilled' ? gdeltResult.value : []),
     ...(newsApiResult.status === 'fulfilled' ? newsApiResult.value : []),
+    ...(gdacsResult.status === 'fulfilled' ? gdacsResult.value : []),
   ];
 
   if (gdeltResult.status === 'rejected') {
@@ -44,6 +47,9 @@ export async function runPollCycle() {
   }
   if (newsApiResult.status === 'rejected') {
     console.warn('[NewsAgent] NewsAPI fetch failed:', newsApiResult.reason?.message);
+  }
+  if (gdacsResult.status === 'rejected') {
+    console.warn('[NewsAgent] GDACS fetch failed:', gdacsResult.reason?.message);
   }
 
   const novel = allArticles.filter((article) => !isDuplicate(article.url));
@@ -72,7 +78,7 @@ ${JSON.stringify(input, null, 2)}`);
       console.error('[NewsAgent] Gemini classify failed for batch:', err.message);
     }
 
-    batch.forEach((article) => markProcessed(article.url));
+    await Promise.all(batch.map((article) => markProcessed(article.url)));
 
     for (const result of results) {
       const original = batch.find((article) => article.url === result.sourceUrl);

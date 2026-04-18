@@ -14,6 +14,10 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8');
+let _subscription = null;
+let _lastMessageAt = null;
+const HEALTH_CHECK_INTERVAL = 60000;
+const STALE_THRESHOLD = 300000;
 
 export async function processDisruptionEvent(agentPayload) {
 	const disruption = agentPayload.payload; const traceId = agentPayload.traceId;
@@ -60,4 +64,23 @@ export async function processDisruptionEvent(agentPayload) {
 	setLastEventAt(new Date().toISOString());
 }
 
-export function startImpactSubscriber() { subscribe(TOPICS.DISRUPTION_EVENTS, (message) => processDisruptionEvent(message).catch((err) => console.error('[ImpactService] Unhandled error in processDisruptionEvent:', err.message))); }
+export function startImpactSubscriber() {
+	function connect() {
+		if (_subscription) { try { _subscription.close(); } catch {} }
+		_subscription = subscribe(TOPICS.DISRUPTION_EVENTS, (message) => {
+			_lastMessageAt = Date.now();
+			processDisruptionEvent(message).catch(err =>
+				console.error('[ImpactService] processDisruptionEvent error:', err.message)
+			);
+		});
+		console.log('[ImpactService] SSE subscription established');
+	}
+	connect();
+	setInterval(() => {
+		const stale = _lastMessageAt && (Date.now() - _lastMessageAt > STALE_THRESHOLD);
+		if (stale || !_subscription || _subscription.readyState === 2) {
+			console.warn('[ImpactService] SSE connection stale, reconnecting...');
+			connect();
+		}
+	}, HEALTH_CHECK_INTERVAL);
+}
