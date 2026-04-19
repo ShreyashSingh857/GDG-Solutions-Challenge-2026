@@ -24,18 +24,27 @@ app.addHook('onResponse', async (req, reply) => {
 
 const { default: eventsRoute } = await import('./api/events.route.js');
 if (typeof eventsRoute === 'function') app.register(eventsRoute);
-const { pollPortCongestion, pollCanalStatus } = await import('./api/events.service.js');
+const { pollPortCongestion, pollCanalStatus, pollCorridorWeather } = await import('./api/events.service.js');
 const { startAISStream, MAJOR_CORRIDORS } = await import('./tools/aisStreamTool.js');
 
-// Poll live port congestion signals hourly to auto-generate disruption events.
+// Staggered polling schedule to avoid simultaneous external calls.
 setInterval(() => {
 	pollPortCongestion().catch((err) =>
 		console.warn('[DisruptionAgent] pollPortCongestion failed:', err.message)
 	);
+}, 60 * 60_000);
+
+setInterval(() => {
 	pollCanalStatus().catch((err) =>
 		console.warn('[DisruptionAgent] pollCanalStatus failed:', err.message)
 	);
-}, 3600000);
+}, 65 * 60_000);
+
+setInterval(() => {
+	pollCorridorWeather().catch((err) =>
+		console.warn('[DisruptionAgent] pollCorridorWeather failed:', err.message)
+	);
+}, 3 * 60 * 60_000);
 
 pollPortCongestion().catch((err) =>
 	console.warn('[DisruptionAgent] initial pollPortCongestion failed:', err.message)
@@ -43,6 +52,10 @@ pollPortCongestion().catch((err) =>
 
 pollCanalStatus().catch((err) =>
 	console.warn('[DisruptionAgent] initial pollCanalStatus failed:', err.message)
+);
+
+pollCorridorWeather().catch((err) =>
+	console.warn('[DisruptionAgent] initial pollCorridorWeather failed:', err.message)
 );
 
 startAISStream(MAJOR_CORRIDORS);

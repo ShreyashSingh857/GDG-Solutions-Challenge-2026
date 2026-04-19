@@ -10,6 +10,7 @@ import { searchToolDeclaration, searchWeb } from '../tools/searchTool.js';
 import { detectPortCongestionEvents } from '../tools/portWatchTool.js';
 import { assessSuezCanalStatus } from '../tools/suezCanalScraper.js';
 import { assessPanamaStatus } from '../tools/panamaCanalScraper.js';
+import { assessCorridorWeatherRisk } from '../tools/ecmwfScraper.js';
 import { setLastEventAt } from '../state.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -103,5 +104,23 @@ export async function pollCanalStatus() {
 		}
 	} catch (err) {
 		console.warn('[DisruptionService] Canal poll failed:', err.message);
+	}
+}
+
+export async function pollCorridorWeather() {
+	try {
+		const corridors = await assessCorridorWeatherRisk();
+		for (const corridor of corridors) {
+			if (corridor.routingRiskLevel === 'SEVERE' || corridor.routingRiskLevel === 'EXTREME') {
+				await classifyAndPublish(
+					`ECMWF 7-day forecast: ${corridor.routingRiskLevel} conditions on ${corridor.corridor}. ` +
+					`Max wave height ${corridor.maxWaveHeightM.toFixed(1)}m, ` +
+					`winds ${corridor.maxWindSpeedKmh.toFixed(0)} km/h, ` +
+					`peaking at ${corridor.peakConditionsAt}.`
+				);
+			}
+		}
+	} catch (err) {
+		console.warn('[DisruptionService] Corridor weather poll failed:', err.message);
 	}
 }
