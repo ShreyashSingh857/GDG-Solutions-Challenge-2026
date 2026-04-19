@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import { db } from '../../shared/db/firebase.js';
+import { resilientUpsert } from '../../shared/db/supabase.js';
 
 const AIS_WS_URL = 'wss://stream.aisstream.io/v0/stream';
 let ws = null;
@@ -44,6 +45,15 @@ export function startAISStream(boundingBoxes = MAJOR_CORRIDORS) {
           status: Number(pos.NavigationalStatus || 0),
           updatedAt: new Date().toISOString(),
         }, { merge: true });
+        await resilientUpsert('vessel_positions', {
+          mmsi,
+          lat: Number(pos.Latitude),
+          lng: Number(pos.Longitude),
+          speed: Number(pos.Sog || 0),
+          heading: Number(pos.TrueHeading || 0),
+          nav_status: Number(pos.NavigationalStatus || 0),
+          updated_at: new Date().toISOString(),
+        });
       } catch (err) {
         console.warn('[AIS] Message parse/store failed:', err.message);
       }

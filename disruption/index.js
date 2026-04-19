@@ -27,39 +27,6 @@ if (typeof eventsRoute === 'function') app.register(eventsRoute);
 const { pollPortCongestion, pollCanalStatus, pollCorridorWeather } = await import('./api/events.service.js');
 const { startAISStream, MAJOR_CORRIDORS } = await import('./tools/aisStreamTool.js');
 
-// Staggered polling schedule to avoid simultaneous external calls.
-setInterval(() => {
-	pollPortCongestion().catch((err) =>
-		console.warn('[DisruptionAgent] pollPortCongestion failed:', err.message)
-	);
-}, 60 * 60_000);
-
-setInterval(() => {
-	pollCanalStatus().catch((err) =>
-		console.warn('[DisruptionAgent] pollCanalStatus failed:', err.message)
-	);
-}, 65 * 60_000);
-
-setInterval(() => {
-	pollCorridorWeather().catch((err) =>
-		console.warn('[DisruptionAgent] pollCorridorWeather failed:', err.message)
-	);
-}, 3 * 60 * 60_000);
-
-pollPortCongestion().catch((err) =>
-	console.warn('[DisruptionAgent] initial pollPortCongestion failed:', err.message)
-);
-
-pollCanalStatus().catch((err) =>
-	console.warn('[DisruptionAgent] initial pollCanalStatus failed:', err.message)
-);
-
-pollCorridorWeather().catch((err) =>
-	console.warn('[DisruptionAgent] initial pollCorridorWeather failed:', err.message)
-);
-
-startAISStream(MAJOR_CORRIDORS);
-
 app.get('/health', async (req, reply) => {
 	reply.send({
 		status: 'ok',
@@ -79,6 +46,44 @@ app.get('/metrics', async (req, reply) => {
 try {
 	await app.listen({ port: 3001, host: '0.0.0.0' });
 	logger.info('Service started', { port: 3001 });
+	startAISStream(MAJOR_CORRIDORS);
+
+	setTimeout(() => {
+		pollPortCongestion().catch((err) =>
+			console.warn('[DisruptionAgent] initial pollPortCongestion failed:', err.message)
+		);
+	}, 15_000);
+
+	setTimeout(() => {
+		pollCanalStatus().catch((err) =>
+			console.warn('[DisruptionAgent] initial pollCanalStatus failed:', err.message)
+		);
+	}, 20_000);
+
+	setTimeout(() => {
+		pollCorridorWeather().catch((err) =>
+			console.warn('[DisruptionAgent] initial pollCorridorWeather failed:', err.message)
+		);
+	}, 25_000);
+
+	// Staggered polling schedule to avoid simultaneous external calls.
+	setInterval(() => {
+		pollPortCongestion().catch((err) =>
+			console.warn('[DisruptionAgent] pollPortCongestion failed:', err.message)
+		);
+	}, 60 * 60_000);
+
+	setInterval(() => {
+		pollCanalStatus().catch((err) =>
+			console.warn('[DisruptionAgent] pollCanalStatus failed:', err.message)
+		);
+	}, 65 * 60_000);
+
+	setInterval(() => {
+		pollCorridorWeather().catch((err) =>
+			console.warn('[DisruptionAgent] pollCorridorWeather failed:', err.message)
+		);
+	}, 3 * 60 * 60_000);
 } catch (err) {
 	app.log.error(err);
 	process.exit(1);

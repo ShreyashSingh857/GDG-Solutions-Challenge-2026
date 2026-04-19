@@ -28,6 +28,29 @@ function isFirebaseConfigError(err) {
   return String(err?.message || '').includes('Missing FIREBASE_* env vars');
 }
 
+export async function injectToDisruptionAgent(description, traceId, maxAttempts = 3, retryDelayMs = 3000) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(`${DISRUPTION_AGENT_URL}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, traceId }),
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (response.ok) return response;
+      const body = await response.json().catch(() => ({}));
+      console.warn(`[NewsAgent] Inject attempt ${attempt} returned ${response.status}: ${body.error || ''}`);
+    } catch (err) {
+      console.warn(`[NewsAgent] Inject attempt ${attempt} failed: ${err.message}`);
+    }
+    if (attempt < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * retryDelayMs));
+    }
+  }
+
+  throw new Error(`Disruption injection failed after ${maxAttempts} attempts`);
+}
+
 export async function runPollCycle() {
   const startedAt = Date.now();
   console.log('[NewsAgent] Poll cycle started');
@@ -169,17 +192,7 @@ async function publishNewsAlert(item) {
     `Summary: ${alert.summary}`,
   ].join('\n');
 
-  const response = await fetch(`${DISRUPTION_AGENT_URL}/events`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ description, traceId: payload.traceId }),
-    signal: AbortSignal.timeout(10000),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(`Disruption injection failed: ${errorBody.error ?? response.statusText}`);
-  }
+  await injectToDisruptionAgent(description, payload.traceId);
 
   try {
     await db.collection('news_alerts').doc(alert.id).update({ injected: true });
