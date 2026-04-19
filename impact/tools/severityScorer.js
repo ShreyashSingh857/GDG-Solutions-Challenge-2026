@@ -1,3 +1,5 @@
+import { getTradeWeight } from './tradeFlowWeighter.js';
+
 function haversineDistanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371; const dLat = ((lat2 - lat1) * Math.PI) / 180; const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
@@ -12,4 +14,15 @@ export function scoreShipments(disruption, shipments, topN = 20) {
     const impactScore = Math.min(proximitFactor * severityFactor * cargoFactor + (proximitFactor * severityFactor * 0.3), 1);
     return { id: shipment.id, origin: shipment.origin, destination: shipment.destination, carrier: shipment.carrier, cargoValueUSD: shipment.cargoValueUSD, corridor: shipment.corridor, currentLat: shipment.currentLat, currentLng: shipment.currentLng, eta: shipment.eta, distanceKm: Math.round(distanceKm), impactScore: +impactScore.toFixed(4) };
   }).filter(Boolean).sort((a, b) => b.impactScore - a.impactScore).slice(0, topN);
+}
+
+export async function scoreShipmentsWithTradeWeight(disruption, shipments, topN = 20) {
+  const base = scoreShipments(disruption, shipments, topN);
+  const top = base.slice(0, 10);
+  const weighted = await Promise.all(top.map(async (s) => {
+    const { weight } = await getTradeWeight(s.origin, s.destination);
+    const adjusted = Math.min(1, +(s.impactScore * weight).toFixed(4));
+    return { ...s, impactScore: adjusted, tradeWeight: weight };
+  }));
+  return [...weighted, ...base.slice(10)].sort((a, b) => b.impactScore - a.impactScore);
 }

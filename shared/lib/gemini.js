@@ -26,6 +26,43 @@ async function getGenAI() {
 }
 
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const rateLimitState = { blocked: false, unblockAt: 0, strikes: 0 };
+
+function makeCooldownError(retryAfterMs) {
+  const err = new Error('[Gemini] Rate-limited, cooling down before next request');
+  err.code = 'GEMINI_RATE_LIMITED';
+  err.retryAfterMs = retryAfterMs;
+  return err;
+}
+
+function ensureNotRateLimited() {
+  const now = Date.now();
+  if (rateLimitState.blocked && now < rateLimitState.unblockAt) {
+    throw makeCooldownError(rateLimitState.unblockAt - now);
+  }
+  if (now >= rateLimitState.unblockAt) {
+    rateLimitState.blocked = false;
+  }
+}
+
+function clearRateLimitState() {
+  rateLimitState.blocked = false;
+  rateLimitState.unblockAt = 0;
+  rateLimitState.strikes = 0;
+}
+
+function handleRateLimit(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  if (msg.includes('429') || msg.includes('quota') || msg.includes('rate limit')) {
+    const baseMs = 60_000;
+    const maxMs = 10 * 60_000;
+    rateLimitState.strikes = Math.min(rateLimitState.strikes + 1, 8);
+    const cooldownMs = Math.min(baseMs * (2 ** (rateLimitState.strikes - 1)), maxMs);
+    rateLimitState.blocked = true;
+    rateLimitState.unblockAt = Date.now() + cooldownMs;
+    console.warn(`[Gemini] Rate limit detected; cooling down ${Math.round(cooldownMs / 1000)}s`);
+  }
+}
 
 /**
  * Standard (non-streaming) Gemini generation.
@@ -35,6 +72,7 @@ const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
  */
 export async function generate(prompt, tools = []) {
   try {
+    ensureNotRateLimited();
     const genAI = await getGenAI();
     const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
@@ -43,38 +81,47 @@ export async function generate(prompt, tools = []) {
 
     const result = await model.generateContent(prompt);
     const response = result.response;
+    clearRateLimitState();
 
     // Strip markdown code fences if present - Gemini sometimes wraps JSON in ```json
     const text = response.text();
     return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
   } catch (err) {
+    handleRateLimit(err);
     console.error('[Gemini] generate() error:', err.message);
     throw err;
   }
 }
 
 export async function generateWithTools(prompt, tools = [], toolHandlers = {}) {
-  const genAI = await getGenAI();
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
-  });
-  const chat = model.startChat();
-  let result = await chat.sendMessage(prompt);
-  for (let i = 0; i < 5; i++) {
-    const parts = result.response.candidates?.[0]?.content?.parts ?? [];
-    const toolCalls = parts.filter((p) => p.functionCall);
-    if (toolCalls.length === 0) break;
-    const toolResults = await Promise.all(toolCalls.map(async (p) => {
-      const fn = p.functionCall;
-      const handler = toolHandlers[fn.name];
-      const output = handler ? await handler(fn.args).catch((e) => ({ error: e.message })) : { error: 'no handler' };
-      return { functionResponse: { name: fn.name, response: output } };
-    }));
-    result = await chat.sendMessage(toolResults);
+  try {
+    ensureNotRateLimited();
+    const genAI = await getGenAI();
+    const model = genAI.getGenerativeModel({
+      model: MODEL_NAME,
+      tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
+    });
+    const chat = model.startChat();
+    let result = await chat.sendMessage(prompt);
+    for (let i = 0; i < 5; i++) {
+      const parts = result.response.candidates?.[0]?.content?.parts ?? [];
+      const toolCalls = parts.filter((p) => p.functionCall);
+      if (toolCalls.length === 0) break;
+      const toolResults = await Promise.all(toolCalls.map(async (p) => {
+        const fn = p.functionCall;
+        const handler = toolHandlers[fn.name];
+        const output = handler ? await handler(fn.args).catch((e) => ({ error: e.message })) : { error: 'no handler' };
+        return { functionResponse: { name: fn.name, response: output } };
+      }));
+      result = await chat.sendMessage(toolResults);
+    }
+    const text = result.response.text();
+    clearRateLimitState();
+    return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+  } catch (err) {
+    handleRateLimit(err);
+    throw err;
   }
-  const text = result.response.text();
-  return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
 }
 
 /**
@@ -86,6 +133,7 @@ export async function generateWithTools(prompt, tools = [], toolHandlers = {}) {
  */
 export async function* generateStream(prompt, tools = []) {
   try {
+    ensureNotRateLimited();
     const genAI = await getGenAI();
     const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
@@ -98,7 +146,9 @@ export async function* generateStream(prompt, tools = []) {
       const text = chunk.text();
       if (text) yield text;
     }
+    clearRateLimitState();
   } catch (err) {
+    handleRateLimit(err);
     console.error('[Gemini] generateStream() error:', err.message);
     throw err;
   }

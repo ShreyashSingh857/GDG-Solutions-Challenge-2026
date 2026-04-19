@@ -9,6 +9,10 @@ import { generate } from '../../shared/lib/gemini.js';
 import { fetchGdeltArticles } from '../tools/gdeltFetcher.js';
 import { fetchNewsApiArticles } from '../tools/newsApiFetcher.js';
 import { fetchGdacsAlerts } from '../tools/gdacsFetcher.js';
+import { fetchReutersShippingNews } from '../tools/reutersScraper.js';
+import { fetchMaritimeNews } from '../tools/maritimeNewsScraper.js';
+import { fetchLloydsListHeadlines } from '../tools/lloydsListScraper.js';
+import { fetchStrikeAlerts } from '../tools/strikeAlertScraper.js';
 import { isDuplicate, markProcessed } from '../tools/dedupStore.js';
 import { createNewsAlert, validateNewsAlert } from '../types/NewsAlert.js';
 
@@ -24,14 +28,41 @@ function isFirebaseConfigError(err) {
   return String(err?.message || '').includes('Missing FIREBASE_* env vars');
 }
 
+export async function injectToDisruptionAgent(description, traceId, maxAttempts = 3, retryDelayMs = 3000) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(`${DISRUPTION_AGENT_URL}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, traceId }),
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (response.ok) return response;
+      const body = await response.json().catch(() => ({}));
+      console.warn(`[NewsAgent] Inject attempt ${attempt} returned ${response.status}: ${body.error || ''}`);
+    } catch (err) {
+      console.warn(`[NewsAgent] Inject attempt ${attempt} failed: ${err.message}`);
+    }
+    if (attempt < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * retryDelayMs));
+    }
+  }
+
+  throw new Error(`Disruption injection failed after ${maxAttempts} attempts`);
+}
+
 export async function runPollCycle() {
   const startedAt = Date.now();
   console.log('[NewsAgent] Poll cycle started');
 
-  const [gdeltResult, newsApiResult, gdacsResult] = await Promise.allSettled([
+  const [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult] = await Promise.allSettled([
     fetchGdeltArticles(lastGdeltFetch),
     fetchNewsApiArticles(),
     fetchGdacsAlerts(),
+    fetchReutersShippingNews(),
+    fetchMaritimeNews(),
+    fetchLloydsListHeadlines(),
+    fetchStrikeAlerts(),
   ]);
 
   lastGdeltFetch = new Date();
@@ -40,6 +71,10 @@ export async function runPollCycle() {
     ...(gdeltResult.status === 'fulfilled' ? gdeltResult.value : []),
     ...(newsApiResult.status === 'fulfilled' ? newsApiResult.value : []),
     ...(gdacsResult.status === 'fulfilled' ? gdacsResult.value : []),
+    ...(reutersResult.status === 'fulfilled' ? reutersResult.value : []),
+    ...(maritimeResult.status === 'fulfilled' ? maritimeResult.value : []),
+    ...(lloydsResult.status === 'fulfilled' ? lloydsResult.value : []),
+    ...(strikeResult.status === 'fulfilled' ? strikeResult.value : []),
   ];
 
   if (gdeltResult.status === 'rejected') {
@@ -50,6 +85,18 @@ export async function runPollCycle() {
   }
   if (gdacsResult.status === 'rejected') {
     console.warn('[NewsAgent] GDACS fetch failed:', gdacsResult.reason?.message);
+  }
+  if (reutersResult.status === 'rejected') {
+    console.warn('[NewsAgent] Reuters RSS fetch failed:', reutersResult.reason?.message);
+  }
+  if (maritimeResult.status === 'rejected') {
+    console.warn('[NewsAgent] Maritime RSS fetch failed:', maritimeResult.reason?.message);
+  }
+  if (lloydsResult.status === 'rejected') {
+    console.warn('[NewsAgent] Lloyds headline fetch failed:', lloydsResult.reason?.message);
+  }
+  if (strikeResult.status === 'rejected') {
+    console.warn('[NewsAgent] Strike alert fetch failed:', strikeResult.reason?.message);
   }
 
   const novel = allArticles.filter((article) => !isDuplicate(article.url));
@@ -145,17 +192,7 @@ async function publishNewsAlert(item) {
     `Summary: ${alert.summary}`,
   ].join('\n');
 
-  const response = await fetch(`${DISRUPTION_AGENT_URL}/events`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ description, traceId: payload.traceId }),
-    signal: AbortSignal.timeout(10000),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(`Disruption injection failed: ${errorBody.error ?? response.statusText}`);
-  }
+  await injectToDisruptionAgent(description, payload.traceId);
 
   try {
     await db.collection('news_alerts').doc(alert.id).update({ injected: true });

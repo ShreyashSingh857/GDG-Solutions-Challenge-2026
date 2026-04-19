@@ -13,6 +13,12 @@ import { useShipmentStore } from '../store/shipmentStore.js';
 export function useShipments() {
   const { setShipments, updateShipment } = useShipmentStore();
 
+  async function loadFallback() {
+    const res = await fetch('/api/shipments', { cache: 'no-store' });
+    const json = await res.json();
+    if (Array.isArray(json.data)) setShipments(json.data);
+  }
+
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
       return;
@@ -26,6 +32,9 @@ export function useShipments() {
       },
       (err) => {
         console.error('[useShipments] Firestore listener error:', err.message);
+        if (String(err.message || '').includes('insufficient permissions')) {
+          loadFallback().catch(() => {});
+        }
       }
     );
 

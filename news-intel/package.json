@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "cheerio": "^1.0.0",
     "csv-parse": "^5.5.5",
     "dotenv": "^16.4.5",
     "eventsource": "^2.0.2",

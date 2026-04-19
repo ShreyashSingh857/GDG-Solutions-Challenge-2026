@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 /**
  * @typedef {object} AgentPayload
  * @property {string} agentId - Which agent sent this (e.g. 'monitor', 'impact', 'resolution')
