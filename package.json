@@ -19,6 +19,7 @@
     "dev:resolution": "cd resolution && npm run dev",
     "dev:news": "cd news-intel && npm run dev",
     "dev:dashboard": "cd dashboard && npm run dev",
+    "smoke:scraper": "node scripts/smoke-scraper.mjs",
     "inject:pacific": "node resolution/simulation/inject.js pacific_storm",
     "inject:strike": "node resolution/simulation/inject.js port_strike",
     "inject:suez": "node resolution/simulation/inject.js suez_closure",

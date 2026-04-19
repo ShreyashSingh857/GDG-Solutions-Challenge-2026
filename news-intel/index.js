@@ -5,6 +5,13 @@ import 'dotenv/config';
 import { initDedupStore } from './tools/dedupStore.js';
 import { runPollCycle } from './agent/agent.js';
 import { getLastCycleStats } from './api/news.service.js';
+import { createLogger } from '../shared/lib/logger.js';
+import { createMetrics } from '../shared/lib/metrics.js';
+import { validateEnv } from '../shared/lib/validateEnv.js';
+
+validateEnv('NewsIntel', ['GEMINI_API_KEY', 'DISRUPTION_AGENT_URL']);
+const logger = createLogger('news-intel');
+const metrics = createMetrics('news-intel');
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
@@ -14,6 +21,13 @@ await app.register(newsRoute);
 
 const startTime = Date.now();
 
+app.addHook('onRequest', async (req) => {
+  req._startAt = Date.now();
+});
+app.addHook('onResponse', async (req, reply) => {
+  metrics.recordRequest(Date.now() - (req._startAt || Date.now()), reply.statusCode);
+});
+
 app.get('/health', async () => ({
   status: 'ok',
   agent: 'news-intel',
@@ -21,9 +35,14 @@ app.get('/health', async () => ({
   lastCycle: getLastCycleStats(),
 }));
 
+app.get('/metrics', async () => metrics.snapshot({
+  uptime: Math.floor((Date.now() - startTime) / 1000),
+  lastCycle: getLastCycleStats(),
+}));
+
 try {
   await app.listen({ port: 3005, host: '0.0.0.0' });
-  console.log('[NewsIntel] Listening on :3005');
+  logger.info('Service started', { port: 3005 });
 
   await initDedupStore();
 
@@ -42,7 +61,7 @@ try {
           console.error('[NewsIntel] Scheduled poll failed:', err.message);
         });
       }, pollIntervalMs);
-      console.log(`[NewsIntel] Scheduler active - interval: ${pollIntervalMs}ms`);
+      logger.info('Scheduler active', { mode: 'interval', pollIntervalMs });
       return;
     }
 
@@ -52,7 +71,7 @@ try {
       });
     });
 
-    console.log(`[NewsIntel] Scheduler active - cron: ${schedule}`);
+    logger.info('Scheduler active', { mode: 'cron', schedule });
   }, jitterMs);
 } catch (err) {
   app.log.error(err);

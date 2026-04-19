@@ -1,0 +1,114 @@
+{
+    "timestamp":  "2026-04-19T19:32:08.5228096+05:30",
+    "healthMetrics":  [
+                          {
+                              "port":  4000,
+                              "endpoint":  "/health",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"status\":\"ok\",\"service\":\"event-bus\",\"uptime\":510,\"topics\":[\"disruption-events\",\"impact-reports\",\"resolution-options\",\"news-alerts\"],\"messageCounts\":{\"disruption-events\":5,\"impact-reports\":5,\"resolution-options\":4,\"news-alerts\":0}}"
+                          },
+                          {
+                              "port":  4000,
+                              "endpoint":  "/metrics",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"service\":\"event-bus\",\"requests\":27,\"errors\":0,\"processed\":0,\"avgLatencyMs\":9,\"lastRequestAt\":\"2026-04-19T14:02:10.852Z\",\"lastProcessedAt\":null,\"uptime\":511,\"replayDepthByTopic\":{\"disruption-events\":5,\"impact-reports\":5,\"resolution-options"
+                          },
+                          {
+                              "port":  3001,
+                              "endpoint":  "/health",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"status\":\"ok\",\"agent\":\"disruption-monitor\",\"uptime\":515,\"lastEventAt\":\"2026-04-19T14:01:32.976Z\"}"
+                          },
+                          {
+                              "port":  3001,
+                              "endpoint":  "/metrics",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"service\":\"disruption-agent\",\"requests\":8,\"errors\":0,\"processed\":0,\"avgLatencyMs\":77,\"lastRequestAt\":\"2026-04-19T14:02:13.113Z\",\"lastProcessedAt\":null,\"uptime\":515,\"lastEventAt\":\"2026-04-19T14:01:32.976Z\"}"
+                          },
+                          {
+                              "port":  3002,
+                              "endpoint":  "/health",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"status\":\"ok\",\"agent\":\"impact-analyzer\",\"uptime\":516,\"lastEventAt\":\"2026-04-19T14:01:42.481Z\"}"
+                          },
+                          {
+                              "port":  3002,
+                              "endpoint":  "/metrics",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"service\":\"impact-agent\",\"requests\":5,\"errors\":0,\"processed\":0,\"avgLatencyMs\":3,\"lastRequestAt\":\"2026-04-19T14:02:15.280Z\",\"lastProcessedAt\":null,\"uptime\":516,\"lastEventAt\":\"2026-04-19T14:01:42.481Z\"}"
+                          },
+                          {
+                              "port":  3003,
+                              "endpoint":  "/health",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"status\":\"ok\",\"agent\":\"resolution-negotiator\",\"uptime\":516,\"lastEventAt\":\"2026-04-19T14:01:46.424Z\"}"
+                          },
+                          {
+                              "port":  3003,
+                              "endpoint":  "/metrics",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"service\":\"resolution-agent\",\"requests\":6,\"errors\":0,\"processed\":0,\"avgLatencyMs\":31,\"lastRequestAt\":\"2026-04-19T14:02:17.447Z\",\"lastProcessedAt\":null,\"uptime\":516,\"lastEventAt\":\"2026-04-19T14:01:46.424Z\"}"
+                          },
+                          {
+                              "port":  3005,
+                              "endpoint":  "/health",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"status\":\"ok\",\"agent\":\"news-intel\",\"uptime\":307,\"lastCycle\":{\"fetched\":0,\"classified\":0,\"published\":0,\"runAt\":null,\"isRunning\":false}}"
+                          },
+                          {
+                              "port":  3005,
+                              "endpoint":  "/metrics",
+                              "ok":  true,
+                              "status":  200,
+                              "snippet":  "{\"service\":\"news-intel\",\"requests\":3,\"errors\":0,\"processed\":0,\"avgLatencyMs\":6,\"lastRequestAt\":\"2026-04-19T14:02:19.581Z\",\"lastProcessedAt\":null,\"uptime\":307,\"lastCycle\":{\"fetched\":0,\"classified\":0,\"published\":0,\"runAt\":null,\"isRunning\":fal"
+                          }
+                      ],
+    "baselineMessageCounts":  {
+                                  "disruption-events":  5,
+                                  "impact-reports":  5,
+                                  "resolution-options":  4,
+                                  "news-alerts":  0
+                              },
+    "postDisruption":  {
+                           "ok":  true,
+                           "status":  201,
+                           "snippet":  "{\"data\":{\"id\":\"disruption-fd73159d-a509-4fbf-93a2-017bdbc8c066\",\"detectedAt\":\"2026-04-19T14:02:20.355Z\",\"affectedZones\":[\"Middle East Corridor\"],\"confidence\":0.7,\"type\":\"STRIKE\",\"severity\":7,\"location\":\"Major Port Hub\",\"epicenterLat\":25,\"ep"
+                       },
+    "getEvents":  {
+                      "ok":  true,
+                      "status":  200,
+                      "latestEventId":  null,
+                      "snippet":  "{\"data\":[{\"id\":\"disruption-fd73159d-a509-4fbf-93a2-017bdbc8c066\",\"detectedAt\":\"2026-04-19T14:02:20.355Z\",\"affectedZones\":[\"Middle East Corridor\"],\"confidence\":0.7,\"type\":\"STRIKE\",\"severity\":7,\"location\":\"Major Port Hub\",\"epicenterLat\":25,\"e"
+                  },
+    "publishFallback":  {
+                            "ok":  true,
+                            "status":  200,
+                            "snippet":  "{\"ok\":true,\"topic\":\"disruption-events\",\"traceId\":\"smoke-trace-bus-1\"}"
+                        },
+    "delayProbeCount":  297,
+    "postMessageCounts":  {
+                              "disruption-events":  7,
+                              "impact-reports":  7,
+                              "resolution-options":  4,
+                              "news-alerts":  0
+                          },
+    "messageCountDelta":  {
+                              "disruption-events":  2,
+                              "impact-reports":  2,
+                              "resolution-options":  0
+                          },
+    "resolutionProbe":  {
+                            "ok":  true,
+                            "status":  200,
+                            "snippet":  "{\"data\":[{\"rank\":1,\"title\":\"Cape of Good Hope Sea Reroute for Suez Disruption\",\"description\":\"All 9 affected shipments will reroute around the Cape of Good Hope, bypassing the Suez Canal. This sea-freight option adds 168 hours to transit ti"
+                        }
+}

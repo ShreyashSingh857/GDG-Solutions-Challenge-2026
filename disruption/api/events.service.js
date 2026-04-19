@@ -1,12 +1,16 @@
 import { generateWithTools } from '../../shared/lib/gemini.js';
 import { db } from '../../shared/db/firebase.js';
-import { supabase } from '../../shared/db/supabase.js';
+import { resilientUpsert } from '../../shared/db/supabase.js';
 import { publish } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
 import { createAgentPayload } from '../../shared/types/AgentPayload.js';
 import { createDisruptionEvent, validateDisruptionEvent } from '../types/DisruptionEvent.js';
 import { weatherToolDeclaration, getWeatherData } from '../tools/weatherTool.js';
 import { searchToolDeclaration, searchWeb } from '../tools/searchTool.js';
+import { detectPortCongestionEvents } from '../tools/portWatchTool.js';
+import { assessSuezCanalStatus } from '../tools/suezCanalScraper.js';
+import { assessPanamaStatus } from '../tools/panamaCanalScraper.js';
+import { assessCorridorWeatherRisk } from '../tools/ecmwfScraper.js';
 import { setLastEventAt } from '../state.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -15,6 +19,9 @@ import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8');
 const CONFIDENCE_THRESHOLD = 0.6;
+const MONITORED_PORTS = [
+	'CNSHA', 'CNNGB', 'SGSIN', 'USLAX', 'USNYC', 'DEHAM', 'NLRTM', 'AEJEA', 'EGPSD', 'KRPUS',
+];
 
 function fallbackDisruption(rawDescription) {
 	const text = rawDescription.toLowerCase();
@@ -45,7 +52,7 @@ export async function classifyAndPublish(rawDescription, traceId = null) {
 	const disruptionEvent = createDisruptionEvent({ ...parsed, rawDescription });
 	validateDisruptionEvent(disruptionEvent);
 	await db.collection('disruptions').doc(disruptionEvent.id).set(disruptionEvent);
-	const { error: sbErr } = await supabase.from('disruptions').upsert({
+	const { queued } = await resilientUpsert('disruptions', {
 		id: disruptionEvent.id,
 		trace_id: traceId || disruptionEvent.id,
 		type: disruptionEvent.type,
@@ -60,10 +67,60 @@ export async function classifyAndPublish(rawDescription, traceId = null) {
 		published: disruptionEvent.confidence >= CONFIDENCE_THRESHOLD,
 		detected_at: disruptionEvent.detectedAt,
 	}, { onConflict: 'id' });
-	if (sbErr) console.error('[DisruptionService] Supabase write failed (non-fatal):', sbErr.message);
+	if (queued) console.warn('[DisruptionService] Supabase disruptions write queued for retry');
 	setLastEventAt(new Date().toISOString());
 	if (disruptionEvent.confidence < CONFIDENCE_THRESHOLD) return { disruptionEvent, published: false };
 	const agentPayload = createAgentPayload('monitor', disruptionEvent, traceId);
 	await publish(TOPICS.DISRUPTION_EVENTS, agentPayload);
 	return { disruptionEvent, published: true, traceId: agentPayload.traceId };
+}
+
+export async function pollPortCongestion() {
+	try {
+		const congested = await detectPortCongestionEvents(MONITORED_PORTS, 48);
+		for (const port of congested) {
+			const rawDescription = `Port congestion alert at ${port.portName} (${port.locode}): average vessel wait time is ${port.avgWaitHours.toFixed(1)} hours, congestion index ${port.congestionScore}/100.`;
+			await classifyAndPublish(rawDescription);
+		}
+		if (congested.length) {
+			console.log(`[DisruptionService] PortWatch generated ${congested.length} congestion events`);
+		}
+	} catch (err) {
+		console.warn('[DisruptionService] PortWatch poll failed:', err.message);
+	}
+}
+
+export async function pollCanalStatus() {
+	try {
+		const [suez, panama] = await Promise.all([
+			assessSuezCanalStatus(),
+			assessPanamaStatus(),
+		]);
+		if (suez?.isDisrupted) {
+			await classifyAndPublish(suez.summary);
+		}
+		if (panama?.isDisrupted) {
+			await classifyAndPublish(panama.summary);
+		}
+	} catch (err) {
+		console.warn('[DisruptionService] Canal poll failed:', err.message);
+	}
+}
+
+export async function pollCorridorWeather() {
+	try {
+		const corridors = await assessCorridorWeatherRisk();
+		for (const corridor of corridors) {
+			if (corridor.routingRiskLevel === 'SEVERE' || corridor.routingRiskLevel === 'EXTREME') {
+				await classifyAndPublish(
+					`ECMWF 7-day forecast: ${corridor.routingRiskLevel} conditions on ${corridor.corridor}. ` +
+					`Max wave height ${corridor.maxWaveHeightM.toFixed(1)}m, ` +
+					`winds ${corridor.maxWindSpeedKmh.toFixed(0)} km/h, ` +
+					`peaking at ${corridor.peakConditionsAt}.`
+				);
+			}
+		}
+	} catch (err) {
+		console.warn('[DisruptionService] Corridor weather poll failed:', err.message);
+	}
 }

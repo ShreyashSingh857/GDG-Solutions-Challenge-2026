@@ -60,3 +60,45 @@ export function assertNoSupabaseError(error, context) {
     throw new Error(msg);
   }
 }
+
+const retryQueue = [];
+let retryTickerStarted = false;
+
+export function getSupabaseRetryQueueStats() {
+  return { queued: retryQueue.length };
+}
+
+export async function resilientUpsert(table, data, options = {}) {
+  const { error } = await supabase.from(table).upsert(data, options);
+  if (!error) return { queued: false };
+
+  console.warn(`[Supabase] ${table} write failed, queued for retry: ${error.message}`);
+  retryQueue.push({ table, data, options, attempts: 0, queuedAt: new Date().toISOString() });
+  return { queued: true, error };
+}
+
+export async function flushSupabaseRetryQueue(maxItems = 25) {
+  let processed = 0;
+  for (let i = 0; i < retryQueue.length && processed < maxItems; ) {
+    const item = retryQueue[i];
+    const { error } = await supabase.from(item.table).upsert(item.data, item.options);
+    if (!error) {
+      retryQueue.splice(i, 1);
+    } else {
+      item.attempts += 1;
+      i += 1;
+    }
+    processed += 1;
+  }
+}
+
+if (!retryTickerStarted) {
+  retryTickerStarted = true;
+  const retryTicker = setInterval(() => {
+    flushSupabaseRetryQueue().catch((err) => {
+      console.warn('[Supabase] Retry queue flush failed:', err.message);
+    });
+  }, 30000);
+  // Do not keep the process alive solely for retry flushing (important for test runners/CI).
+  retryTicker.unref?.();
+}

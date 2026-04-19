@@ -9,9 +9,15 @@ export async function searchWeb({ query }) {
 			maxrecords: '5',
 			sort: 'DateDesc',
 		});
-		const res = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, { signal: AbortSignal.timeout(8000) });
-		if (!res.ok) return { results: [], error: `HTTP ${res.status}` };
-		const data = await res.json();
+		let data = await fetchGdelt(params);
+		if (!data) {
+			const safeQuery = String(query || '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+			if (safeQuery && safeQuery !== query) {
+				const fallback = new URLSearchParams({ query: safeQuery, mode: 'artlist', format: 'json', maxrecords: '5', sort: 'DateDesc' });
+				data = await fetchGdelt(fallback);
+			}
+		}
+		if (!data) return { results: [], error: 'GDELT returned non-JSON response' };
 		const articles = Array.isArray(data?.articles) ? data.articles : [];
 		return {
 			results: articles.slice(0, 5).map((a) => ({
@@ -26,4 +32,11 @@ export async function searchWeb({ query }) {
 		console.error('[SearchTool] Failed:', err.message);
 		return { results: [], error: err.message };
 	}
+}
+
+async function fetchGdelt(params) {
+	const res = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, { signal: AbortSignal.timeout(8000) });
+	if (!res.ok) return null;
+	const text = await res.text();
+	try { return JSON.parse(text); } catch { return null; }
 }

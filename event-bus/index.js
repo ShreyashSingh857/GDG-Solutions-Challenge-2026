@@ -2,11 +2,29 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { broker } from './broker.js';
 import { TOPICS } from './topics.js';
+import { createLogger } from '../shared/lib/logger.js';
+import { createMetrics } from '../shared/lib/metrics.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
+const logger = createLogger('event-bus');
+const metrics = createMetrics('event-bus');
 
 const startTime = Date.now();
+const deadLetterLog = [];
+
+app.addHook('onRequest', async (req) => {
+  req._startAt = Date.now();
+});
+app.addHook('onResponse', async (req, reply) => {
+  metrics.recordRequest(Date.now() - (req._startAt || Date.now()), reply.statusCode);
+});
+
+broker.on('dead-letter', (dlq) => {
+  console.error('[EventBus] DEAD-LETTER:', JSON.stringify(dlq));
+  deadLetterLog.push({ ...dlq, _at: new Date().toISOString() });
+  if (deadLetterLog.length > 100) deadLetterLog.shift();
+});
 
 /**
  * Health check - used by UptimeRobot and agents to verify the bus is live.
@@ -87,9 +105,23 @@ app.get('/subscribe/:topic', async (req, reply) => {
   req.raw.on('close', () => clearInterval(keepAlive));
 });
 
+app.get('/dead-letters', async (req, reply) => {
+  reply.send({ count: deadLetterLog.length, items: deadLetterLog });
+});
+
+app.get('/metrics', async (req, reply) => {
+  reply.send(metrics.snapshot({
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    replayDepthByTopic: Object.fromEntries(
+      Object.values(TOPICS).map((t) => [t, broker.getReplay(t).length])
+    ),
+    deadLetters: deadLetterLog.length,
+  }));
+});
+
 try {
   await app.listen({ port: 4000, host: '0.0.0.0' });
-  console.log('[EventBus] Running on port 4000');
+  logger.info('Service started', { port: 4000 });
 } catch (err) {
   app.log.error(err);
   process.exit(1);

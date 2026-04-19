@@ -44,6 +44,12 @@ cp .env.example .env
 ```bash
 bash scripts/copy-env.sh
 ```
+
+On Git Bash/WSL you can also run:
+
+```bash
+scripts/copy-env.sh
+```
 ## 4. Database Setup
 
 1. In Supabase SQL Editor, run the Phase 2.5 schema SQL (enums, tables, indexes, views, policies).

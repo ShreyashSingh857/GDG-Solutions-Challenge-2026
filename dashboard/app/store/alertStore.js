@@ -26,8 +26,11 @@ export const useAlertStore = create((set, get) => ({
 
 	setResolutionWithOptions: (resolutionWithOptions) =>
 		set({
-			activeResolution: resolutionWithOptions,
-			resolutionOptions: [resolutionWithOptions],
+			activeResolution: {
+				...resolutionWithOptions,
+				options: resolutionWithOptions.options || [],
+			},
+			resolutionOptions: resolutionWithOptions.options || [],
 		}),
 
 	setResolutionOptions: (options) => set({ resolutionOptions: options }),

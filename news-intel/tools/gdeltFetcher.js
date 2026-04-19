@@ -18,15 +18,20 @@ export async function fetchGdeltArticles(since) {
     sort: 'DateDesc',
   });
 
-  const res = await fetch(`${GDELT_BASE}?${params}`, {
-    signal: AbortSignal.timeout(15000),
-  });
-
-  if (!res.ok) {
-    throw new Error(`[GdeltFetcher] HTTP ${res.status}: ${res.statusText}`);
+  let json = await fetchGdeltJson(params);
+  if (!json) {
+    const fallback = new URLSearchParams({
+      query: 'shipping disruption OR port closure OR canal blockage OR cargo strike',
+      mode: 'artlist',
+      format: 'json',
+      maxrecords: '50',
+      timespan: '24h',
+      sort: 'DateDesc',
+    });
+    json = await fetchGdeltJson(fallback);
   }
+  if (!json) return [];
 
-  const json = await res.json();
   const articles = Array.isArray(json?.articles) ? json.articles : [];
 
   return articles.map((article) => ({
@@ -65,4 +70,20 @@ function gdeltDateToISO(seendate) {
   const second = seendate.slice(12, 14);
 
   return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`).toISOString();
+}
+
+async function fetchGdeltJson(params) {
+  const res = await fetch(`${GDELT_BASE}?${params}`, {
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) {
+    throw new Error(`[GdeltFetcher] HTTP ${res.status}: ${res.statusText}`);
+  }
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.warn('[GdeltFetcher] Non-JSON response, skipping this request');
+    return null;
+  }
 }

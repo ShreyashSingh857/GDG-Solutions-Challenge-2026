@@ -14,6 +14,11 @@ function toNum(v, fallback = 0) {
 }
 
 function pickWaypoints(raw) {
+  if (Array.isArray(raw?.routeWaypoints)) {
+    return raw.routeWaypoints
+      .map((w) => ({ lat: toNum(w.lat, NaN), lng: toNum(w.lng, NaN) }))
+      .filter((w) => Number.isFinite(w.lat) && Number.isFinite(w.lng));
+  }
   if (Array.isArray(raw?.waypoints)) {
     return raw.waypoints
       .map((w) => ({ lat: toNum(w.lat, NaN), lng: toNum(w.lng, NaN) }))

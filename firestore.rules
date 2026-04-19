@@ -1,15 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /shipments/{id} { allow read: if true; allow write: if false; }
-    match /disruptions/{id} { allow read: if true; allow write: if false; }
-    match /impactReports/{id} { allow read: if true; allow write: if false; }
-    match /resolutions/{id} {
-      allow read: if true; allow write: if false;
-      match /options/{optId} { allow read: if true; allow write: if false; }
+    function isAuthed() {
+      return request.auth != null;
     }
-    match /suppliers/{id} { allow read: if true; allow write: if false; }
-    match /news_alerts/{id} { allow read: if true; allow write: if false; }
+
+    match /shipments/{id} { allow read: if isAuthed(); allow write: if false; }
+    match /disruptions/{id} { allow read: if isAuthed(); allow write: if false; }
+    match /impactReports/{id} { allow read: if isAuthed(); allow write: if false; }
+    match /resolutions/{id} {
+      allow read: if isAuthed(); allow write: if false;
+      match /options/{optId} { allow read: if isAuthed(); allow write: if false; }
+    }
+    match /suppliers/{id} { allow read: if isAuthed(); allow write: if false; }
+    match /news_alerts/{id} { allow read: if isAuthed(); allow write: if false; }
+    match /vesselPositions/{mmsi} { allow read: if isAuthed(); allow write: if false; }
     match /news_processed_urls/{id} { allow read: if false; allow write: if false; }
     match /errors/{id} { allow read: if false; allow write: if false; }
   }
