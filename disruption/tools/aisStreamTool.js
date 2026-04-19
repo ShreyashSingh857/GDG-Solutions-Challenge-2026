@@ -4,6 +4,29 @@ import { resilientUpsert } from '../../shared/db/supabase.js';
 
 const AIS_WS_URL = 'wss://stream.aisstream.io/v0/stream';
 let ws = null;
+const pendingVesselWrites = new Map();
+let vesselFlushTimer = null;
+
+function scheduleVesselFlush() {
+  if (vesselFlushTimer) return;
+  vesselFlushTimer = setTimeout(async () => {
+    vesselFlushTimer = null;
+    if (!pendingVesselWrites.size) return;
+
+    const entries = [...pendingVesselWrites.entries()];
+    pendingVesselWrites.clear();
+
+    try {
+      const batch = db.batch();
+      for (const [mmsi, position] of entries) {
+        batch.set(db.collection('vesselPositions').doc(mmsi), position, { merge: true });
+      }
+      await batch.commit();
+    } catch (err) {
+      console.warn('[AIS] Batch flush failed:', err.message);
+    }
+  }, 5000);
+}
 
 export const MAJOR_CORRIDORS = [
   [[20, 25], [32, 45]],
@@ -36,7 +59,7 @@ export function startAISStream(boundingBoxes = MAJOR_CORRIDORS) {
         if (!pos) return;
         const mmsi = String(pos.UserID || '');
         if (!mmsi) return;
-        await db.collection('vesselPositions').doc(mmsi).set({
+		const position = {
           mmsi,
           lat: Number(pos.Latitude),
           lng: Number(pos.Longitude),
@@ -44,7 +67,9 @@ export function startAISStream(boundingBoxes = MAJOR_CORRIDORS) {
           heading: Number(pos.TrueHeading || 0),
           status: Number(pos.NavigationalStatus || 0),
           updatedAt: new Date().toISOString(),
-        }, { merge: true });
+        };
+		pendingVesselWrites.set(mmsi, position);
+		scheduleVesselFlush();
         await resilientUpsert('vessel_positions', {
           mmsi,
           lat: Number(pos.Latitude),

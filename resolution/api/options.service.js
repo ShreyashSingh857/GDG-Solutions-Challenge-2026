@@ -119,8 +119,20 @@ async function processImpactReport(agentPayload) {
 	const airFreight = await checkAirFreightAvailability(37.6213, -122.379).catch(() => ({ available: true, note: 'OpenSky check failed' }));
 	const airFreightNote = airFreight.available ? `Air freight is AVAILABLE: ${airFreight.note}` : 'Air freight is CURRENTLY UNAVAILABLE at origin airport';
 	const balancedCost = calculateCostDelta({ distanceKm: routes.balanced.distanceKm, mode: routes.balanced.mode, baseCostUSD: 50000 }); const fastestCost = calculateCostDelta({ distanceKm: routes.fastest.distanceKm, mode: routes.fastest.mode, baseCostUSD: 50000 }); const cheapestCost = calculateCostDelta({ distanceKm: routes.cheapest.distanceKm, mode: routes.cheapest.mode, baseCostUSD: 50000 });
-	const supplierSummary = [...seaSuppliers, ...airSuppliers].map((s) => `- ${s.name} (ID: ${s.id}) | Region: ${s.region} | Reliability: ${s.reliabilityScore}/100`).join('\n');
-	const prompt = `${SYSTEM_PROMPT}\n\n## Impact Report\n- Disruption ID: ${impactReport.disruptionId}\n- Cascade Risk: ${impactReport.cascadeRisk}\n- Urgency: ${impactReport.urgency}/10\n- Affected Shipments: ${impactReport.affectedShipments.length}\n- Total Cargo at Risk: $${impactReport.totalCargoAtRiskUSD.toLocaleString()}\n- Analysis: ${impactReport.analysisText}\n\n## Air Freight Feasibility\n- ${airFreightNote}\n\n## Available Rerouting Options\n1. BALANCED — ${routes.balanced.title}: ${routes.balanced.distanceKm}km via ${routes.balanced.mode}, extra ${routes.balanced.timeDeltaHours}h, cost delta $${balancedCost.costDelta.toLocaleString()}\n2. FASTEST — ${routes.fastest.title}: ${routes.fastest.distanceKm}km via ${routes.fastest.mode}, time delta ${routes.fastest.timeDeltaHours}h, cost delta $${fastestCost.costDelta.toLocaleString()}\n3. CHEAPEST — ${routes.cheapest.title}: ${routes.cheapest.distanceKm}km via ${routes.cheapest.mode}, extra ${routes.cheapest.timeDeltaHours}h, cost delta $${cheapestCost.costDelta.toLocaleString()}\n\n## Available Suppliers\n${supplierSummary || 'No suppliers found'}\nGenerate exactly 3 ranked resolution options.`;
+	const shipmentLines = (impactReport.scoredShipments || []).slice(0, 5)
+		.map((shipment, index) => `${index + 1}. ${shipment.origin}→${shipment.destination}|$${Number(shipment.cargoValueUSD || 0).toLocaleString()}|${shipment.distanceKm || 0}km|score:${shipment.impactScore ?? 0}`)
+		.join('\n');
+	const compactSuppliers = [...seaSuppliers, ...airSuppliers].slice(0, 4).map((supplier) => `${supplier.name}(${supplier.id})`).join(', ');
+	const prompt = [
+		SYSTEM_PROMPT,
+		`DISRUPTION: ${impactReport.disruptionType} at ${impactReport.disruptionLocation}`,
+		`CARGO_AT_RISK: $${Number(impactReport.totalCargoAtRiskUSD || 0).toLocaleString()} across ${impactReport.affectedShipments.length} shipments`,
+		`CASCADE: ${impactReport.cascadeRisk} | URGENCY: ${impactReport.urgency}/10`,
+		`TOP_SHIPMENTS:\n${shipmentLines || 'None'}`,
+		`AIR_FREIGHT: ${airFreightNote}`,
+		`OPTIONS:\n1. ${routes.balanced.title}|${routes.balanced.distanceKm}km|+${routes.balanced.timeDeltaHours}h|+$${balancedCost.costDelta.toLocaleString()}\n2. ${routes.fastest.title}|${routes.fastest.distanceKm}km|+${routes.fastest.timeDeltaHours}h|+$${fastestCost.costDelta.toLocaleString()}\n3. ${routes.cheapest.title}|${routes.cheapest.distanceKm}km|+${routes.cheapest.timeDeltaHours}h|+$${cheapestCost.costDelta.toLocaleString()}`,
+		`SUPPLIERS: ${compactSuppliers || 'None'}`,
+	].join('\n');
 	activeStreams.set(traceId, '');
 	let fullResponse = '';
 	try {
