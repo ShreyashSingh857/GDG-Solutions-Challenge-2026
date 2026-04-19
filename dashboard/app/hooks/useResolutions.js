@@ -1,8 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { collection, onSnapshot, orderBy, query, limit, getDocs, where } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
@@ -35,8 +34,6 @@ function rebuildRoute(option) {
 export function useResolutions() {
   const { setResolutionWithOptions } = useAlertStore();
   const activeDisruptionId = useAlertStore((state) => state.activeDisruptionId);
-  const [authReady, setAuthReady] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
 
   const loadFallback = useCallback(async () => {
     const res = await fetch('/api/resolutions', { cache: 'no-store' });
@@ -45,22 +42,10 @@ export function useResolutions() {
   }, [setResolutionWithOptions]);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
-      return;
-    }
-
-    const auth = getAuth();
-    return onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setAuthReady(true);
-    });
-  }, []);
-
-  useEffect(() => {
     if (!isFirebaseConfigured || !db) {
       return;
     }
-    if (!authReady || !currentUser || !activeDisruptionId) {
+    if (!activeDisruptionId) {
       return;
     }
 
@@ -111,5 +96,5 @@ export function useResolutions() {
     );
 
     return () => unsubscribe();
-  }, [setResolutionWithOptions, authReady, currentUser, activeDisruptionId, loadFallback]);
+  }, [setResolutionWithOptions, activeDisruptionId, loadFallback]);
 }

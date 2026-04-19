@@ -1,8 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
 
@@ -13,8 +12,6 @@ import { useShipmentStore } from '../store/shipmentStore.js';
  */
 export function useShipments() {
   const { setShipments } = useShipmentStore();
-  const [authReady, setAuthReady] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
 
   const loadFallback = useCallback(async () => {
     const res = await fetch('/api/shipments', { cache: 'no-store' });
@@ -23,22 +20,7 @@ export function useShipments() {
   }, [setShipments]);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
-      return;
-    }
-
-    const auth = getAuth();
-    return onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setAuthReady(true);
-    });
-  }, []);
-
-  useEffect(() => {
     if (!isFirebaseConfigured || !db) {
-      return;
-    }
-    if (!authReady || !currentUser) {
       return;
     }
 
@@ -57,7 +39,7 @@ export function useShipments() {
     );
 
     return () => unsubscribe();
-  }, [authReady, currentUser, loadFallback, setShipments]);
+  }, [loadFallback, setShipments]);
 
   return useShipmentStore((state) => state.shipments);
 }
