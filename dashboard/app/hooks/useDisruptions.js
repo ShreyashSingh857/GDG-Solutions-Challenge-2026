@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { collection, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
@@ -15,11 +15,11 @@ export function useDisruptions() {
   const [authReady, setAuthReady] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  async function loadFallback() {
+  const loadFallback = useCallback(async () => {
     const res = await fetch('/api/disruptions', { cache: 'no-store' });
     const json = await res.json();
     (json.data || []).forEach((item) => addDisruption(item));
-  }
+  }, [addDisruption]);
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -66,7 +66,7 @@ export function useDisruptions() {
     );
 
     return () => unsubscribe();
-  }, [addDisruption, authReady, currentUser]);
+  }, [addDisruption, authReady, currentUser, loadFallback]);
 
   return useAlertStore((state) => state.disruptions);
 }

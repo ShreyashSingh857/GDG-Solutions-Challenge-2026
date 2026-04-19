@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { collection, onSnapshot, orderBy, query, limit, getDocs, where } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
@@ -38,11 +38,11 @@ export function useResolutions() {
   const [authReady, setAuthReady] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  async function loadFallback() {
+  const loadFallback = useCallback(async () => {
     const res = await fetch('/api/resolutions', { cache: 'no-store' });
     const json = await res.json();
     if (json.data) setResolutionWithOptions(json.data);
-  }
+  }, [setResolutionWithOptions]);
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -111,5 +111,5 @@ export function useResolutions() {
     );
 
     return () => unsubscribe();
-  }, [setResolutionWithOptions, authReady, currentUser, activeDisruptionId]);
+  }, [setResolutionWithOptions, authReady, currentUser, activeDisruptionId, loadFallback]);
 }
