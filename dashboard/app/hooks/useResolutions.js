@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, limit, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, limit, getDocs, where } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
@@ -34,6 +34,7 @@ function rebuildRoute(option) {
  */
 export function useResolutions() {
   const { setResolutionWithOptions } = useAlertStore();
+  const activeDisruptionId = useAlertStore((state) => state.activeDisruptionId);
   const [authReady, setAuthReady] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -59,12 +60,13 @@ export function useResolutions() {
     if (!isFirebaseConfigured || !db) {
       return;
     }
-    if (!authReady || !currentUser) {
+    if (!authReady || !currentUser || !activeDisruptionId) {
       return;
     }
 
     const q = query(
       collection(db, 'resolutions'),
+      where('disruptionId', '==', activeDisruptionId),
       orderBy('createdAt', 'desc'),
       limit(5)
     );
@@ -109,5 +111,5 @@ export function useResolutions() {
     );
 
     return () => unsubscribe();
-  }, [setResolutionWithOptions, authReady, currentUser]);
+  }, [setResolutionWithOptions, authReady, currentUser, activeDisruptionId]);
 }
