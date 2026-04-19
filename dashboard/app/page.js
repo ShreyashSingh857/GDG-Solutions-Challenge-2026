@@ -8,7 +8,6 @@ import { useDisruptions } from './hooks/useDisruptions.js';
 import { useResolutions } from './hooks/useResolutions.js';
 import { useNewsAlerts } from './hooks/useNewsAlerts.js';
 import { useAlertStore } from './store/alertStore.js';
-import AgentHealthPanel from './components/AgentHealthPanel.jsx';
 import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentTrigger from './components/AgentTrigger.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
@@ -76,7 +75,6 @@ export default function Home() {
       <div className="relative flex-1 overflow-hidden">
         <Toaster position="bottom-right" theme="dark" />
         <AlertToastController />
-        <AgentHealthPanel />
         <DecisionModal />
         {isGlobeActive ? (
           <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable - WebGL may not be supported</div>}>
