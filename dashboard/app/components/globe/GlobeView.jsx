@@ -9,7 +9,6 @@ import {
   Color,
   ConstantProperty,
   EllipsoidTerrainProvider,
-  Cartographic,
   HeightReference,
   ImageryLayer,
   Ion,
@@ -28,8 +27,12 @@ import { generateGeodesicRoutePositions } from '../../lib/arcGeometry.js';
 import GlobeControls from './GlobeControls.jsx';
 import { useGlobeCamera } from './useGlobeCamera.js';
 import { useVesselPositions } from '../../hooks/useVesselPositions.js';
+import { usePortCongestion } from '../../hooks/usePortCongestion.js';
+import { useCorridorWeather } from '../../hooks/useCorridorWeather.js';
 
 const C = { active: '#22c55e', delayed: '#f97316', rerouted: '#38bdf8', disrupted: '#ef4444' };
+const vesselTrailBuffer = new Map();
+const TRAIL_LENGTH = 6;
 
 function isValidCoord(lat, lon) {
   return !(lat === 0 && lon === 0) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
@@ -68,10 +71,32 @@ function getRoutePoints(shipment, reroutedRoute) {
 }
 
 export default function GlobeView() {
-  const cRef = useRef(null); const vRef = useRef(null); const hoverRafRef = useRef(null); const zoomRef = useRef('far'); const entityMapRef = useRef(new Map()); const disruptionEntitiesRef = useRef(new Map()); const pulseRafRef = useRef(null); const pulseRadiusRef = useRef(50000); const tooltipRef = useRef(null); const autoRotateRafRef = useRef(null); const idleTimerRef = useRef(null); const isRotatingRef = useRef(false); const resetIdleTimerRef = useRef(null); const portEntitiesRef = useRef(new Map()); const vesselEntitiesRef = useRef(new Map()); const [f, setF] = useState('all'); const [t, setT] = useState(null); const [zoomLevel, setZoomLevel] = useState('far');
+  const cRef = useRef(null);
+  const vRef = useRef(null);
+  const hoverRafRef = useRef(null);
+  const zoomRef = useRef('far');
+  const entityMapRef = useRef(new Map());
+  const disruptionEntitiesRef = useRef(new Map());
+  const portLabelEntitiesRef = useRef(new Map());
+  const portHeatmapEntitiesRef = useRef(new Map());
+  const corridorEntitiesRef = useRef(new Map());
+  const vesselEntitiesRef = useRef(new Map());
+  const pulseRafRef = useRef(null);
+  const tooltipRef = useRef(null);
+  const autoRotateRafRef = useRef(null);
+  const idleTimerRef = useRef(null);
+  const isRotatingRef = useRef(false);
+  const resetIdleTimerRef = useRef(null);
+  const [f, setF] = useState('all');
+  const [t, setT] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState('far');
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
-  const s = useShipmentStore((x) => x.shipments, shallow); const disruptions = useAlertStore((x) => x.disruptions); const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
+  const s = useShipmentStore((x) => x.shipments, shallow);
+  const disruptions = useAlertStore((x) => x.disruptions);
+  const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
   const vessels = useVesselPositions();
+  const ports = usePortCongestion();
+  const corridors = useCorridorWeather();
   const { setLastInteraction } = useGlobeCamera(vRef);
 
   const startAutoRotate = useCallback(() => {
@@ -170,7 +195,16 @@ export default function GlobeView() {
           setT({ label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
         });
       }, ScreenSpaceEventType.MOUSE_MOVE);
-      return () => { if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current); if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current); stopAutoRotate(); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); setZoomLevelDebounced.cancel(); events.destroy(); v.destroy(); vRef.current = null; };
+      return () => {
+        if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
+        if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current);
+        stopAutoRotate();
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        setZoomLevelDebounced.cancel();
+        events.destroy();
+        v.destroy();
+        vRef.current = null;
+      };
     })();
   }, [resetIdleTimer, setLastInteraction, setZoomLevelDebounced, stopAutoRotate]);
 
@@ -283,15 +317,15 @@ export default function GlobeView() {
         ports.set(route.destKey, { label: route.destLabel, lat: destLat, lon: destLon });
       });
 
-    for (const [name, labelEntity] of portEntitiesRef.current) {
+    for (const [name, labelEntity] of portLabelEntitiesRef.current) {
       if (!ports.has(name)) {
         entities.remove(labelEntity);
-        portEntitiesRef.current.delete(name);
+        portLabelEntitiesRef.current.delete(name);
       }
     }
 
     for (const [name, port] of ports) {
-      const existing = portEntitiesRef.current.get(name);
+      const existing = portLabelEntitiesRef.current.get(name);
       if (existing) {
         existing.position = Cartesian3.fromDegrees(port.lon, port.lat);
         existing.label.text = port.label;
@@ -312,10 +346,10 @@ export default function GlobeView() {
             scaleByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.5),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
-          properties: { kind: 'port', label: name },
+          properties: { kind: 'port-label', label: name },
           show: new ConstantProperty(false),
         });
-        portEntitiesRef.current.set(name, labelEntity);
+        portLabelEntitiesRef.current.set(name, labelEntity);
       }
     }
 
@@ -338,11 +372,139 @@ export default function GlobeView() {
 
   useEffect(() => {
     const show = zoomLevel !== 'far';
-    for (const entity of portEntitiesRef.current.values()) {
+    for (const entity of portLabelEntitiesRef.current.values()) {
       entity.show = new ConstantProperty(show);
     }
     vRef.current?.scene.requestRender();
   }, [zoomLevel]);
+
+  useEffect(() => {
+    if (!vRef.current) return;
+    const viewer = vRef.current;
+
+    for (const [locode, entity] of portHeatmapEntitiesRef.current) {
+      if (!ports.find((port) => port.locode === locode)) {
+        viewer.entities.remove(entity);
+        portHeatmapEntitiesRef.current.delete(locode);
+      }
+    }
+
+    ports.forEach((port) => {
+      if (!isValidCoord(Number(port.lat), Number(port.lng))) return;
+
+      const waitH = Number(port.avgWaitHours || 0);
+      const score = Number(port.congestionScore || 0);
+      const color = waitH > 96 || score > 75
+        ? Color.fromCssColorString('#ef4444').withAlpha(0.55)
+        : waitH > 48 || score > 40
+          ? Color.fromCssColorString('#f59e0b').withAlpha(0.5)
+          : Color.fromCssColorString('#22c55e').withAlpha(0.4);
+      const radius = 60_000 + (score / 100) * 140_000;
+
+      const existing = portHeatmapEntitiesRef.current.get(port.locode);
+      if (existing) {
+        existing.position = Cartesian3.fromDegrees(Number(port.lng), Number(port.lat), 0);
+        existing.ellipse.semiMajorAxis = new ConstantProperty(radius);
+        existing.ellipse.semiMinorAxis = new ConstantProperty(radius);
+        existing.ellipse.material = color;
+        if (existing.label) {
+          existing.label.show = new ConstantProperty(zoomLevel === 'close');
+          existing.label.text = `${port.name}\n${waitH.toFixed(0)}h wait`;
+        }
+      } else {
+        const entity = viewer.entities.add({
+          id: `port-heatmap-${port.locode}`,
+          position: Cartesian3.fromDegrees(Number(port.lng), Number(port.lat), 0),
+          ellipse: {
+            semiMajorAxis: new ConstantProperty(radius),
+            semiMinorAxis: new ConstantProperty(radius),
+            material: color,
+            outline: true,
+            outlineColor: color.brighten(0.4, new Color()),
+            outlineWidth: 1.5,
+            heightReference: HeightReference.CLAMP_TO_GROUND,
+          },
+          label: {
+            text: `${port.name}\n${waitH.toFixed(0)}h wait`,
+            font: '11px monospace',
+            fillColor: Color.WHITE,
+            showBackground: true,
+            backgroundColor: Color.BLACK.withAlpha(0.55),
+            pixelOffset: new Cartesian2(0, -70),
+            show: new ConstantProperty(zoomLevel === 'close'),
+            style: LabelStyle.FILL_AND_OUTLINE,
+            outlineWidth: 2,
+            outlineColor: Color.BLACK,
+            scaleByDistance: new NearFarScalar(1e5, 1.2, 1e7, 0.4),
+          },
+          properties: {
+            kind: 'port',
+            label: `${port.name} (${port.locode})`,
+            status: `Wait: ${waitH.toFixed(0)}h | Congestion: ${score}/100`,
+          },
+        });
+        portHeatmapEntitiesRef.current.set(port.locode, entity);
+      }
+    });
+
+    viewer.scene.requestRender();
+  }, [ports, zoomLevel]);
+
+  useEffect(() => {
+    if (!vRef.current) return;
+    const viewer = vRef.current;
+
+    for (const [name, entity] of corridorEntitiesRef.current) {
+      if (!corridors.find((corridor) => corridor.name === name)) {
+        viewer.entities.remove(entity);
+        corridorEntitiesRef.current.delete(name);
+      }
+    }
+
+    corridors.forEach((corridor) => {
+      if (corridor.riskLevel === 'LOW' || corridor.riskLevel === 'UNKNOWN') {
+        const existing = corridorEntitiesRef.current.get(corridor.name);
+        if (existing) {
+          viewer.entities.remove(existing);
+          corridorEntitiesRef.current.delete(corridor.name);
+        }
+        return;
+      }
+
+      const color = corridor.riskLevel === 'SEVERE'
+        ? Color.fromCssColorString('#ef4444').withAlpha(0.7)
+        : Color.fromCssColorString('#f59e0b').withAlpha(0.55);
+      const positions = Cartesian3.fromDegreesArray([
+        corridor.fromLng, corridor.fromLat,
+        corridor.lng, corridor.lat,
+        corridor.toLng, corridor.toLat,
+      ]);
+
+      const existing = corridorEntitiesRef.current.get(corridor.name);
+      if (existing) {
+        existing.polyline.positions = new ConstantProperty(positions);
+        existing.polyline.material = color;
+      } else {
+        const entity = viewer.entities.add({
+          id: `weather-${corridor.name}`,
+          polyline: {
+            positions,
+            width: corridor.riskLevel === 'SEVERE' ? 4 : 2.5,
+            material: color,
+            clampToGround: false,
+          },
+          properties: {
+            kind: 'weather',
+            label: `${corridor.name} Weather Risk`,
+            status: `${corridor.riskLevel} | ${corridor.maxWaveHeight}m waves | ${corridor.maxWindSpeed} km/h winds`,
+          },
+        });
+        corridorEntitiesRef.current.set(corridor.name, entity);
+      }
+    });
+
+    viewer.scene.requestRender();
+  }, [corridors]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -415,12 +577,43 @@ export default function GlobeView() {
       if (!nextIds.has(id)) {
         entities.remove(entity);
         vesselEntitiesRef.current.delete(id);
+        const trailEntity = viewer.entities.getById(`vessel-trail-${id}`);
+        if (trailEntity) viewer.entities.remove(trailEntity);
+        vesselTrailBuffer.delete(id);
       }
     }
 
     vessels.forEach((v) => {
       const id = String(v.id || v.mmsi || '');
       if (!id || !isValidCoord(Number(v.lat), Number(v.lng))) return;
+
+      const trail = vesselTrailBuffer.get(id) || [];
+      trail.push({ lat: Number(v.lat), lng: Number(v.lng) });
+      if (trail.length > TRAIL_LENGTH) trail.shift();
+      vesselTrailBuffer.set(id, trail);
+
+      if (trail.length > 1) {
+        const trailId = `vessel-trail-${id}`;
+        const trailPositions = trail.map((point) => Cartesian3.fromDegrees(point.lng, point.lat, 800));
+        const trailColor = Number(v.speed || 0) < 0.5
+          ? Color.fromCssColorString('#ef4444').withAlpha(0.5)
+          : Color.fromCssColorString('#38bdf8').withAlpha(0.35);
+        const existingTrail = viewer.entities.getById(trailId);
+        if (existingTrail) {
+          existingTrail.polyline.positions = new ConstantProperty(trailPositions);
+          existingTrail.polyline.material = trailColor;
+        } else {
+          entities.add({
+            id: trailId,
+            polyline: {
+              positions: new ConstantProperty(trailPositions),
+              width: 1.5,
+              material: trailColor,
+            },
+          });
+        }
+      }
+
       const speed = Number(v.speed || 0);
       const color = speed < 0.5
         ? Color.fromCssColorString('#ef4444')
