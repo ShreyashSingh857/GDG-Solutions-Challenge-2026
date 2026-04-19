@@ -8,7 +8,8 @@ import { createDisruptionEvent, validateDisruptionEvent } from '../types/Disrupt
 import { weatherToolDeclaration, getWeatherData } from '../tools/weatherTool.js';
 import { searchToolDeclaration, searchWeb } from '../tools/searchTool.js';
 import { detectPortCongestionEvents } from '../tools/portWatchTool.js';
-import { checkSuezCanalStatus, checkPanamaWaterLevel } from '../tools/canalStatusTool.js';
+import { assessSuezCanalStatus } from '../tools/suezCanalScraper.js';
+import { assessPanamaStatus } from '../tools/panamaCanalScraper.js';
 import { setLastEventAt } from '../state.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -91,14 +92,14 @@ export async function pollPortCongestion() {
 export async function pollCanalStatus() {
 	try {
 		const [suez, panama] = await Promise.all([
-			checkSuezCanalStatus(),
-			checkPanamaWaterLevel(),
+			assessSuezCanalStatus(),
+			assessPanamaStatus(),
 		]);
-		if (suez?.disrupted) {
-			await classifyAndPublish(`Suez Canal disruption detected: ${suez.latestHeadline || suez.note}`);
+		if (suez?.isDisrupted) {
+			await classifyAndPublish(suez.summary);
 		}
-		if (panama?.draftRestricted) {
-			await classifyAndPublish(`Panama Canal draft restriction: ${panama.note}`);
+		if (panama?.isDisrupted) {
+			await classifyAndPublish(panama.summary);
 		}
 	} catch (err) {
 		console.warn('[DisruptionService] Canal poll failed:', err.message);
