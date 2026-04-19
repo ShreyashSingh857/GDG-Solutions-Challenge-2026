@@ -1,0 +1,130 @@
+{
+  "timestamp": "2026-04-19T18:01:34.258Z",
+  "traceId": "smoke-20260419-233134",
+  "files": {
+    "logPath": "docs/smoketest/smoke-20260419-233134.log",
+    "jsonPath": "docs/smoketest/smoke-20260419-233134.json"
+  },
+  "serviceChecks": [
+    {
+      "service": "event-bus",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 134,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 14,
+        "error": null
+      }
+    },
+    {
+      "service": "disruption",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 13,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 7,
+        "error": null
+      }
+    },
+    {
+      "service": "impact",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 10,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 8,
+        "error": null
+      }
+    },
+    {
+      "service": "resolution",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 8,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 7,
+        "error": null
+      }
+    },
+    {
+      "service": "news-intel",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 7,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 8,
+        "error": null
+      }
+    }
+  ],
+  "baselineMessageCounts": {
+    "disruption-events": 5,
+    "impact-reports": 7,
+    "resolution-options": 11,
+    "news-alerts": 0
+  },
+  "postDisruption": {
+    "ok": true,
+    "status": 201,
+    "elapsedMs": 204,
+    "error": null
+  },
+  "pollAttempts": 2,
+  "chainComplete": true,
+  "postMessageCounts": {
+    "disruption-events": 6,
+    "impact-reports": 8,
+    "resolution-options": 12,
+    "news-alerts": 0
+  },
+  "messageCountDelta": {
+    "disruption-events": 1,
+    "impact-reports": 1,
+    "resolution-options": 1,
+    "news-alerts": 0
+  },
+  "resolutionProbe": {
+    "ok": true,
+    "status": 200,
+    "elapsedMs": 141,
+    "optionCount": 3,
+    "firstTitle": "Northern Arc via Aleutian Islands",
+    "error": null
+  },
+  "scraperChecks": {
+    "smokeScraper": {
+      "passed": true,
+      "exitCode": 0
+    },
+    "disruptionSmokes": {
+      "passed": true,
+      "exitCode": 0
+    }
+  },
+  "overallPass": true
+}

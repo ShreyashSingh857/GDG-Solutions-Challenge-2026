@@ -1,0 +1,41 @@
+Smoke started at 2026-04-19T18:01:05.192Z
+Trace ID: smoke-20260419-233105
+[event-bus] /health -> 200 (191ms)
+[event-bus] /metrics -> 200 (11ms)
+[disruption] /health -> 200 (18ms)
+[disruption] /metrics -> 200 (7ms)
+[impact] /health -> 200 (14ms)
+[impact] /metrics -> 200 (11ms)
+[resolution] /health -> 200 (13ms)
+[resolution] /metrics -> 200 (6ms)
+[news-intel] /health -> 200 (12ms)
+[news-intel] /metrics -> 200 (9ms)
+Baseline counts: {"disruption-events":4,"impact-reports":6,"resolution-options":10,"news-alerts":0}
+POST /events -> 201 (794ms)
+Post counts: {"disruption-events":5,"impact-reports":7,"resolution-options":11,"news-alerts":0}
+Count delta: {"disruption-events":1,"impact-reports":1,"resolution-options":1,"news-alerts":0}
+GET /options/smoke-20260419-233105 -> 200 (137ms)
+Running scraper smoke checks
+$ npm run smoke:scraper
+  > gdg-solutions-challenge-2026@1.0.0 smoke:scraper
+  > node scripts/smoke-scraper.mjs
+  [smoke-scraper] PASS: fetch/cache/rss helpers are working
+  -> exit 0
+$ node --test disruption/tests/*.smoke.test.js
+  ✔ resolveVesselPosition prefers recent live AIS data (3.1009ms)
+  ✔ resolveVesselPosition falls back to MarineTraffic then VesselFinder (80.9104ms)
+  ✔ fetchEcmwfForecast computes risk and includes hourly slices (130.1363ms)
+  ✔ fetchFlexportTracking maps scraper output (14.6517ms)
+  ✔ syncFlexportShipments updates active shipments (5.5193ms)
+  ✔ fetchVesselDetails parses public vessel metadata (53.2121ms)
+  ✔ fetchVesselsInPort parses vessel table rows (15.7363ms)
+  ✔ fetchVesselFromVesselFinder parses table and json-ld (63.2445ms)
+  ℹ tests 8
+  ℹ suites 0
+  ℹ pass 8
+  ℹ fail 0
+  ℹ cancelled 0
+  ℹ skipped 0
+  ℹ todo 0
+  ℹ duration_ms 2158.4201
+  -> exit 0
