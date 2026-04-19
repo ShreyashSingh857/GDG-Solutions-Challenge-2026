@@ -49,6 +49,12 @@ export async function fetchEcmwfForecast(lat, lng, forecastDays = 7) {
     routingRiskLevel,
     isDangerousForShipping: maxWaveHeight > 4 || maxWindSpeed > 70,
     model: 'ECMWF IFS 0.25 deg (via Open-Meteo proxy)',
+    hourlyData: {
+      time: (data.hourly?.time || []).slice(0, 168),
+      waveHeight: waveHeights.slice(0, 168),
+      windSpeed: windSpeeds.slice(0, 168),
+      windDirection: (data.hourly?.wind_direction_10m || []).slice(0, 168),
+    },
     fetchedAt: new Date().toISOString(),
   };
 }
