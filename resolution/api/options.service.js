@@ -49,6 +49,66 @@ function toFirestoreSafeOption(option) {
 	};
 }
 
+function createFallbackOptionBases(routes, balancedCost, fastestCost, cheapestCost, seaSuppliers, airSuppliers) {
+	return [
+		{ rank: 1, title: routes.balanced.title, description: `Balanced reroute option adds ${routes.balanced.timeDeltaHours}h and $${balancedCost.costDelta.toLocaleString()} cost.`, costDelta: balancedCost.costDelta, timeDelta: routes.balanced.timeDeltaHours, supplierName: seaSuppliers[0]?.name || 'Trans-Pacific Shipping Co.', supplierId: seaSuppliers[0]?.id || 'sup-002', confidence: 0.75 },
+		{ rank: 2, title: routes.fastest.title, description: `Fastest option: ${routes.fastest.timeDeltaHours}h saved at $${fastestCost.costDelta.toLocaleString()} premium.`, costDelta: fastestCost.costDelta, timeDelta: routes.fastest.timeDeltaHours, supplierName: airSuppliers[0]?.name || 'Pacific Air Express', supplierId: airSuppliers[0]?.id || 'sup-001', confidence: 0.80 },
+		{ rank: 3, title: routes.cheapest.title, description: `Cheapest route: $${cheapestCost.costDelta.toLocaleString()} extra, ${routes.cheapest.timeDeltaHours}h longer.`, costDelta: cheapestCost.costDelta, timeDelta: routes.cheapest.timeDeltaHours, supplierName: seaSuppliers[1]?.name || 'Global Shipping Partners', supplierId: seaSuppliers[1]?.id || 'sup-003', confidence: 0.70 },
+	];
+}
+
+export function buildValidatedResolutionOptions({ rawResponse, routes, balancedCost, fastestCost, cheapestCost, seaSuppliers, airSuppliers, traceId, impactReportId, disruptionId }) {
+	const fallbackOptions = createFallbackOptionBases(routes, balancedCost, fastestCost, cheapestCost, seaSuppliers, airSuppliers);
+	let options = fallbackOptions;
+
+	try {
+		const trimmed = String(rawResponse || '').replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+		if (!trimmed) throw new Error('Empty response');
+		const parsed = JSON.parse(trimmed);
+		if (!Array.isArray(parsed) || parsed.length < 3) throw new Error('Not a 3-element array');
+		options = parsed;
+	} catch (err) {
+		console.warn('[ResolutionService] Using static fallback options:', err.message);
+	}
+
+	const routesByRank = [routes.balanced, routes.fastest, routes.cheapest];
+	return options.slice(0, 3).map((opt, i) => {
+		try {
+			const normalized = {
+				...fallbackOptions[i],
+				...opt,
+				rank: Number(opt.rank ?? i + 1),
+				costDelta: Number.parseInt(opt.costDelta ?? fallbackOptions[i].costDelta, 10),
+				timeDelta: Number.parseInt(opt.timeDelta ?? fallbackOptions[i].timeDelta, 10),
+				confidence: Number.parseFloat(opt.confidence ?? fallbackOptions[i].confidence),
+				supplierName: opt.supplierName || fallbackOptions[i].supplierName,
+				supplierId: opt.supplierId || fallbackOptions[i].supplierId,
+			};
+			return {
+				...validateResolutionOption(normalized),
+				route: toGeoJSON(routesByRank[i]),
+				impactReportId,
+				disruptionId,
+				traceId,
+				selected: false,
+				createdAt: new Date().toISOString(),
+			};
+		} catch (err) {
+			console.warn(`[ResolutionService] Option rank ${i + 1} failed validation, using fallback:`, err.message);
+			const safeFallback = fallbackOptions[i];
+			return {
+				...safeFallback,
+				route: toGeoJSON(routesByRank[i]),
+				impactReportId,
+				disruptionId,
+				traceId,
+				selected: false,
+				createdAt: new Date().toISOString(),
+			};
+		}
+	});
+}
+
 async function processImpactReport(agentPayload) {
 	const impactReport = agentPayload.payload, traceId = agentPayload.traceId;
 	const disruption = buildDisruptionContextFromImpactReport(impactReport);
@@ -71,25 +131,18 @@ async function processImpactReport(agentPayload) {
 	} catch (err) {
 		console.warn('[ResolutionService] generateStream failed, using deterministic fallback options:', err.message);
 	}
-
-	let options;
-	try {
-		options = JSON.parse(fullResponse.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim());
-		if (!Array.isArray(options)) throw new Error('Response is not an array');
-	} catch {
-		options = [
-			{ rank: 1, title: routes.balanced.title, description: 'Balanced reroute option.', costDelta: balancedCost.costDelta, timeDelta: routes.balanced.timeDeltaHours, supplierName: seaSuppliers[0]?.name || 'Trans-Pacific Shipping', supplierId: seaSuppliers[0]?.id || 'sup-002', confidence: 0.75 },
-			{ rank: 2, title: routes.fastest.title, description: 'Fastest reroute option.', costDelta: fastestCost.costDelta, timeDelta: routes.fastest.timeDeltaHours, supplierName: airSuppliers[0]?.name || 'Pacific Air Express', supplierId: airSuppliers[0]?.id || 'sup-001', confidence: 0.8 },
-			{ rank: 3, title: routes.cheapest.title, description: 'Cheapest reroute option.', costDelta: cheapestCost.costDelta, timeDelta: routes.cheapest.timeDeltaHours, supplierName: seaSuppliers[1]?.name || 'Trans-Pacific Shipping', supplierId: seaSuppliers[1]?.id || 'sup-002', confidence: 0.7 },
-		];
-	}
-	const routesByRank = [routes.balanced, routes.fastest, routes.cheapest];
-	const fallbackOptions = [
-		{ rank: 1, title: routes.balanced.title, description: 'Balanced sea freight reroute.', costDelta: balancedCost.costDelta, timeDelta: routes.balanced.timeDeltaHours, supplierName: seaSuppliers[0]?.name || 'Trans-Pacific Shipping Co.', supplierId: seaSuppliers[0]?.id || 'sup-002', confidence: 0.75 },
-		{ rank: 2, title: routes.fastest.title, description: 'Fastest air freight reroute.', costDelta: fastestCost.costDelta, timeDelta: routes.fastest.timeDeltaHours, supplierName: airSuppliers[0]?.name || 'Pacific Air Express', supplierId: airSuppliers[0]?.id || 'sup-001', confidence: 0.80 },
-		{ rank: 3, title: routes.cheapest.title, description: 'Cheapest extended sea route.', costDelta: cheapestCost.costDelta, timeDelta: routes.cheapest.timeDeltaHours, supplierName: seaSuppliers[1]?.name || 'Alaska Northern Route Ltd.', supplierId: seaSuppliers[1]?.id || 'sup-003', confidence: 0.70 },
-	];
-	const validatedOptions = options.slice(0, 3).map((opt, i) => { let safeOpt; try { const normalized = { ...opt, rank: Number(opt.rank), costDelta: parseInt(opt.costDelta, 10) || fallbackOptions[i].costDelta, timeDelta: parseInt(opt.timeDelta, 10) || fallbackOptions[i].timeDelta, confidence: parseFloat(opt.confidence) || fallbackOptions[i].confidence, supplierName: opt.supplierName || fallbackOptions[i].supplierName, supplierId: opt.supplierId || fallbackOptions[i].supplierId }; safeOpt = validateResolutionOption(normalized); } catch (err) { console.warn(`[ResolutionService] Option rank ${i + 1} failed validation, using fallback:`, err.message); safeOpt = fallbackOptions[i]; } return { ...safeOpt, route: toGeoJSON(routesByRank[i]), impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, traceId, selected: false, createdAt: new Date().toISOString() }; });
+		const validatedOptions = buildValidatedResolutionOptions({
+			rawResponse: fullResponse,
+			routes,
+			balancedCost,
+			fastestCost,
+			cheapestCost,
+			seaSuppliers,
+			airSuppliers,
+			traceId,
+			impactReportId: impactReport.id,
+			disruptionId: impactReport.disruptionId,
+		});
 	const { queued: resQueued } = await resilientUpsert('resolutions', { id: traceId, trace_id: traceId, impact_report_id: impactReport.id, disruption_id: impactReport.disruptionId, cascade_risk: impactReport.cascadeRisk, urgency: impactReport.urgency, total_cargo_at_risk_usd: impactReport.totalCargoAtRiskUSD, analysis_text: impactReport.analysisText, option_count: validatedOptions.length, status: 'pending' }, { onConflict: 'id' });
 	if (resQueued) console.warn('[ResolutionService] resolutions write queued for retry');
 	const optionRows = validatedOptions.map((opt) => ({ resolution_id: traceId, trace_id: traceId, rank: opt.rank, title: opt.title, description: opt.description, cost_delta: opt.costDelta, time_delta: opt.timeDelta, supplier_id: opt.supplierId || null, supplier_name: opt.supplierName, confidence: opt.confidence, route_geojson: opt.route, transport_mode: opt.route?.properties?.mode || 'sea-freight', selected: false }));
