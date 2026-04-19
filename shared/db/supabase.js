@@ -94,9 +94,11 @@ export async function flushSupabaseRetryQueue(maxItems = 25) {
 
 if (!retryTickerStarted) {
   retryTickerStarted = true;
-  setInterval(() => {
+  const retryTicker = setInterval(() => {
     flushSupabaseRetryQueue().catch((err) => {
       console.warn('[Supabase] Retry queue flush failed:', err.message);
     });
   }, 30000);
+  // Do not keep the process alive solely for retry flushing (important for test runners/CI).
+  retryTicker.unref?.();
 }
