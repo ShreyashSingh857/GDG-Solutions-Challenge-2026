@@ -86,9 +86,10 @@ export async function fetchRssFeed(url, opts = {}) {
   const regex = xml.includes('<entry') ? entryRx : itemRx;
   while ((match = regex.exec(xml)) !== null) {
     const block = match[1];
+    const rawLink = extractLink(block) || getTag(block, 'guid') || '';
     items.push({
       title: stripHtml(getTag(block, 'title') || ''),
-      url: getTag(block, 'link') || getTag(block, 'guid') || '',
+      url: normalizeUrl(rawLink, url),
       description: stripHtml(getTag(block, 'description') || getTag(block, 'summary') || ''),
       publishedAt: parseDate(getTag(block, 'pubDate') || getTag(block, 'published') || ''),
       source: new URL(url).hostname,
@@ -108,6 +109,37 @@ function stripHtml(str) {
     .trim();
 }
 
+function extractLink(block) {
+  const atomLinkMatches = [...block.matchAll(/<link\b([^>]*)\/?>(?:[\s\S]*?<\/link>)?/gi)];
+  if (atomLinkMatches.length > 0) {
+    for (const match of atomLinkMatches) {
+      const attrs = match[1] || '';
+      const rel = /\brel=["']([^"']+)["']/i.exec(attrs)?.[1]?.toLowerCase();
+      const href = /\bhref=["']([^"']+)["']/i.exec(attrs)?.[1]?.trim();
+      if (!href) continue;
+      if (!rel || rel === 'alternate') return href;
+    }
+    const firstHref = /\bhref=["']([^"']+)["']/i.exec(atomLinkMatches[0][1] || '')?.[1]?.trim();
+    if (firstHref) return firstHref;
+  }
+
+  return getTextLink(block);
+}
+
+function getTextLink(block) {
+  const m = /<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i.exec(block);
+  return m ? m[1].trim() : null;
+}
+
+function normalizeUrl(maybeUrl, baseUrl) {
+  if (!maybeUrl) return '';
+  try {
+    return new URL(maybeUrl, baseUrl).toString();
+  } catch {
+    return maybeUrl;
+  }
+}
+
 function parseDate(str) {
   if (!str) return new Date().toISOString();
   try {
@@ -118,3 +150,8 @@ function parseDate(str) {
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+export function resetScraperState() {
+  lastRequestTime.clear();
+  responseCache.clear();
+}
