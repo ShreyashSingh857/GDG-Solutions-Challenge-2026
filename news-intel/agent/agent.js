@@ -12,6 +12,7 @@ import { fetchGdacsAlerts } from '../tools/gdacsFetcher.js';
 import { fetchReutersShippingNews } from '../tools/reutersScraper.js';
 import { fetchMaritimeNews } from '../tools/maritimeNewsScraper.js';
 import { fetchLloydsListHeadlines } from '../tools/lloydsListScraper.js';
+import { fetchStrikeAlerts } from '../tools/strikeAlertScraper.js';
 import { isDuplicate, markProcessed } from '../tools/dedupStore.js';
 import { createNewsAlert, validateNewsAlert } from '../types/NewsAlert.js';
 
@@ -31,13 +32,14 @@ export async function runPollCycle() {
   const startedAt = Date.now();
   console.log('[NewsAgent] Poll cycle started');
 
-  const [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult] = await Promise.allSettled([
+  const [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult] = await Promise.allSettled([
     fetchGdeltArticles(lastGdeltFetch),
     fetchNewsApiArticles(),
     fetchGdacsAlerts(),
     fetchReutersShippingNews(),
     fetchMaritimeNews(),
     fetchLloydsListHeadlines(),
+    fetchStrikeAlerts(),
   ]);
 
   lastGdeltFetch = new Date();
@@ -49,6 +51,7 @@ export async function runPollCycle() {
     ...(reutersResult.status === 'fulfilled' ? reutersResult.value : []),
     ...(maritimeResult.status === 'fulfilled' ? maritimeResult.value : []),
     ...(lloydsResult.status === 'fulfilled' ? lloydsResult.value : []),
+    ...(strikeResult.status === 'fulfilled' ? strikeResult.value : []),
   ];
 
   if (gdeltResult.status === 'rejected') {
@@ -68,6 +71,9 @@ export async function runPollCycle() {
   }
   if (lloydsResult.status === 'rejected') {
     console.warn('[NewsAgent] Lloyds headline fetch failed:', lloydsResult.reason?.message);
+  }
+  if (strikeResult.status === 'rejected') {
+    console.warn('[NewsAgent] Strike alert fetch failed:', strikeResult.reason?.message);
   }
 
   const novel = allArticles.filter((article) => !isDuplicate(article.url));
