@@ -61,8 +61,28 @@ async function processImpactReport(agentPayload) {
 	const balancedCost = calculateCostDelta({ distanceKm: routes.balanced.distanceKm, mode: routes.balanced.mode, baseCostUSD: 50000 }); const fastestCost = calculateCostDelta({ distanceKm: routes.fastest.distanceKm, mode: routes.fastest.mode, baseCostUSD: 50000 }); const cheapestCost = calculateCostDelta({ distanceKm: routes.cheapest.distanceKm, mode: routes.cheapest.mode, baseCostUSD: 50000 });
 	const supplierSummary = [...seaSuppliers, ...airSuppliers].map((s) => `- ${s.name} (ID: ${s.id}) | Region: ${s.region} | Reliability: ${s.reliabilityScore}/100`).join('\n');
 	const prompt = `${SYSTEM_PROMPT}\n\n## Impact Report\n- Disruption ID: ${impactReport.disruptionId}\n- Cascade Risk: ${impactReport.cascadeRisk}\n- Urgency: ${impactReport.urgency}/10\n- Affected Shipments: ${impactReport.affectedShipments.length}\n- Total Cargo at Risk: $${impactReport.totalCargoAtRiskUSD.toLocaleString()}\n- Analysis: ${impactReport.analysisText}\n\n## Air Freight Feasibility\n- ${airFreightNote}\n\n## Available Rerouting Options\n1. BALANCED — ${routes.balanced.title}: ${routes.balanced.distanceKm}km via ${routes.balanced.mode}, extra ${routes.balanced.timeDeltaHours}h, cost delta $${balancedCost.costDelta.toLocaleString()}\n2. FASTEST — ${routes.fastest.title}: ${routes.fastest.distanceKm}km via ${routes.fastest.mode}, time delta ${routes.fastest.timeDeltaHours}h, cost delta $${fastestCost.costDelta.toLocaleString()}\n3. CHEAPEST — ${routes.cheapest.title}: ${routes.cheapest.distanceKm}km via ${routes.cheapest.mode}, extra ${routes.cheapest.timeDeltaHours}h, cost delta $${cheapestCost.costDelta.toLocaleString()}\n\n## Available Suppliers\n${supplierSummary || 'No suppliers found'}\nGenerate exactly 3 ranked resolution options.`;
-	activeStreams.set(traceId, ''); let fullResponse = ''; for await (const chunk of generateStream(prompt)) { fullResponse += chunk; activeStreams.set(traceId, fullResponse); }
-	let options; try { options = JSON.parse(fullResponse.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()); if (!Array.isArray(options)) throw new Error('Response is not an array'); } catch { options = [{ rank: 1, title: routes.balanced.title, description: 'Balanced reroute option.', costDelta: balancedCost.costDelta, timeDelta: routes.balanced.timeDeltaHours, supplierName: seaSuppliers[0]?.name || 'Trans-Pacific Shipping', supplierId: seaSuppliers[0]?.id || 'sup-002', confidence: 0.75 }, { rank: 2, title: routes.fastest.title, description: 'Fastest reroute option.', costDelta: fastestCost.costDelta, timeDelta: routes.fastest.timeDeltaHours, supplierName: airSuppliers[0]?.name || 'Pacific Air Express', supplierId: airSuppliers[0]?.id || 'sup-001', confidence: 0.8 }, { rank: 3, title: routes.cheapest.title, description: 'Cheapest reroute option.', costDelta: cheapestCost.costDelta, timeDelta: routes.cheapest.timeDeltaHours, supplierName: seaSuppliers[1]?.name || 'Trans-Pacific Shipping', supplierId: seaSuppliers[1]?.id || 'sup-002', confidence: 0.7 }]; }
+	activeStreams.set(traceId, '');
+	let fullResponse = '';
+	try {
+		for await (const chunk of generateStream(prompt)) {
+			fullResponse += chunk;
+			activeStreams.set(traceId, fullResponse);
+		}
+	} catch (err) {
+		console.warn('[ResolutionService] generateStream failed, using deterministic fallback options:', err.message);
+	}
+
+	let options;
+	try {
+		options = JSON.parse(fullResponse.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim());
+		if (!Array.isArray(options)) throw new Error('Response is not an array');
+	} catch {
+		options = [
+			{ rank: 1, title: routes.balanced.title, description: 'Balanced reroute option.', costDelta: balancedCost.costDelta, timeDelta: routes.balanced.timeDeltaHours, supplierName: seaSuppliers[0]?.name || 'Trans-Pacific Shipping', supplierId: seaSuppliers[0]?.id || 'sup-002', confidence: 0.75 },
+			{ rank: 2, title: routes.fastest.title, description: 'Fastest reroute option.', costDelta: fastestCost.costDelta, timeDelta: routes.fastest.timeDeltaHours, supplierName: airSuppliers[0]?.name || 'Pacific Air Express', supplierId: airSuppliers[0]?.id || 'sup-001', confidence: 0.8 },
+			{ rank: 3, title: routes.cheapest.title, description: 'Cheapest reroute option.', costDelta: cheapestCost.costDelta, timeDelta: routes.cheapest.timeDeltaHours, supplierName: seaSuppliers[1]?.name || 'Trans-Pacific Shipping', supplierId: seaSuppliers[1]?.id || 'sup-002', confidence: 0.7 },
+		];
+	}
 	const routesByRank = [routes.balanced, routes.fastest, routes.cheapest];
 	const fallbackOptions = [
 		{ rank: 1, title: routes.balanced.title, description: 'Balanced sea freight reroute.', costDelta: balancedCost.costDelta, timeDelta: routes.balanced.timeDeltaHours, supplierName: seaSuppliers[0]?.name || 'Trans-Pacific Shipping Co.', supplierId: seaSuppliers[0]?.id || 'sup-002', confidence: 0.75 },
