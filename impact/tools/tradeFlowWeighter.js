@@ -12,8 +12,6 @@ function inferIso3(value) {
 }
 
 export async function getTradeWeight(origin, destination, cmdCode = 'TOTAL') {
-  if (!process.env.UN_COMTRADE_KEY) return { weight: 1.0, note: 'no key' };
-
   const reporter = inferIso3(origin);
   const partner = inferIso3(destination);
   if (!reporter || !partner) return { weight: 1.0, note: 'unknown country codes' };
@@ -28,9 +26,8 @@ export async function getTradeWeight(origin, destination, cmdCode = 'TOTAL') {
   });
 
   try {
-    const res = await fetch(`${COMTRADE_BASE}/C/A/HS?${params}`, {
-      headers: { 'Ocp-Apim-Subscription-Key': process.env.UN_COMTRADE_KEY },
-    });
+    // Public preview endpoints can be queried without a subscription key.
+    const res = await fetch(`${COMTRADE_BASE}/C/A/HS?${params}`);
     if (!res.ok) return { weight: 1.0, note: `http_${res.status}` };
     const json = await res.json();
     const rows = Array.isArray(json?.data) ? json.data : [];

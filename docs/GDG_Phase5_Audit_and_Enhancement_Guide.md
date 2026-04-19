@@ -1055,7 +1055,7 @@ Click approve. Show the globe: the rerouted arc animates from Suez to Cape of Go
 ```bash
 # .env (append these new keys)
 AIS_STREAM_API_KEY=          # Free: register at aisstream.io
-UN_COMTRADE_KEY=             # Free: register at comtradeplus.un.org
+# UN Comtrade preview endpoints are public and do not require subscription keys
 NEXT_PUBLIC_EVENT_BUS_URL=http://localhost:4000   # for AgentHealthPanel
 ```
 

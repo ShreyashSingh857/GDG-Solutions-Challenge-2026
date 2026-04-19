@@ -1117,14 +1117,7 @@ export async function pollCanalStatus() {
 
 ### Data Source 6 — UN Comtrade (Trade Flow Data) | Priority: P2
 
-**What it provides:** Global bilateral trade flows by commodity and country. Free API with registration. Use it to weight impact scores — a disruption on a high-volume trade corridor carries more risk than one on a low-volume route.
-
-**Register:** https://comtradeplus.un.org/  (free subscription tier)
-
-```
-# .env.example
-UN_COMTRADE_KEY=   # free key from comtradeplus.un.org
-```
+**What it provides:** Global bilateral trade flows by commodity and country. Public preview API endpoints are free to query without subscription keys. Use it to weight impact scores — a disruption on a high-volume trade corridor carries more risk than one on a low-volume route.
 
 **New file: `impact/tools/tradeFlowWeighter.js`**
 
@@ -1138,17 +1131,12 @@ const COMTRADE_BASE = 'https://comtradeapi.un.org/data/v1/get';
  * cmdCode: HS commodity code (e.g. '84' for machinery, '27' for fuel)
  */
 export async function getTradeWeight(reporterCode, partnerCode, cmdCode = 'TOTAL') {
-  if (!process.env.UN_COMTRADE_KEY) {
-    return { weight: 1.0, note: 'No Comtrade key — using neutral weight' };
-  }
-
   const params = new URLSearchParams({
     reporterCode,
     partnerCode,
     period: getPreviousYear(),
     cmdCode,
     flowCode: 'M',   // Imports
-    subscription_key: process.env.UN_COMTRADE_KEY,
   });
 
   try {
@@ -1318,7 +1306,6 @@ Update `docker-compose.yml` environment section for the disruption service:
 disruption:
   environment:
     - AIS_STREAM_API_KEY=${AIS_STREAM_API_KEY}
-    - UN_COMTRADE_KEY=${UN_COMTRADE_KEY}
 ```
 
 ---
