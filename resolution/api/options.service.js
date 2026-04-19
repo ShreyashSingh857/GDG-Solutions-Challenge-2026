@@ -7,8 +7,11 @@ import { createAgentPayload } from '../../shared/types/AgentPayload.js';
 import { validateResolutionOption } from '../types/ResolutionOption.js';
 import { findSuppliers } from '../tools/supplierLookup.js';
 import { getRoutesForScenario, detectScenario, toGeoJSON } from '../tools/routingTool.js';
-import { calculateCostDelta } from '../tools/costCalculator.js';
+import { calculateCostDelta, calculateCarbonDelta } from '../tools/costCalculator.js';
+import { fetchCurrentFreightRates, summarizeFreightRates } from '../tools/freightRatesTool.js';
 import { checkAirFreightAvailability } from '../tools/airFreightChecker.js';
+import { buildSanctionsWarning } from '../tools/sanctionsChecker.js';
+import { estimateInsurancePremium } from '../tools/insuranceEstimator.js';
 import { setLastEventAt } from '../state.js';
 import { readFileSync } from 'fs'; import { fileURLToPath } from 'url'; import { dirname, join } from 'path';
 
@@ -49,6 +52,33 @@ function toFirestoreSafeOption(option) {
 	};
 }
 
+function deriveCargoTonnes(impactReport) {
+	const shipmentCount = Number(impactReport?.affectedShipments?.length || impactReport?.scoredShipments?.length || 0);
+	const totalValue = Number(impactReport?.totalCargoAtRiskUSD || 0);
+	const byValue = Math.max(250, Math.round(totalValue / 250000));
+	const byCount = Math.max(250, shipmentCount * 100);
+	return Math.max(byValue, byCount);
+}
+
+function enrichOption(option, route, impactReport, freightRates) {
+	const routeContext = [route?.title, impactReport?.disruptionLocation, ...(impactReport?.affectedZones || [])].filter(Boolean).join(' ');
+	const carbonDeltaKg = calculateCarbonDelta({
+		distanceKmDelta: route?.distanceKm || 0,
+		mode: route?.mode || route?.properties?.mode || 'sea-freight',
+		cargoTonnes: deriveCargoTonnes(impactReport),
+	});
+	const insurance = estimateInsurancePremium(Number(impactReport?.totalCargoAtRiskUSD || 0), routeContext);
+	return {
+		...option,
+		carbonDeltaKg,
+		insurancePremiumUSD: insurance.premiumUSD,
+		annualRatePercent: insurance.annualRatePercent,
+		corridorRisk: insurance.corridorRisk,
+		sanctionsWarning: buildSanctionsWarning(routeContext),
+		freightMarketSummary: summarizeFreightRates(freightRates),
+	};
+}
+
 function createFallbackOptionBases(routes, balancedCost, fastestCost, cheapestCost, seaSuppliers, airSuppliers) {
 	return [
 		{ rank: 1, title: routes.balanced.title, description: `Balanced reroute option adds ${routes.balanced.timeDeltaHours}h and $${balancedCost.costDelta.toLocaleString()} cost.`, costDelta: balancedCost.costDelta, timeDelta: routes.balanced.timeDeltaHours, supplierName: seaSuppliers[0]?.name || 'Trans-Pacific Shipping Co.', supplierId: seaSuppliers[0]?.id || 'sup-002', confidence: 0.75 },
@@ -57,7 +87,7 @@ function createFallbackOptionBases(routes, balancedCost, fastestCost, cheapestCo
 	];
 }
 
-export function buildValidatedResolutionOptions({ rawResponse, routes, balancedCost, fastestCost, cheapestCost, seaSuppliers, airSuppliers, traceId, impactReportId, disruptionId }) {
+export function buildValidatedResolutionOptions({ rawResponse, routes, balancedCost, fastestCost, cheapestCost, seaSuppliers, airSuppliers, traceId, impactReportId, disruptionId, impactReport, freightRates = {} }) {
 	const fallbackOptions = createFallbackOptionBases(routes, balancedCost, fastestCost, cheapestCost, seaSuppliers, airSuppliers);
 	let options = fallbackOptions;
 
@@ -84,7 +114,7 @@ export function buildValidatedResolutionOptions({ rawResponse, routes, balancedC
 				supplierName: opt.supplierName || fallbackOptions[i].supplierName,
 				supplierId: opt.supplierId || fallbackOptions[i].supplierId,
 			};
-			return {
+			return enrichOption({
 				...validateResolutionOption(normalized),
 				route: toGeoJSON(routesByRank[i]),
 				impactReportId,
@@ -92,11 +122,11 @@ export function buildValidatedResolutionOptions({ rawResponse, routes, balancedC
 				traceId,
 				selected: false,
 				createdAt: new Date().toISOString(),
-			};
+		}, routesByRank[i], impactReport, freightRates);
 		} catch (err) {
 			console.warn(`[ResolutionService] Option rank ${i + 1} failed validation, using fallback:`, err.message);
 			const safeFallback = fallbackOptions[i];
-			return {
+			return enrichOption({
 				...safeFallback,
 				route: toGeoJSON(routesByRank[i]),
 				impactReportId,
@@ -104,7 +134,7 @@ export function buildValidatedResolutionOptions({ rawResponse, routes, balancedC
 				traceId,
 				selected: false,
 				createdAt: new Date().toISOString(),
-			};
+			}, routesByRank[i], impactReport, freightRates);
 		}
 	});
 }
@@ -113,23 +143,27 @@ async function processImpactReport(agentPayload) {
 	const impactReport = agentPayload.payload, traceId = agentPayload.traceId;
 	const disruption = buildDisruptionContextFromImpactReport(impactReport);
 	const routes = getRoutesForScenario(detectScenario(disruption));
+	const freightRates = await fetchCurrentFreightRates().catch(() => ({}));
 	const region = pickSupplierRegion(disruption);
 	const seaSuppliers = await findSuppliers(region, 'sea-freight');
 	const airSuppliers = await findSuppliers(region, 'air-freight');
 	const airFreight = await checkAirFreightAvailability(37.6213, -122.379).catch(() => ({ available: true, note: 'OpenSky check failed' }));
 	const airFreightNote = airFreight.available ? `Air freight is AVAILABLE: ${airFreight.note}` : 'Air freight is CURRENTLY UNAVAILABLE at origin airport';
 	const balancedCost = calculateCostDelta({ distanceKm: routes.balanced.distanceKm, mode: routes.balanced.mode, baseCostUSD: 50000 }); const fastestCost = calculateCostDelta({ distanceKm: routes.fastest.distanceKm, mode: routes.fastest.mode, baseCostUSD: 50000 }); const cheapestCost = calculateCostDelta({ distanceKm: routes.cheapest.distanceKm, mode: routes.cheapest.mode, baseCostUSD: 50000 });
+	const freightMarketSummary = summarizeFreightRates(freightRates) || 'No live FBX market snapshot available';
 	const shipmentLines = (impactReport.scoredShipments || []).slice(0, 5)
 		.map((shipment, index) => `${index + 1}. ${shipment.origin}→${shipment.destination}|$${Number(shipment.cargoValueUSD || 0).toLocaleString()}|${shipment.distanceKm || 0}km|score:${shipment.impactScore ?? 0}`)
 		.join('\n');
 	const compactSuppliers = [...seaSuppliers, ...airSuppliers].slice(0, 4).map((supplier) => `${supplier.name}(${supplier.id})`).join(', ');
 	const prompt = [
 		SYSTEM_PROMPT,
+		'CONSIDER carbon footprint, insurance premium, and sanctions compliance for each option.',
 		`DISRUPTION: ${impactReport.disruptionType} at ${impactReport.disruptionLocation}`,
 		`CARGO_AT_RISK: $${Number(impactReport.totalCargoAtRiskUSD || 0).toLocaleString()} across ${impactReport.affectedShipments.length} shipments`,
 		`CASCADE: ${impactReport.cascadeRisk} | URGENCY: ${impactReport.urgency}/10`,
 		`TOP_SHIPMENTS:\n${shipmentLines || 'None'}`,
 		`AIR_FREIGHT: ${airFreightNote}`,
+		`FREIGHT_MARKET: ${freightMarketSummary}`,
 		`OPTIONS:\n1. ${routes.balanced.title}|${routes.balanced.distanceKm}km|+${routes.balanced.timeDeltaHours}h|+$${balancedCost.costDelta.toLocaleString()}\n2. ${routes.fastest.title}|${routes.fastest.distanceKm}km|+${routes.fastest.timeDeltaHours}h|+$${fastestCost.costDelta.toLocaleString()}\n3. ${routes.cheapest.title}|${routes.cheapest.distanceKm}km|+${routes.cheapest.timeDeltaHours}h|+$${cheapestCost.costDelta.toLocaleString()}`,
 		`SUPPLIERS: ${compactSuppliers || 'None'}`,
 	].join('\n');
@@ -154,6 +188,8 @@ async function processImpactReport(agentPayload) {
 			traceId,
 			impactReportId: impactReport.id,
 			disruptionId: impactReport.disruptionId,
+			impactReport,
+			freightRates,
 		});
 	const { queued: resQueued } = await resilientUpsert('resolutions', { id: traceId, trace_id: traceId, impact_report_id: impactReport.id, disruption_id: impactReport.disruptionId, cascade_risk: impactReport.cascadeRisk, urgency: impactReport.urgency, total_cargo_at_risk_usd: impactReport.totalCargoAtRiskUSD, analysis_text: impactReport.analysisText, option_count: validatedOptions.length, status: 'pending' }, { onConflict: 'id' });
 	if (resQueued) console.warn('[ResolutionService] resolutions write queued for retry');

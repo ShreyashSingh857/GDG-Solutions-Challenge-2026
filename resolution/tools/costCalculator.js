@@ -7,3 +7,13 @@ export function calculateCostDelta({ distanceKm, mode, baseCostUSD, cargoWeightT
 	const totalCostUSD = distanceKm * ratePerKm * fuelMultiplier + handlingFee + weightSurcharge;
 	return { totalCostUSD: Math.round(totalCostUSD), costDelta: Math.round(totalCostUSD - baseCostUSD), breakdown: { distanceCost: Math.round(distanceKm * ratePerKm), fuelSurcharge: Math.round(distanceKm * ratePerKm * (fuelMultiplier - 1)), handlingFee, weightSurcharge } };
 }
+
+export function calculateCarbonDelta({ distanceKmDelta, mode, cargoTonnes = 500 }) {
+	const CO2_KG_PER_KM = {
+		'sea-freight': 0.012,
+		'air-freight': 0.602,
+		rail: 0.028,
+	};
+	const factor = CO2_KG_PER_KM[mode] || CO2_KG_PER_KM['sea-freight'];
+	return Math.round(Math.max(0, distanceKmDelta || 0) * factor * Math.max(1, cargoTonnes));
+}
