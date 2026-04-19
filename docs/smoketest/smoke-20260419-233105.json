@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-04-19T18:34:47.926Z",
-  "traceId": "smoke-20260420-000447",
+  "timestamp": "2026-04-19T18:01:05.192Z",
+  "traceId": "smoke-20260419-233105",
   "files": {
-    "logPath": "docs/smoketest/smoke-20260420-000447.log",
-    "jsonPath": "docs/smoketest/smoke-20260420-000447.json"
+    "logPath": "docs/smoketest/smoke-20260419-233105.log",
+    "jsonPath": "docs/smoketest/smoke-20260419-233105.json"
   },
   "serviceChecks": [
     {
@@ -11,22 +11,7 @@
       "health": {
         "ok": true,
         "status": 200,
-        "elapsedMs": 323,
-        "error": null
-      },
-      "metrics": {
-        "ok": true,
-        "status": 200,
-        "elapsedMs": 19,
-        "error": null
-      }
-    },
-    {
-      "service": "disruption",
-      "health": {
-        "ok": true,
-        "status": 200,
-        "elapsedMs": 25,
+        "elapsedMs": 191,
         "error": null
       },
       "metrics": {
@@ -37,17 +22,32 @@
       }
     },
     {
-      "service": "impact",
+      "service": "disruption",
       "health": {
         "ok": true,
         "status": 200,
-        "elapsedMs": 211,
+        "elapsedMs": 18,
         "error": null
       },
       "metrics": {
         "ok": true,
         "status": 200,
-        "elapsedMs": 13,
+        "elapsedMs": 7,
+        "error": null
+      }
+    },
+    {
+      "service": "impact",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 14,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 11,
         "error": null
       }
     },
@@ -56,13 +56,13 @@
       "health": {
         "ok": true,
         "status": 200,
-        "elapsedMs": 88,
+        "elapsedMs": 13,
         "error": null
       },
       "metrics": {
         "ok": true,
         "status": 200,
-        "elapsedMs": 9,
+        "elapsedMs": 6,
         "error": null
       }
     },
@@ -71,7 +71,7 @@
       "health": {
         "ok": true,
         "status": 200,
-        "elapsedMs": 26,
+        "elapsedMs": 12,
         "error": null
       },
       "metrics": {
@@ -83,23 +83,23 @@
     }
   ],
   "baselineMessageCounts": {
-    "disruption-events": 6,
-    "impact-reports": 10,
-    "resolution-options": 18,
+    "disruption-events": 4,
+    "impact-reports": 6,
+    "resolution-options": 10,
     "news-alerts": 0
   },
   "postDisruption": {
     "ok": true,
     "status": 201,
-    "elapsedMs": 927,
+    "elapsedMs": 794,
     "error": null
   },
-  "pollAttempts": 3,
+  "pollAttempts": 2,
   "chainComplete": true,
   "postMessageCounts": {
-    "disruption-events": 7,
-    "impact-reports": 11,
-    "resolution-options": 19,
+    "disruption-events": 5,
+    "impact-reports": 7,
+    "resolution-options": 11,
     "news-alerts": 0
   },
   "messageCountDelta": {
@@ -111,7 +111,7 @@
   "resolutionProbe": {
     "ok": true,
     "status": 200,
-    "elapsedMs": 143,
+    "elapsedMs": 137,
     "optionCount": 3,
     "firstTitle": "Northern Arc via Aleutian Islands",
     "error": null

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
@@ -11,13 +11,13 @@ import { useShipmentStore } from '../store/shipmentStore.js';
  * Populates the Zustand shipmentStore.
  */
 export function useShipments() {
-  const { setShipments, updateShipment } = useShipmentStore();
+  const { setShipments } = useShipmentStore();
 
-  async function loadFallback() {
+  const loadFallback = useCallback(async () => {
     const res = await fetch('/api/shipments', { cache: 'no-store' });
     const json = await res.json();
     if (Array.isArray(json.data)) setShipments(json.data);
-  }
+  }, [setShipments]);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
@@ -39,7 +39,7 @@ export function useShipments() {
     );
 
     return () => unsubscribe();
-  }, [setShipments]);
+  }, [loadFallback, setShipments]);
 
   return useShipmentStore((state) => state.shipments);
 }

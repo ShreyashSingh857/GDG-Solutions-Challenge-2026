@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
@@ -8,11 +8,11 @@ import { useAlertStore } from '../store/alertStore.js';
 export function useNewsAlerts() {
   const addNewsAlert = useAlertStore((state) => state.addNewsAlert);
 
-  async function loadFallback() {
+  const loadFallback = useCallback(async () => {
     const res = await fetch('/api/news-alerts', { cache: 'no-store' });
     const json = await res.json();
     (json.data || []).forEach((item) => addNewsAlert(item));
-  }
+  }, [addNewsAlert]);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
@@ -43,5 +43,5 @@ export function useNewsAlerts() {
     );
 
     return () => unsubscribe();
-  }, [addNewsAlert]);
+  }, [addNewsAlert, loadFallback]);
 }
