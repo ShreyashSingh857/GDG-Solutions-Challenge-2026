@@ -20,10 +20,11 @@
     "dev:news": "cd news-intel && npm run dev",
     "dev:dashboard": "cd dashboard && npm run dev",
     "smoke:scraper": "node scripts/smoke-scraper.mjs",
+    "smoke:overall": "node scripts/smoke-overall.mjs",
     "inject:pacific": "node resolution/simulation/inject.js pacific_storm",
     "inject:strike": "node resolution/simulation/inject.js port_strike",
     "inject:suez": "node resolution/simulation/inject.js suez_closure",
-    "health": "node -e \"Promise.all(['http://localhost:4000','http://localhost:3001','http://localhost:3002','http://localhost:3003','http://localhost:3005'].map(u=>fetch(u+'/health').then(r=>r.json()).then(d=>console.log(u,d.status,d.agent||'event-bus')).catch(()=>console.log(u,'OFFLINE')))).then(()=>process.exit(0))\""
+    "health": "node -e \"Promise.all(['http://localhost:4000','http://localhost:3001','http://localhost:3002','http://localhost:3003','http://localhost:3005'].map(async (u)=>{try{const r=await fetch(u+'/health');const d=await r.json();console.log(u,d.status,d.agent||d.service||'event-bus');}catch{console.log(u,'OFFLINE');process.exitCode=1;}})).then(()=>{})\""
   },
   "repository": {
     "type": "git",
