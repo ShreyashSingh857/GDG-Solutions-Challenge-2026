@@ -11,6 +11,7 @@ service cloud.firestore {
     match /resolutions/{id} {
       allow read: if isAuthed(); allow write: if false;
       match /options/{optId} { allow read: if isAuthed(); allow write: if false; }
+      match /feedback/{rank} { allow read: if isAuthed(); allow write: if isAuthed(); }
     }
     match /suppliers/{id} { allow read: if isAuthed(); allow write: if false; }
     match /news_alerts/{id} { allow read: if isAuthed(); allow write: if false; }

@@ -4,8 +4,10 @@
 1. `npm run setup && npm run seed`
 2. `npm run dev` - wait for all 6 services to show green
 3. Open http://localhost:3000 in browser, verify globe loads
-4. Confirm AgentHealthPanel shows 5/5 online
-5. Keep a second terminal ready for inject commands
+4. Navigate to http://localhost:3000/dev and confirm Mission Control shows 5/5 Live
+5. Navigate back to http://localhost:3000 for the public demo view
+6. Open the News tab once and click refresh to force a poll cycle
+7. Keep a second terminal ready for inject commands
 
 ## Minute 0-1 - Hook
 "Right now $6 trillion in goods are moving across the ocean.

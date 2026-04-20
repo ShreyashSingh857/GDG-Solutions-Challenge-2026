@@ -31,15 +31,9 @@ export default function NewsFeed() {
     setIsRefreshing(true);
     setRefreshError(null);
     try {
-      const newsAgentUrl = process.env.NEXT_PUBLIC_NEWS_AGENT_URL || 'http://localhost:3005';
-      const internalToken = process.env.NEXT_PUBLIC_INTERNAL_TOKEN;
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(internalToken ? { Authorization: `Bearer ${internalToken}` } : {}),
-      };
-      const response = await fetch(`${newsAgentUrl}/news/poll`, {
+      const response = await fetch('/api/news-poll', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
         signal: AbortSignal.timeout(30000),
       });
