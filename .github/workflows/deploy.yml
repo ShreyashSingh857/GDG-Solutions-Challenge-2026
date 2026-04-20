@@ -95,20 +95,8 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Run event-bus lint
-        run: cd event-bus && npm run lint
-
-      - name: Run disruption lint
-        run: cd disruption && npm run lint
-
-      - name: Run impact lint
-        run: cd impact && npm run lint
-
-      - name: Run resolution lint
-        run: cd resolution && npm run lint
-
-      - name: Run news-intel lint
-        run: cd news-intel && npm run lint
+      - name: Run backend lint suite
+        run: npm run lint
 
   validate-resolution:
     name: Resolution tests and lint
