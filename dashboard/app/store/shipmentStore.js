@@ -13,6 +13,16 @@ export const useShipmentStore = create((set, get) => ({
 			),
 		})),
 
+	removeShipment: (id) =>
+		set((state) => ({
+			shipments: state.shipments.filter((s) => s.id !== id),
+		})),
+
+	addShipment: (shipment) =>
+		set((state) => ({
+			shipments: [shipment, ...state.shipments],
+		})),
+
 	getShipmentById: (id) => get().shipments.find((s) => s.id === id) || null,
 
 	getShipmentsByStatus: (status) => get().shipments.filter((s) => s.status === status),

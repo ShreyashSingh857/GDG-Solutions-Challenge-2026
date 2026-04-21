@@ -147,6 +147,7 @@ export default function DetailsPage() {
         <ShipmentModal
           shipment={modalState.shipment}
           onClose={closeModal}
+          onDelete={closeModal}
         />
       )}
       {isImportModalOpen && (
