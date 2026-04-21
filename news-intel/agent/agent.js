@@ -15,6 +15,7 @@ import { fetchLloydsListHeadlines } from '../tools/lloydsListScraper.js';
 import { fetchStrikeAlerts } from '../tools/strikeAlertScraper.js';
 import { isDuplicate, markProcessed } from '../tools/dedupStore.js';
 import { createNewsAlert, validateNewsAlert } from '../types/NewsAlert.js';
+import { setLastCycleStats } from '../api/news.service.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT = readFileSync(join(__dirname, 'prompt.md'), 'utf-8');
@@ -55,6 +56,8 @@ export async function runPollCycle() {
   const startedAt = Date.now();
   console.log('[NewsAgent] Poll cycle started');
 
+  setLastCycleStats({ isRunning: true });
+
   const [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult] = await Promise.allSettled([
     fetchGdeltArticles(lastGdeltFetch),
     fetchNewsApiArticles(),
@@ -66,6 +69,9 @@ export async function runPollCycle() {
   ]);
 
   lastGdeltFetch = new Date();
+
+  const sourceResults = [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult];
+  const failureCount = sourceResults.filter((result) => result.status === 'rejected').length;
 
   const allArticles = [
     ...(gdeltResult.status === 'fulfilled' ? gdeltResult.value : []),
@@ -103,7 +109,17 @@ export async function runPollCycle() {
   console.log(`[NewsAgent] ${allArticles.length} fetched, ${novel.length} novel`);
 
   if (!novel.length) {
-    return { fetched: allArticles.length, classified: 0, published: 0 };
+    const stats = {
+      fetched: allArticles.length,
+      classified: 0,
+      published: 0,
+      runAt: new Date().toISOString(),
+      isRunning: false,
+      sourcesPolled: sourceResults.length,
+      sourceFailures: failureCount,
+    };
+    setLastCycleStats(stats);
+    return stats;
   }
 
   const batches = chunk(novel, MAX_ARTICLES_PER_CALL);
@@ -149,7 +165,17 @@ ${JSON.stringify(input, null, 2)}`);
   }
 
   console.log(`[NewsAgent] Cycle complete in ${Date.now() - startedAt}ms | published: ${published}`);
-  return { fetched: allArticles.length, classified: classified.length, published };
+  const stats = {
+    fetched: allArticles.length,
+    classified: classified.length,
+    published,
+    runAt: new Date().toISOString(),
+    isRunning: false,
+    sourcesPolled: sourceResults.length,
+    sourceFailures: failureCount,
+  };
+  setLastCycleStats(stats);
+  return stats;
 }
 
 async function publishNewsAlert(item) {
