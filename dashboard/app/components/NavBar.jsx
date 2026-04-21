@@ -33,6 +33,12 @@ export default function NavBar() {
         >
           Replay
         </Link>
+        <Link
+          href="/analytics"
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pathname.startsWith('/analytics') ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white hover:bg-white/5'}`}
+        >
+          Analytics
+        </Link>
       </div>
     </nav>
   );
