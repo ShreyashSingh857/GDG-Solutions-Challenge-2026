@@ -12,6 +12,7 @@ import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentTrigger from './components/AgentTrigger.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import NavBar from './components/NavBar.jsx';
+import { registerPushSubscription } from './lib/pushNotifications.js';
 
 const AlertToastController = dynamic(() => import('./components/alerts/AlertToast.jsx'), {
   ssr: false,
@@ -77,6 +78,20 @@ export default function Home() {
     syncViewport();
     window.addEventListener('resize', syncViewport);
     return () => window.removeEventListener('resize', syncViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window) || Notification.permission === 'denied') return;
+
+    const promptedKey = 'gdg_push_prompted';
+    const alreadyPrompted = window.localStorage.getItem(promptedKey) === '1';
+    if (Notification.permission === 'default' && alreadyPrompted) return;
+
+    registerPushSubscription()
+      .catch(() => null)
+      .finally(() => window.localStorage.setItem(promptedKey, '1'));
   }, []);
 
   useShipments();
