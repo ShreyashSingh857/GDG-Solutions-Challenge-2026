@@ -62,7 +62,8 @@ async function requestJson(url, options) {
 async function runCommand(command, args, logger) {
   logger.write(`$ ${command} ${args.join(' ')}`);
   return new Promise((resolve) => {
-    const child = spawn(command, args, { shell: true, windowsHide: true });
+    const executable = process.platform === 'win32' && command === 'npm' ? 'npm.cmd' : command;
+    const child = spawn(executable, args, { shell: false, windowsHide: true });
     let stdout = '';
     let stderr = '';
 
