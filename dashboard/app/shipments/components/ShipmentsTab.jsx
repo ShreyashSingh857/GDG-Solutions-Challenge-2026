@@ -129,7 +129,11 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
           </thead>
           <tbody className="divide-y divide-white/3">
             {displayed.map((s) => (
-              <tr key={s.id} className="hover:bg-white/3 transition-colors group">
+              <tr
+                key={s.id}
+                onClick={() => onEdit(s)}
+                className="border-b border-white/5 hover:bg-white/3 cursor-pointer transition-colors group"
+              >
                 <td className="px-4 py-3">
                   <span
                     className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
@@ -175,7 +179,10 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                 <td className="px-4 py-3 text-white/50 text-xs">{fmtDate(s.eta)}</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => onEdit(s)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEdit(s);
+                    }}
                     className="opacity-0 group-hover:opacity-100 text-xs px-2.5 py-1 rounded-lg border border-white/10 text-white/60 hover:border-blue-400/40 hover:text-blue-300 transition-all"
                   >
                     Edit

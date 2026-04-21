@@ -1,7 +1,15 @@
 import { db } from '../../shared/db/firebase.js';
 import { runPollCycle } from '../agent/agent.js';
 
-let lastCycleStats = { fetched: 0, classified: 0, published: 0, runAt: null };
+let _lastCycleStats = {
+  fetched: 0,
+  classified: 0,
+  published: 0,
+  runAt: null,
+  isRunning: false,
+  sourcesPolled: 0,
+  sourceFailures: 0,
+};
 let isRunning = false;
 
 function isFirebaseConfigError(err) {
@@ -10,21 +18,26 @@ function isFirebaseConfigError(err) {
 
 export async function triggerManualPoll() {
   if (isRunning) {
-    return { skipped: true, reason: 'Cycle in progress', ...lastCycleStats };
+    return { skipped: true, reason: 'Cycle in progress', ...getLastCycleStats() };
   }
 
   isRunning = true;
+  setLastCycleStats({ isRunning: true });
   try {
-    const stats = await runPollCycle();
-    lastCycleStats = { ...stats, runAt: new Date().toISOString() };
-    return { skipped: false, ...lastCycleStats };
+    await runPollCycle();
+    return { skipped: false, ...getLastCycleStats() };
   } finally {
     isRunning = false;
+    setLastCycleStats({ isRunning: false });
   }
 }
 
+export function setLastCycleStats(stats) {
+  _lastCycleStats = { ..._lastCycleStats, ...stats };
+}
+
 export function getLastCycleStats() {
-  return { ...lastCycleStats, isRunning };
+  return { ..._lastCycleStats, isRunning };
 }
 
 export async function getRecentAlerts(limit = 20) {
