@@ -33,12 +33,17 @@ const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
   ssr: false,
   loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>,
 });
+const MobileView = dynamic(() => import('./components/globe/MobileView.jsx'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading mobile view...</div>,
+});
 
 export default function Home() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('agent');
   const [globeEnabled, setGlobeEnabled] = useState(true);
   const [isPageVisible, setIsPageVisible] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const isGlobeActive = globeEnabled && isPageVisible;
 
   useEffect(() => {
@@ -64,6 +69,16 @@ export default function Home() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
+  useEffect(() => {
+    const syncViewport = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
+  }, []);
+
   useShipments();
   useDisruptions();
   useResolutions();
@@ -76,7 +91,11 @@ export default function Home() {
         <Toaster position="bottom-right" theme="dark" />
         <AlertToastController />
         <DecisionModal />
-        {isGlobeActive ? (
+        {isMobile ? (
+          <div className="absolute inset-0 bg-[#020617]">
+            <MobileView />
+          </div>
+        ) : isGlobeActive ? (
           <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable - WebGL may not be supported</div>}>
             <div className="absolute inset-0">
               <GlobeView />
