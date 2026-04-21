@@ -509,7 +509,7 @@ export default function GlobeView() {
     });
 
     viewer.scene.requestRender();
-  }, [corridors]);
+  }, [corridors, zoomLevel]);
 
   useEffect(() => {
     if (!vRef.current) return;
