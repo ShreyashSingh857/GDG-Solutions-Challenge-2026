@@ -5,17 +5,25 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    match /shipments/{id} { allow read: if isAuthed(); allow write: if false; }
-    match /disruptions/{id} { allow read: if isAuthed(); allow write: if false; }
-    match /impactReports/{id} { allow read: if isAuthed(); allow write: if false; }
-    match /resolutions/{id} {
-      allow read: if isAuthed(); allow write: if false;
-      match /options/{optId} { allow read: if isAuthed(); allow write: if false; }
-      match /feedback/{rank} { allow read: if isAuthed(); allow write: if isAuthed(); }
+    function belongsToOrg(orgId) {
+      return isAuthed() && (!(orgId is string) || request.auth.token.orgId == orgId);
     }
-    match /suppliers/{id} { allow read: if isAuthed(); allow write: if false; }
-    match /news_alerts/{id} { allow read: if isAuthed(); allow write: if false; }
-    match /vesselPositions/{mmsi} { allow read: if isAuthed(); allow write: if false; }
+
+    function resolutionOrgId(id) {
+      return get(/databases/$(database)/documents/resolutions/$(id)).data.orgId;
+    }
+
+    match /shipments/{id} { allow read: if belongsToOrg(resource.data.orgId); allow write: if false; }
+    match /disruptions/{id} { allow read: if belongsToOrg(resource.data.orgId); allow write: if false; }
+    match /impactReports/{id} { allow read: if belongsToOrg(resource.data.orgId); allow write: if false; }
+    match /resolutions/{id} {
+      allow read: if belongsToOrg(resource.data.orgId); allow write: if false;
+      match /options/{optId} { allow read: if belongsToOrg(resolutionOrgId(id)); allow write: if false; }
+      match /feedback/{rank} { allow read: if belongsToOrg(resolutionOrgId(id)); allow write: if belongsToOrg(resolutionOrgId(id)); }
+    }
+    match /suppliers/{id} { allow read: if belongsToOrg(resource.data.orgId); allow write: if false; }
+    match /news_alerts/{id} { allow read: if belongsToOrg(resource.data.orgId); allow write: if false; }
+    match /vesselPositions/{mmsi} { allow read: if belongsToOrg(resource.data.orgId); allow write: if false; }
     match /news_processed_urls/{id} { allow read: if false; allow write: if false; }
     match /errors/{id} { allow read: if false; allow write: if false; }
   }
