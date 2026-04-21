@@ -26,14 +26,15 @@ const EMPTY = {
 };
 
 /**
- * @param {{ shipment:any, onClose:()=>void }} props
+ * @param {{ shipment:any, onClose:()=>void, onDelete:()=>void }} props
  */
-export default function ShipmentModal({ shipment, onClose }) {
+export default function ShipmentModal({ shipment, onClose, onDelete }) {
   const isEdit = Boolean(shipment);
   const [form, setForm] = useState(isEdit ? { ...EMPTY, ...shipment } : EMPTY);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
-  const { createShipment, updateShipment } = useShipmentMutations();
+  const { createShipment, updateShipment, deleteShipment } = useShipmentMutations();
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -65,6 +66,20 @@ export default function ShipmentModal({ shipment, onClose }) {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete shipment ${shipment.trackingNumber || shipment.id.slice(-8)}? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await deleteShipment(shipment.id);
+      onDelete?.();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -137,7 +152,16 @@ export default function ShipmentModal({ shipment, onClose }) {
 
         {error && <p className="px-6 py-2 text-sm text-red-400 bg-red-950/30 border-t border-red-500/10">{error}</p>}
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-white/5">
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-white/5">
+          {isEdit && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-950/40 border border-red-500/20 transition-colors disabled:opacity-50 mr-auto"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-sm font-medium text-white/50 hover:bg-white/5 border border-white/10 transition-colors"

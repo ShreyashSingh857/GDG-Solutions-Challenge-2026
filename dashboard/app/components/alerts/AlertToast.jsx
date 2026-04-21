@@ -18,12 +18,27 @@ const TYPE_ICONS = {
  */
 export default function AlertToastController() {
   const disruptions = useAlertStore((s) => s.disruptions);
-  const prevLengthRef = useRef(0);
+  const prevLengthRef = useRef(null);
+  const seenIdsRef = useRef(new Set());
 
   useEffect(() => {
+    // Record initial snapshot as baseline so existing disruptions do not trigger toasts.
+    if (prevLengthRef.current === null) {
+      prevLengthRef.current = disruptions.length;
+      disruptions.forEach((d) => seenIdsRef.current.add(d.id || d.traceId));
+      return;
+    }
+
     if (disruptions.length > prevLengthRef.current) {
       const newest = disruptions[0];
       if (!newest) return;
+
+      const id = newest.id || newest.traceId;
+      if (seenIdsRef.current.has(id)) {
+        prevLengthRef.current = disruptions.length;
+        return;
+      }
+      seenIdsRef.current.add(id);
 
       const icon = TYPE_ICONS[newest.type] || '📡';
       const zones = (newest.affectedZones || []).slice(0, 3).join(', ') || 'Multiple zones';
@@ -44,7 +59,7 @@ export default function AlertToastController() {
           <button
             className="mt-1 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition-colors text-left"
             onClick={() => {
-              useAlertStore.getState().setActiveDisruptionId(newest.id || newest.traceId);
+              useAlertStore.getState().setActiveDisruptionId(id);
             }}
           >
             View Options →

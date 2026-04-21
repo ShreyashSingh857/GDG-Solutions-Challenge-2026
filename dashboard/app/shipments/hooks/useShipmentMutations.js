@@ -43,5 +43,15 @@ export function useShipmentMutations() {
     return updated;
   }
 
-  return { createShipment, updateShipment };
+  async function deleteShipment(id) {
+    const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? `HTTP ${res.status}`);
+    }
+    useShipmentStore.getState().removeShipment(id);
+    return { id };
+  }
+
+  return { createShipment, updateShipment, deleteShipment };
 }
