@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 const STATIC_FILE = /\.(?:png|jpg|jpeg|svg|gif|ico|webp|css|js|map|txt)$/i;
 
-export function middleware(req) {
+export function proxy(req) {
   const { pathname } = req.nextUrl;
 
   if (

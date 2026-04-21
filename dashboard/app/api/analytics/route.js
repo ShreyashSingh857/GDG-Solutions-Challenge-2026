@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { adminDb } from '../../../../lib/firebase-admin.js';
+import { adminDb } from '../../../lib/firebase-admin.js';
 
 function dayKey(input) {
   const d = new Date(input);
