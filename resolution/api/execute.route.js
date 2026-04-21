@@ -1,5 +1,6 @@
 import { db } from '../../shared/db/firebase.js';
 import { supabase } from '../../shared/db/supabase.js';
+import { fanoutResolutionWebhooks } from '../tools/webhookFanout.js';
 
 export default async function executeRoute(app) {
 	app.post('/execute', async (req, reply) => {
@@ -45,6 +46,14 @@ export default async function executeRoute(app) {
 			.from('resolutions')
 			.update({ status: 'resolved', selected_rank: Number(rank), resolved_at: new Date().toISOString() })
 			.eq('id', traceId);
+
+		const { data: allOptions } = await supabase
+			.from('resolution_options')
+			.select('rank,title,summary,reasoning,cost_delta_usd,time_delta_days,co2_delta_kg')
+			.eq('resolution_id', traceId)
+			.order('rank', { ascending: true });
+
+		await fanoutResolutionWebhooks(process.env.DEFAULT_ORG_ID || 'demo-org', traceId, allOptions || []);
 
 		try {
 			const optionRef = db.collection('resolutions').doc(traceId).collection('options').doc(String(rank));
