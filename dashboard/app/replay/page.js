@@ -175,7 +175,11 @@ export default function ReplayPage() {
 
 							<div className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
 								<div className="rounded-[28px] border border-white/10 bg-white/[0.035] p-5">
-									{selected ? (
+									{isLoading ? (
+										<div className="flex min-h-80 items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/20 text-sm text-white/35">
+											Loading replay window...
+										</div>
+									) : selected ? (
 										<div className="space-y-5">
 											<div className="flex flex-wrap items-start justify-between gap-4">
 												<div>
@@ -224,7 +228,7 @@ export default function ReplayPage() {
 										</div>
 									) : (
 										<div className="flex min-h-80 items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/20 text-sm text-white/35">
-											{isLoading ? 'Loading replay window...' : 'No disruptions found in the selected range.'}
+											No disruptions found in the selected range.
 										</div>
 									)}
 								</div>
