@@ -257,8 +257,8 @@ export default function GlobeView() {
       if (reroutedRoute?.waypoints?.length) route.waypoints = reroutedRoute.waypoints;
     });
     const result = [...routeMap.values()].map((route) => ({ ...route, status: dominantStatus(route.statuses) }));
-    if (result.length > 0) {
-      console.log('[Globe] Route grouping:', { uniqueRoutes: result.length, totalShipments: s.length, routes: result.map(r => ({ key: r.routeKey, count: r.count, status: r.status })) });
+    if (process.env.NODE_ENV === 'development' && result.length > 0) {
+      console.log('[Globe] Route grouping:', { uniqueRoutes: result.length, totalShipments: s.length });
     }
     return result;
   }, [s, reroutedRoutes]);
@@ -361,14 +361,19 @@ export default function GlobeView() {
 
   useEffect(() => {
     if (!vRef.current) return;
-    vRef.current.entities.values.forEach((entity) => {
-      const status = entity.properties?.status?.getValue();
-      if (status === 'active' || status === 'delayed' || status === 'rerouted') {
-        entity.show = f === 'all' || status === f;
-      }
-    });
+    const routeEntities = entityMapRef.current;
+    const statusByRoute = new Map(groupedRoutes.map((route) => [route.routeKey, route.status]));
+
+    for (const [routeKey, refs] of routeEntities) {
+      const status = statusByRoute.get(routeKey);
+      const visible = status ? (f === 'all' || status === f) : false;
+      if (refs.arc) refs.arc.show = visible;
+      if (refs.originDot) refs.originDot.show = visible;
+      if (refs.destinationDot) refs.destinationDot.show = visible;
+    }
+
     vRef.current.scene.requestRender();
-  }, [f]);
+  }, [f, groupedRoutes]);
 
   useEffect(() => {
     const show = zoomLevel !== 'far';
