@@ -36,10 +36,11 @@ export function useResolutions() {
   const activeDisruptionId = useAlertStore((state) => state.activeDisruptionId);
 
   const loadFallback = useCallback(async () => {
-    const res = await fetch('/api/resolutions', { cache: 'no-store' });
+    const params = activeDisruptionId ? `?disruptionId=${encodeURIComponent(activeDisruptionId)}` : '';
+    const res = await fetch(`/api/resolutions${params}`, { cache: 'no-store' });
     const json = await res.json();
     if (json.data) setResolutionWithOptions(json.data);
-  }, [setResolutionWithOptions]);
+  }, [activeDisruptionId, setResolutionWithOptions]);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !db) {
