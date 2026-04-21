@@ -18,7 +18,8 @@ import { createNewsAlert, validateNewsAlert } from '../types/NewsAlert.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT = readFileSync(join(__dirname, 'prompt.md'), 'utf-8');
-const RELEVANCE_THRESHOLD = 0.65;
+const parsedRelevanceThreshold = Number.parseFloat(process.env.NEWS_RELEVANCE_THRESHOLD ?? '');
+const RELEVANCE_THRESHOLD = Number.isFinite(parsedRelevanceThreshold) ? parsedRelevanceThreshold : 0.65;
 const MAX_ARTICLES_PER_CALL = 20;
 const DISRUPTION_AGENT_URL = process.env.DISRUPTION_AGENT_URL ?? 'http://localhost:3001';
 

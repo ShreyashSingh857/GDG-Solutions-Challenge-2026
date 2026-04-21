@@ -89,26 +89,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: package-lock.json
 
       - name: Install root dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
-      - name: Run event-bus lint
-        run: cd event-bus && npm run lint
-
-      - name: Run disruption lint
-        run: cd disruption && npm run lint
-
-      - name: Run impact lint
-        run: cd impact && npm run lint
-
-      - name: Run resolution lint
-        run: cd resolution && npm run lint
-
-      - name: Run news-intel lint
-        run: cd news-intel && npm run lint
+      - name: Run backend lint suite
+        run: npm run lint
 
   validate-resolution:
     name: Resolution tests and lint
