@@ -42,3 +42,21 @@ CREATE TABLE IF NOT EXISTS agent_metrics (
 );
 
 COMMENT ON TABLE vessel_positions IS 'Live AIS vessel positions mirrored from Firestore and Supabase for analytics';
+
+-- Enable RLS on realtime tables
+ALTER TABLE public.vessel_positions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.port_congestion ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.canal_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agent_metrics ENABLE ROW LEVEL SECURITY;
+
+-- Service role full access for ingestion and agent writes
+CREATE POLICY "service_role_all" ON public.vessel_positions FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "service_role_all" ON public.port_congestion FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "service_role_all" ON public.canal_events FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "service_role_all" ON public.agent_metrics FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+
+-- Authenticated users can read realtime operational data
+CREATE POLICY "auth_read" ON public.vessel_positions FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "auth_read" ON public.port_congestion FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "auth_read" ON public.canal_events FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "auth_read" ON public.agent_metrics FOR SELECT TO authenticated USING (TRUE);
