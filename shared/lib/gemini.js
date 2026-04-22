@@ -64,6 +64,17 @@ function handleRateLimit(err) {
   }
 }
 
+function extractSafeText(response) {
+  const candidate = response?.candidates?.[0];
+  if (!candidate || String(candidate.finishReason || '').toUpperCase() === 'SAFETY') {
+    console.warn('[Gemini] Response blocked by safety filter');
+    return null;
+  }
+
+  const text = response?.text?.() ?? '';
+  return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+}
+
 /**
  * Standard (non-streaming) Gemini generation.
  * @param {string} prompt - The user prompt
@@ -83,9 +94,7 @@ export async function generate(prompt, tools = []) {
     const response = result.response;
     clearRateLimitState();
 
-    // Strip markdown code fences if present - Gemini sometimes wraps JSON in ```json
-    const text = response.text();
-    return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+    return extractSafeText(response);
   } catch (err) {
     handleRateLimit(err);
     console.error('[Gemini] generate() error:', err.message);
@@ -115,9 +124,9 @@ export async function generateWithTools(prompt, tools = [], toolHandlers = {}) {
       }));
       result = await chat.sendMessage(toolResults);
     }
-    const text = result.response.text();
+    const text = extractSafeText(result.response);
     clearRateLimitState();
-    return text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+    return text;
   } catch (err) {
     handleRateLimit(err);
     throw err;
@@ -145,6 +154,11 @@ export async function* generateStream(prompt, tools = []) {
     for await (const chunk of result.stream) {
       const text = chunk.text();
       if (text) yield text;
+    }
+    const candidate = result.response?.candidates?.[0];
+    if (!candidate || String(candidate.finishReason || '').toUpperCase() === 'SAFETY') {
+      console.warn('[Gemini] Stream blocked by safety filter');
+      return;
     }
     clearRateLimitState();
   } catch (err) {
