@@ -1,35 +1,54 @@
-import { db } from '../../shared/db/firebase.js';
+import { supabase } from '../../shared/db/supabase.js';
 
-const memoryCache = new Set();
-const COLLECTION = 'dedup_store';
-const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const COLLECTION = 'news_alert_dedup';
+
+function externalIdFor(url) {
+  return String(url || '').trim();
+}
 
 export async function initDedupStore() {
   try {
-    const cutoff = new Date(Date.now() - TTL_MS).toISOString();
-    const snap = await db.collection(COLLECTION).where('processedAt', '>', cutoff).get();
-    snap.docs.forEach((d) => memoryCache.add(d.id));
-    console.log(`[DedupStore] Loaded ${memoryCache.size} entries from Firestore`);
+    const { count, error } = await supabase
+      .from(COLLECTION)
+      .select('external_id', { count: 'exact', head: true });
+
+    if (error) throw error;
+    console.log(`[DedupStore] Supabase dedup store ready (${count || 0} known alerts)`);
   } catch (err) {
-    console.warn('[DedupStore] Firestore load failed, using empty cache:', err.message);
+    console.warn('[DedupStore] Supabase load failed:', err.message);
   }
 }
 
-export function isDuplicate(url) {
-  return memoryCache.has(encodeURL(url));
+export async function isDuplicate(url) {
+  const externalId = externalIdFor(url);
+  if (!externalId) return false;
+
+  try {
+    const { data, error } = await supabase
+      .from(COLLECTION)
+      .select('external_id')
+      .eq('external_id', externalId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return Boolean(data);
+  } catch (err) {
+    console.warn('[DedupStore] Supabase read failed:', err.message);
+    return false;
+  }
 }
 
 export async function markProcessed(url) {
-  const key = encodeURL(url);
-  memoryCache.add(key);
+  const externalId = externalIdFor(url);
+  if (!externalId) return;
 
   try {
-    await db.collection(COLLECTION).doc(key).set({ url, processedAt: new Date().toISOString() });
+    await supabase.from(COLLECTION).upsert({
+      external_id: externalId,
+      source_url: url,
+      processed_at: new Date().toISOString(),
+    }, { onConflict: 'external_id' });
   } catch (err) {
-    console.warn('[DedupStore] Firestore write failed:', err.message);
+    console.warn('[DedupStore] Supabase write failed:', err.message);
   }
-}
-
-function encodeURL(url) {
-  return Buffer.from(url).toString('base64').replace(/[/+=]/g, '_').slice(0, 499);
 }
