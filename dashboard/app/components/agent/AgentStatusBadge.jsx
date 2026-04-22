@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { connectAgentStatusPolling } from '../../lib/websocket.js';
+import { connectAgentStatusPolling } from '../../lib/agentPolling.js';
 
 const STATUS_CONFIG = {
   idle: { label: 'Idle', color: 'bg-gray-400', textColor: 'text-gray-300' },
