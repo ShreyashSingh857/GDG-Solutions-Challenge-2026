@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { RotateCw } from 'lucide-react';
-import { useNewsAlerts } from '../../hooks/useNewsAlerts.js';
 import { useAlertStore } from '../../store/alertStore.js';
 
 const ICONS = {
@@ -22,7 +21,6 @@ const CHIP_STYLES = {
 };
 
 export default function NewsFeed() {
-  useNewsAlerts();
   const newsAlerts = useAlertStore((state) => state.newsAlerts);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
