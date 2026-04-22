@@ -43,7 +43,7 @@ export default function OverviewTab({ shipments, isLoading }) {
     ? Object.entries(metrics.byCorridor).map(([name, items]) => ({ name, count: items.length }))
     : [];
 
-  if (isLoading) return <div className="p-8 text-white/40 text-sm">Loading...</div>;
+  if (isLoading) return <OverviewSkeleton />;
   if (!metrics) return <div className="p-8 text-white/40 text-sm">No shipments found.</div>;
 
   const fmt = (n) =>
@@ -95,6 +95,24 @@ export default function OverviewTab({ shipments, isLoading }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+    </div>
+  );
+}
+
+function OverviewSkeleton() {
+  return (
+    <div className="p-6 flex flex-col gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+        ))}
+      </div>
+      <div className="h-72 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
     </div>
   );
 }

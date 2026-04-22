@@ -5,10 +5,13 @@ import { lastEventAt } from './state.js';
 import { createLogger } from '../shared/lib/logger.js';
 import { createMetrics } from '../shared/lib/metrics.js';
 import { validateEnv } from '../shared/lib/validateEnv.js';
+import { startTelemetry } from '../shared/lib/telemetry.js';
+import { buildHealthPayload } from '../shared/lib/health.js';
 
 validateEnv('ResolutionAgent', ['GEMINI_API_KEY', 'FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY']);
 const logger = createLogger('resolution-agent');
 const metrics = createMetrics('resolution-agent');
+startTelemetry('resolution-agent');
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
@@ -30,12 +33,14 @@ const { startResolutionSubscriber } = await import('./api/options.service.js');
 startResolutionSubscriber();
 
 app.get('/health', async (req, reply) => {
-	reply.send({
-		status: 'ok',
-		agent: 'resolution-negotiator',
-		uptime: Math.floor((Date.now() - startTime) / 1000),
-		lastEventAt,
-	});
+	reply.send(
+		buildHealthPayload({
+			agent: 'resolution-negotiator',
+			startedAt: startTime,
+			lastEventAt,
+			pendingQueueDepth: 0,
+		})
+	);
 });
 
 app.get('/metrics', async (req, reply) => {

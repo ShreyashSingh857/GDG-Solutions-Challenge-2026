@@ -8,10 +8,13 @@ import { getLastCycleStats } from './api/news.service.js';
 import { createLogger } from '../shared/lib/logger.js';
 import { createMetrics } from '../shared/lib/metrics.js';
 import { validateEnv } from '../shared/lib/validateEnv.js';
+import { startTelemetry } from '../shared/lib/telemetry.js';
+import { buildHealthPayload } from '../shared/lib/health.js';
 
 validateEnv('NewsIntel', ['GEMINI_API_KEY', 'DISRUPTION_AGENT_URL']);
 const logger = createLogger('news-intel');
 const metrics = createMetrics('news-intel');
+startTelemetry('news-intel');
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
@@ -28,12 +31,16 @@ app.addHook('onResponse', async (req, reply) => {
   metrics.recordRequest(Date.now() - (req._startAt || Date.now()), reply.statusCode);
 });
 
-app.get('/health', async () => ({
-  status: 'ok',
-  agent: 'news-intel',
-  uptime: Math.floor((Date.now() - startTime) / 1000),
-  lastCycle: getLastCycleStats(),
-}));
+app.get('/health', async () => {
+  const lastCycle = getLastCycleStats();
+  return buildHealthPayload({
+    agent: 'news-intel',
+    startedAt: startTime,
+    lastEventAt: lastCycle.runAt,
+    pendingQueueDepth: lastCycle.isRunning ? 1 : 0,
+    extra: { lastCycle },
+  });
+});
 
 app.get('/metrics', async () => metrics.snapshot({
   uptime: Math.floor((Date.now() - startTime) / 1000),

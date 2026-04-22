@@ -122,6 +122,7 @@ export function buildValidatedResolutionOptions({ rawResponse, routes, balancedC
 				traceId,
 				selected: false,
 				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 		}, routesByRank[i], impactReport, freightRates);
 		} catch (err) {
 			console.warn(`[ResolutionService] Option rank ${i + 1} failed validation, using fallback:`, err.message);
@@ -134,6 +135,7 @@ export function buildValidatedResolutionOptions({ rawResponse, routes, balancedC
 				traceId,
 				selected: false,
 				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 			}, routesByRank[i], impactReport, freightRates);
 		}
 	});
@@ -191,12 +193,13 @@ async function processImpactReport(agentPayload) {
 			impactReport,
 			freightRates,
 		});
-	const { queued: resQueued } = await resilientUpsert('resolutions', { id: traceId, trace_id: traceId, impact_report_id: impactReport.id, disruption_id: impactReport.disruptionId, cascade_risk: impactReport.cascadeRisk, urgency: impactReport.urgency, total_cargo_at_risk_usd: impactReport.totalCargoAtRiskUSD, analysis_text: impactReport.analysisText, option_count: validatedOptions.length, status: 'pending' }, { onConflict: 'id' });
+	const nowIso = new Date().toISOString();
+	const { queued: resQueued } = await resilientUpsert('resolutions', { id: traceId, trace_id: traceId, impact_report_id: impactReport.id, disruption_id: impactReport.disruptionId, cascade_risk: impactReport.cascadeRisk, urgency: impactReport.urgency, total_cargo_at_risk_usd: impactReport.totalCargoAtRiskUSD, analysis_text: impactReport.analysisText, option_count: validatedOptions.length, status: 'pending', updated_at: nowIso }, { onConflict: 'id' });
 	if (resQueued) console.warn('[ResolutionService] resolutions write queued for retry');
 	const optionRows = validatedOptions.map((opt) => ({ resolution_id: traceId, trace_id: traceId, rank: opt.rank, title: opt.title, description: opt.description, cost_delta: opt.costDelta, time_delta: opt.timeDelta, supplier_id: opt.supplierId || null, supplier_name: opt.supplierName, confidence: opt.confidence, route_geojson: opt.route, transport_mode: opt.route?.properties?.mode || 'sea-freight', selected: false }));
 	const { queued: optQueued } = await resilientUpsert('resolution_options', optionRows, { onConflict: 'resolution_id,rank' });
 	if (optQueued) console.warn('[ResolutionService] resolution_options write queued for retry');
-	const batch = db.batch(); validatedOptions.forEach((opt) => batch.set(db.collection('resolutions').doc(traceId).collection('options').doc(String(opt.rank)), toFirestoreSafeOption(opt))); batch.set(db.collection('resolutions').doc(traceId), { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, cascadeRisk: impactReport.cascadeRisk, urgency: impactReport.urgency, totalCargoAtRiskUSD: impactReport.totalCargoAtRiskUSD, analysisText: impactReport.analysisText, optionCount: validatedOptions.length, createdAt: new Date().toISOString(), status: 'pending' }); await batch.commit(); await publish(TOPICS.RESOLUTION_OPTIONS, createAgentPayload('resolution', { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, options: validatedOptions }, traceId)); setLastEventAt(new Date().toISOString()); setTimeout(() => activeStreams.delete(traceId), 300000);
+	const batch = db.batch(); validatedOptions.forEach((opt) => batch.set(db.collection('resolutions').doc(traceId).collection('options').doc(String(opt.rank)), toFirestoreSafeOption(opt))); batch.set(db.collection('resolutions').doc(traceId), { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, cascadeRisk: impactReport.cascadeRisk, urgency: impactReport.urgency, totalCargoAtRiskUSD: impactReport.totalCargoAtRiskUSD, analysisText: impactReport.analysisText, optionCount: validatedOptions.length, createdAt: nowIso, updatedAt: nowIso, status: 'pending' }); await batch.commit(); await publish(TOPICS.RESOLUTION_OPTIONS, createAgentPayload('resolution', { traceId, impactReportId: impactReport.id, disruptionId: impactReport.disruptionId, options: validatedOptions }, traceId)); setLastEventAt(new Date().toISOString()); setTimeout(() => activeStreams.delete(traceId), 300000);
 }
 
 export function startResolutionSubscriber() {

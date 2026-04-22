@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { connectAgentStatusPolling } from '../../lib/websocket.js';
+import { connectAgentStatusPolling } from '../../lib/agentPolling.js';
 
 const STATUS_CONFIG = {
-  idle: { label: 'Idle', color: 'bg-gray-400', textColor: 'text-gray-300' },
-  monitor: { label: 'Monitor', color: 'bg-yellow-400 animate-pulse', textColor: 'text-yellow-300' },
-  impact: { label: 'Impact', color: 'bg-orange-400 animate-pulse', textColor: 'text-orange-300' },
-  negotiator: { label: 'Negotiator', color: 'bg-purple-400 animate-pulse', textColor: 'text-purple-300' },
+  idle: { label: 'Idle', color: 'bg-slate-400', textColor: 'text-slate-300' },
+  monitor: { label: 'Monitor', color: 'bg-yellow-400', textColor: 'text-yellow-300' },
+  impact: { label: 'Impact', color: 'bg-orange-400', textColor: 'text-orange-300' },
+  negotiator: { label: 'Negotiator', color: 'bg-purple-400', textColor: 'text-purple-300' },
   resolved: { label: 'Resolved', color: 'bg-blue-400', textColor: 'text-blue-300' },
 };
 
@@ -24,13 +24,22 @@ export default function AgentStatusBadge() {
   }, []);
 
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
+  const isSurgical = status !== 'idle' && status !== 'resolved';
 
   return (
-    <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-black/60 backdrop-blur-sm border border-white/10 rounded-full px-3 py-1.5">
-      <span className={`w-2 h-2 rounded-full ${config.color}`} />
-      <span className={`text-xs font-medium ${config.textColor}`}>
-        {config.label} Agent
-      </span>
+    <div className="absolute top-18 right-6 z-40 flex items-center gap-3 bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl px-4 py-2 shadow-2xl transition-all duration-500">
+      <div className="relative flex items-center justify-center">
+        {isSurgical && (
+          <span className={`absolute inset-0 rounded-full animate-ping opacity-30 ${config.color}`} />
+        )}
+        <span className={`w-2.5 h-2.5 rounded-full ${config.color} shadow-[0_0_10px_rgba(255,255,255,0.3)]`} />
+      </div>
+      <div>
+        <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] leading-none mb-1">System Agency</div>
+        <div className={`text-[11px] font-bold tracking-tight uppercase ${config.textColor}`}>
+          {config.label} <span className="opacity-50 text-[var(--text-muted)] ml-0.5">Active</span>
+        </div>
+      </div>
     </div>
   );
 }

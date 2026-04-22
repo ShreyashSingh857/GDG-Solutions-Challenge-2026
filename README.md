@@ -94,6 +94,90 @@ node resolution/simulation/inject.js pacific_storm
 
 ---
 
+## API v1 Usage
+
+All API v1 routes are token-protected. Pass your key in either `X-Api-Key` or `Authorization: Bearer`.
+
+### Base URL
+
+- Local: `http://localhost:3000/api/v1`
+
+### Example requests
+
+```bash
+# Set once per terminal
+export API_KEY="your-api-key"
+```
+
+```bash
+# Create a shipment
+curl -X POST http://localhost:3000/api/v1/shipments \
+  -H "X-Api-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "origin":"Shanghai",
+    "destination":"Los Angeles",
+    "originLat":31.2304,
+    "originLng":121.4737,
+    "destLat":34.0522,
+    "destLng":-118.2437,
+    "carrier":"Maersk",
+    "cargoValueUSD":150000,
+    "corridor":"Pacific"
+  }'
+```
+
+```bash
+# List shipments (paginated)
+curl "http://localhost:3000/api/v1/shipments?pageSize=25" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+```bash
+# Get a single shipment
+curl http://localhost:3000/api/v1/shipments/ship-123 \
+  -H "X-Api-Key: $API_KEY"
+```
+
+```bash
+# Update shipment status
+curl -X PATCH http://localhost:3000/api/v1/shipments/ship-123/status \
+  -H "X-Api-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"rerouted"}'
+```
+
+```bash
+# List disruptions
+curl "http://localhost:3000/api/v1/disruptions?limit=50" \
+  -H "X-Api-Key: $API_KEY"
+```
+
+```bash
+# Get disruption + latest resolution/options
+curl http://localhost:3000/api/v1/disruptions/disruption-id \
+  -H "X-Api-Key: $API_KEY"
+```
+
+```bash
+# Register outbound webhook for resolution.ready
+curl -X POST http://localhost:3000/api/v1/webhooks \
+  -H "X-Api-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event":"resolution.ready",
+    "url":"https://example.com/hooks/resolution-ready"
+  }'
+```
+
+```bash
+# Delete webhook
+curl -X DELETE http://localhost:3000/api/v1/webhooks/webhook-id \
+  -H "X-Api-Key: $API_KEY"
+```
+
+---
+
 ## Deployment Notes
 
 If you deploy with `render.yaml`, add the news service alongside the other web services:

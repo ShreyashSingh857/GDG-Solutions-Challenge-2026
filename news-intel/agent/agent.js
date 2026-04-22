@@ -106,7 +106,11 @@ export async function runPollCycle() {
     console.warn('[NewsAgent] Strike alert fetch failed:', strikeResult.reason?.message);
   }
 
-  const novel = allArticles.filter((article) => !isDuplicate(article.url));
+  const noveltyChecks = await Promise.all(allArticles.map(async (article) => ({
+    article,
+    duplicate: await isDuplicate(article.url),
+  })));
+  const novel = noveltyChecks.filter(({ duplicate }) => !duplicate).map(({ article }) => article);
   console.log(`[NewsAgent] ${allArticles.length} fetched, ${novel.length} novel`);
 
   if (!novel.length) {

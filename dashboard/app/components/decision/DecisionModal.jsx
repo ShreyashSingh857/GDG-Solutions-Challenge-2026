@@ -4,61 +4,53 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
+import { X, ShieldAlert, Cpu } from 'lucide-react';
 import { useAlertStore } from '../../store/alertStore.js';
 import { db, isFirebaseConfigured } from '../../lib/firebase.js';
 import OptionCard from './OptionCard.jsx';
+import RiskMatrix from './RiskMatrix.jsx';
 import SeverityBadge from '../alerts/SeverityBadge.jsx';
 
 function LoadingSkeleton({ stage, onDismiss }) {
-  const renderStageIcon = (idx) => {
-    if (idx === 1) {
-      if (stage >= 1) return <span className="text-green-400">✓</span>;
-      if (stage === 0) return <span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />;
-      return <span className="w-3 h-3 rounded-full bg-white/20" />;
-    }
-    if (idx === 2) {
-      if (stage >= 2) return <span className="text-green-400">✓</span>;
-      if (stage === 1) return <span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />;
-      return <span className="w-3 h-3 rounded-full bg-white/20" />;
-    }
-    if (stage === 3) return <span className="text-green-400">✓</span>;
-    if (stage === 2) return <span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />;
-    return <span className="w-3 h-3 rounded-full bg-white/20" />;
-  };
-
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }} className="w-full max-w-2xl bg-gray-900 rounded-2xl border border-white/10 p-6 space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-overlay)] backdrop-blur-xl p-4">
+      <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} className="w-full max-w-2xl bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] p-8 shadow-2xl space-y-8">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />
-            <h2 className="text-white font-semibold">AI is analyzing disruption...</h2>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-cyan)]/10 flex items-center justify-center">
+              <Cpu className="w-5 h-5 text-[var(--accent-cyan)] animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[var(--text-primary)] font-display tracking-tight uppercase">AI Collective Synthesis</h2>
+              <p className="text-[11px] text-[var(--text-muted)] font-medium">Formulating resolution strategies across global transport nodes...</p>
+            </div>
           </div>
-          <button onClick={onDismiss} className="text-white/40 hover:text-white/70 text-sm">Dismiss</button>
+          <button onClick={onDismiss} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="flex items-center justify-center gap-3 text-sm">
-          <div className="flex items-center gap-2 text-white/70">{renderStageIcon(1)}<span>Monitor</span></div>
-          <span className="text-white/30">→</span>
-          <div className="flex items-center gap-2 text-white/70">{renderStageIcon(2)}<span>Impact</span></div>
-          <span className="text-white/30">→</span>
-          <div className="flex items-center gap-2 text-white/70">{renderStageIcon(3)}<span>Negotiator</span></div>
+        <div className="relative h-1 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }} 
+            animate={{ width: `${(stage / 3) * 100}%` }} 
+            className="absolute inset-y-0 left-0 bg-[var(--accent-cyan)] shadow-[0_0_10px_var(--accent-cyan)]" 
+          />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className="h-48 rounded-xl bg-gray-800/40"
-              animate={{ opacity: [0.4, 0.8, 0.4] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className={`p-4 rounded-2xl border transition-all duration-500 ${stage >= i ? 'border-[var(--accent-cyan)]/30 bg-[var(--accent-cyan)]/5' : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 opacity-40'}`}>
+              <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2">Stage 0{i}</div>
+              <div className="text-xs font-bold text-[var(--text-primary)] uppercase">{i === 1 ? 'Monitor' : i === 2 ? 'Impact' : 'Strategy'}</div>
+            </div>
           ))}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-white/40">
-          <span>Typically 30-60 seconds</span>
-          <button onClick={onDismiss} className="px-3 py-1.5 rounded-lg border border-white/10 text-white/60 hover:text-white hover:border-white/20">Dismiss</button>
+        <div className="flex items-center justify-between py-2">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-cyan)] animate-ping" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Live synthesis active</span>
+          </div>
+          <button onClick={onDismiss} className="px-5 py-2 rounded-xl border border-[var(--border-subtle)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-all">Abort Simulation</button>
         </div>
       </motion.div>
     </motion.div>
@@ -79,12 +71,12 @@ export default function DecisionModal() {
   useEffect(() => {
     if (!activeDisruptionId) {
       setAgentStage(0);
-      return () => {};
+      return;
     }
     setAgentStage(1);
     if (!isFirebaseConfigured || !db) {
       if (activeResolution?.options?.length > 0) setAgentStage(3);
-      return () => {};
+      return;
     }
 
     const impactUnsub = onSnapshot(
@@ -114,7 +106,7 @@ export default function DecisionModal() {
   const disruption = disruptions.find((d) => d.id === activeResolution?.disruptionId || d.traceId === activeResolution?.disruptionId);
 
   async function handleApprove(rank) {
-    if (isApproving || !traceId) return;
+    if (isApproving || !traceId || approvedRank) return;
     setIsApproving(true);
     try {
       const res = await fetch('/api/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ traceId, rank }) });
@@ -122,11 +114,10 @@ export default function DecisionModal() {
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`);
       setApprovedRank(rank);
       markResolutionExecuted(rank);
-      toast.success(`Option #${rank} executed — shipments are being rerouted`);
-      setTimeout(() => clearActiveDisruption(), 3000);
+      toast.success(`Protocol ${rank} deployed successfully`);
+      setTimeout(() => clearActiveDisruption(), 3500);
     } catch (err) {
-      toast.error(`Execution failed: ${err.message}`);
-    } finally {
+      toast.error(`Operation failed: ${err.message}`);
       setIsApproving(false);
     }
   }
@@ -136,37 +127,121 @@ export default function DecisionModal() {
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
-        useAlertStore.getState().clearActiveDisruption();
+        clearActiveDisruption();
         return;
       }
       if (!isApproving && ['1', '2', '3'].includes(event.key)) {
         approveRef.current?.(Number(event.key));
       }
     };
-
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isApproving]);
+  }, [isApproving, clearActiveDisruption]);
+
+  const maxCostFound = Math.max(...(activeResolution?.options?.map(o => Math.abs(o.costDelta)) || [10000]));
 
   return (
     <AnimatePresence>
       {activeDisruptionId && !activeResolution?.options?.length ? (
         <LoadingSkeleton stage={agentStage} onDismiss={clearActiveDisruption} />
       ) : null}
+      
       {activeResolution?.options?.length ? (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }} className="w-full max-w-5xl bg-gray-900 rounded-2xl border border-white/10 flex flex-col max-h-[90vh] overflow-hidden">
-        <div className="flex items-start justify-between px-6 py-4 border-b border-white/5">
-          <div className="flex flex-col gap-1"><div className="flex items-center gap-3"><h2 className="text-lg font-semibold text-white">Resolution Required</h2>{disruption && <SeverityBadge severity={disruption.severity} />}</div><p className="text-sm text-white/50">{disruption?.location || 'Disruption detected'} — {activeResolution.cascadeRisk} cascade risk</p></div>
-          <button title="Esc" onClick={clearActiveDisruption} className="text-white/30 hover:text-white/60 text-xl leading-none flex items-center gap-1">×<span className="text-xs text-white/20 ml-1">[Esc]</span></button>
-        </div>
-        {activeResolution.analysisText && <div className="px-6 py-3 bg-red-950/20 border-b border-white/5"><p className="text-xs text-red-300/80 leading-relaxed">{activeResolution.analysisText}</p></div>}
-        <div className="flex flex-col md:flex-row gap-4 p-6 overflow-y-auto">
-          {activeResolution.options.map((option) => (
-            <OptionCard key={option.rank} option={option} onApprove={handleApprove} isApproving={isApproving} isSelected={approvedRank === option.rank} shortcutKey={option.rank} />
-          ))}
-        </div>
-        <div className="px-6 py-3 border-t border-white/5 flex items-center justify-between"><p className="text-xs text-white/20">Trace ID: <span className="font-mono">{traceId}</span></p><p className="text-xs text-white/20">Urgency {activeResolution.urgency}/10</p></div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-overlay)] backdrop-blur-xl p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 24 }} 
+            animate={{ scale: 1, opacity: 1, y: 0 }} 
+            exit={{ scale: 0.95, opacity: 0, y: 12 }} 
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }} 
+            className="w-full max-w-6xl bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-strong)] flex flex-col max-h-[92vh] overflow-hidden shadow-[0_32px_120px_rgba(0,0,0,0.6)]"
+          >
+            <div className="flex items-start justify-between px-8 py-6 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]/20">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-[var(--text-primary)] font-display tracking-tight uppercase">Strategic Resolution Dashboard</h2>
+                  {disruption && <SeverityBadge severity={disruption.severity} />}
+                </div>
+                <div className="flex items-center gap-3 text-[11px] text-[var(--text-secondary)] font-medium">
+                  <span className="flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5" /> High Cascade Risk Detected</span>
+                  <span className="opacity-20">|</span>
+                  <span>Origin: {disruption?.location || 'Unknown Node'}</span>
+                </div>
+              </div>
+              <button title="Esc" onClick={clearActiveDisruption} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all p-2 rounded-xl hover:bg-[var(--bg-elevated)]"><X className="w-6 h-6" /></button>
+            </div>
+
+            <div className="flex flex-col lg:grid lg:grid-cols-[1.4fr_0.6fr] gap-0 flex-1 overflow-hidden">
+              <div className="p-8 overflow-y-auto custom-scrollbar space-y-8 bg-black/5">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {activeResolution.options.map((option) => (
+                    <OptionCard 
+                      key={option.rank} 
+                      option={option} 
+                      onApprove={handleApprove} 
+                      isApproving={isApproving} 
+                      isSelected={approvedRank === option.rank} 
+                      shortcutKey={option.rank}
+                      maxCost={maxCostFound}
+                    />
+                  ))}
+                </div>
+                
+                {activeResolution.analysisText && (
+                  <div className="p-5 rounded-2xl border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/5 flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-[var(--accent-red)]/10 flex items-center justify-center shrink-0">
+                      <ShieldAlert className="w-4 h-4 text-[var(--accent-red)]" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-[var(--accent-red)] uppercase tracking-widest">Surgical Analysis</p>
+                      <p className="text-[11px] text-[var(--text-primary)] leading-relaxed font-medium">{activeResolution.analysisText}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 border-l border-[var(--border-subtle)] bg-[var(--bg-surface)] overflow-y-auto custom-scrollbar flex flex-col gap-8">
+                <RiskMatrix options={activeResolution.options} />
+                
+                <div className="space-y-4">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Operational Constraints</div>
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Impact Breadth</span>
+                        <span className="text-[10px] font-mono font-bold text-[var(--accent-cyan)]">{activeResolution.urgency}/10</span>
+                      </div>
+                      <div className="h-1 bg-black/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-[var(--accent-cyan)]" style={{ width: `${activeResolution.urgency * 10}%` }} />
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Complexity Index</span>
+                        <span className="text-[10px] font-mono font-bold text-[var(--accent-amber)]">Medium</span>
+                      </div>
+                      <div className="h-1 bg-black/20 rounded-full overflow-hidden">
+                        <div className="h-full bg-[var(--accent-amber)]" style={{ width: '65%' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-auto p-4 rounded-2xl bg-[var(--bg-elevated)]/30 border border-dashed border-[var(--border-subtle)]">
+                  <p className="text-[10px] text-[var(--text-muted)] leading-relaxed font-medium italic">
+                    Strategy synthesis derived from real-time maritime tracking and predictive weather modeling. Trace: <span className="font-mono opacity-60">{traceId}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-8 py-3 bg-[var(--bg-elevated)]/40 border-t border-[var(--border-subtle)] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Collective Intelligence Version 4.2-Stable</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-[10px] font-mono text-[var(--text-muted)]">SYSTEM_MODE: SYNTHETIC_DECISION_READY</span>
+              </div>
+            </div>
           </motion.div>
         </motion.div>
       ) : null}

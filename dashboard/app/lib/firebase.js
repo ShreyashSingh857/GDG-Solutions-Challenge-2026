@@ -1,6 +1,7 @@
 'use client';
 
 import { initializeApp, getApps } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -24,6 +25,8 @@ if (isFirebaseConfigured) {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 }
 
+const auth = app ? getAuth(app) : null;
+
 let db = null;
 if (app) {
   try {
@@ -36,4 +39,4 @@ if (app) {
   }
 }
 
-export { db };
+export { app, auth, db };

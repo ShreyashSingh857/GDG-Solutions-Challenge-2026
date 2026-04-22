@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../lib/firebase-admin.js'; // server-side admin import
+import { verifyInternalToken } from '../../_internal-auth.js';
 
 const SCENARIO_MAP = {
   suez_closure: 'The Suez Canal Authority has announced an emergency closure. Houthi missile attacks on Red Sea vessels. Forty-three vessels held. $12B daily trade affected. Minimum 21-day closure expected. All Asia-Europe shipments via southern route ordered to divert via Cape of Good Hope.',
@@ -14,6 +15,9 @@ const SCENARIO_MAP = {
  */
 export async function POST(req) {
   try {
+    const unauthorized = verifyInternalToken(req);
+    if (unauthorized) return unauthorized;
+
     const body = await req.json();
 
     if (body.scenario) {
@@ -59,6 +63,25 @@ export async function POST(req) {
       traceId,
       receivedAt: new Date().toISOString(),
     }, { merge: true });
+
+    if (collection === 'disruptions') {
+      const notifyUrl = new URL('/api/push/notify', req.url);
+      await fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.INTERNAL_TOKEN ? { Authorization: `Bearer ${process.env.INTERNAL_TOKEN}` } : {}),
+        },
+        body: JSON.stringify({
+          orgId: payload.orgId || process.env.DEFAULT_ORG_ID || 'demo-org',
+          title: '⚠️ Disruption Detected',
+          body: `${payload.type || 'Disruption'} at ${payload.location || 'an unknown location'} — Severity ${payload.severity ?? 'N/A'}`,
+          url: '/',
+        }),
+      }).catch((error) => {
+        console.warn('[WebhookDisruption] Push notify failed:', error.message);
+      });
+    }
 
     return NextResponse.json({ ok: true, collection, traceId });
   } catch (err) {

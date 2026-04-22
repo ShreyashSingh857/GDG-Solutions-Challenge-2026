@@ -1,6 +1,6 @@
 import { generateWithTools } from '../../shared/lib/gemini.js';
 import { db } from '../../shared/db/firebase.js';
-import { resilientUpsert } from '../../shared/db/supabase.js';
+import { resilientUpsert, supabase } from '../../shared/db/supabase.js';
 import { publish } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
 import { createAgentPayload } from '../../shared/types/AgentPayload.js';
@@ -19,9 +19,83 @@ import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8');
 const CONFIDENCE_THRESHOLD = 0.6;
+const PUSH_MIN_SEVERITY = 7;
 const MONITORED_PORTS = [
 	'CNSHA', 'CNNGB', 'SGSIN', 'USLAX', 'USNYC', 'DEHAM', 'NLRTM', 'AEJEA', 'EGPSD', 'KRPUS',
 ];
+
+let webpushModule = null;
+let vapidConfigured = false;
+
+async function getWebPushModule() {
+	if (webpushModule) return webpushModule;
+	try {
+		const mod = await import('web-push');
+		webpushModule = mod.default || mod;
+		return webpushModule;
+	} catch {
+		return null;
+	}
+}
+
+async function sendPushToSubscribers(disruptionEvent) {
+	if (disruptionEvent.severity < PUSH_MIN_SEVERITY) return;
+	if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+
+	const webpush = await getWebPushModule();
+	if (!webpush) return;
+
+	if (!vapidConfigured) {
+		webpush.setVapidDetails(
+			`mailto:${process.env.VAPID_EMAIL || 'ops@example.com'}`,
+			process.env.VAPID_PUBLIC_KEY,
+			process.env.VAPID_PRIVATE_KEY
+		);
+		vapidConfigured = true;
+	}
+
+	let rows = [];
+	try {
+		const { data, error } = await supabase
+			.from('push_subscriptions')
+			.select('endpoint,p256dh,auth')
+			.eq('org_id', process.env.DEFAULT_ORG_ID || 'demo-org')
+			.limit(500);
+		if (error) {
+			console.warn('[DisruptionService] push_subscriptions query failed:', error.message);
+			return;
+		}
+		rows = data || [];
+	} catch (err) {
+		console.warn('[DisruptionService] Push query unavailable:', err.message);
+		return;
+	}
+
+	if (!rows.length) return;
+
+	const payload = JSON.stringify({
+		title: `${disruptionEvent.type} Alert - Severity ${disruptionEvent.severity}/10`,
+		body: disruptionEvent.location,
+		url: `/?disruption=${disruptionEvent.id}`,
+	});
+
+	const sends = rows.map((sub) => {
+		if (!sub.endpoint || !sub.p256dh || !sub.auth) return Promise.resolve();
+		return webpush
+			.sendNotification(
+				{ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+				payload
+			)
+			.catch((err) => {
+				if (err?.statusCode === 404 || err?.statusCode === 410) {
+					return supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint).then(() => null).catch(() => null);
+				}
+				return null;
+			});
+	});
+
+	await Promise.allSettled(sends);
+}
 
 function fallbackDisruption(rawDescription) {
 	const text = rawDescription.toLowerCase();
@@ -70,6 +144,7 @@ export async function classifyAndPublish(rawDescription, traceId = null) {
 	if (queued) console.warn('[DisruptionService] Supabase disruptions write queued for retry');
 	setLastEventAt(new Date().toISOString());
 	if (disruptionEvent.confidence < CONFIDENCE_THRESHOLD) return { disruptionEvent, published: false };
+	await sendPushToSubscribers(disruptionEvent);
 	const agentPayload = createAgentPayload('monitor', disruptionEvent, traceId);
 	await publish(TOPICS.DISRUPTION_EVENTS, agentPayload);
 	return { disruptionEvent, published: true, traceId: agentPayload.traceId };

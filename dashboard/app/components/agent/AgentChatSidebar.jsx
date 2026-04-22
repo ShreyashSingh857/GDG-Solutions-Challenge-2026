@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAlertStore } from '../../store/alertStore.js';
 
-const URL = process.env.NEXT_PUBLIC_RESOLUTION_AGENT_URL || 'http://localhost:3003';
+const RESOLUTION_AGENT_URL = process.env.NEXT_PUBLIC_RESOLUTION_AGENT_URL || 'http://localhost:3003';
 
 export default function AgentChatSidebar() {
   const activeResolution = useAlertStore((s) => s.activeResolution);
@@ -35,7 +35,7 @@ export default function AgentChatSidebar() {
       esRef.current.close();
       esRef.current = null;
     }
-    const es = new EventSource(`${URL}/options/stream/${traceId}`);
+    const es = new EventSource(`${RESOLUTION_AGENT_URL}/options/stream/${traceId}`);
     esRef.current = es;
     es.onopen = () => {
       setChains((p) => [{ traceId, text: '', complete: false }, ...p.filter((c) => c.traceId !== traceId)].slice(0, 5));

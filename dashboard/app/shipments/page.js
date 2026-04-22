@@ -3,18 +3,21 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Download, PackageSearch, Plus, ShipWheel, Upload } from 'lucide-react';
+import { motion } from 'framer-motion';
 import NavBar from '../components/NavBar.jsx';
-import { useShipments } from '../hooks/useShipments.js';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
+import MinimalErrorFallback from '../components/MinimalErrorFallback.jsx';
 import { useShipmentStore } from '../store/shipmentStore.js';
+import { PAGE_ENTER } from '../lib/motion.js';
 
 const OverviewTab = dynamic(() => import('./components/OverviewTab.jsx'), {
   ssr: false,
-  loading: () => <div className="p-8 text-white/40 text-sm">Loading overview...</div>,
+  loading: () => <ShipmentsPageSkeleton />, 
 });
 
 const ShipmentsTab = dynamic(() => import('./components/ShipmentsTab.jsx'), {
   ssr: false,
-  loading: () => <div className="p-8 text-white/40 text-sm">Loading shipments...</div>,
+  loading: () => <ShipmentsPageSkeleton />,
 });
 
 const ShipmentModal = dynamic(() => import('./components/ShipmentModal.jsx'), {
@@ -38,8 +41,6 @@ export default function DetailsPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Mount Firestore subscription (same hook as Globe page)
-  useShipments();
   const shipments = useShipmentStore((s) => s.shipments);
   const isLoading = useShipmentStore((s) => s.isLoading);
 
@@ -55,25 +56,13 @@ export default function DetailsPage() {
         ID: shipment.id,
         Origin: shipment.origin,
         Destination: shipment.destination,
-        OriginLat: shipment.originLat,
-        OriginLng: shipment.originLng,
-        DestLat: shipment.destLat,
-        DestLng: shipment.destLng,
-        CurrentLat: shipment.currentLat,
-        CurrentLng: shipment.currentLng,
         Status: shipment.status,
         Carrier: shipment.carrier,
         CargoValueUSD: shipment.cargoValueUSD,
         ETA: shipment.eta,
         Corridor: shipment.corridor,
         Mode: shipment.mode,
-        PaymentAmountUSD: shipment.paymentAmountUSD,
-        PaymentStatus: shipment.paymentStatus,
-        ImportExport: shipment.importExport,
-        DepartureDate: shipment.departureDate,
         TrackingNumber: shipment.trackingNumber,
-        CreatedAt: shipment.createdAt,
-        UpdatedAt: shipment.updatedAt,
       }));
 
       const sheet = XLSX.utils.json_to_sheet(rows);
@@ -88,10 +77,11 @@ export default function DetailsPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#020617] text-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
       <NavBar />
-      <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-black/40">
-        <div className="flex gap-1">
+      
+      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md z-30">
+        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-0.5">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -99,8 +89,8 @@ export default function DetailsPage() {
               className={[
                 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
                 activeTab === tab.id
-                  ? 'bg-blue-600/30 border border-blue-500/40 text-blue-200'
-                  : 'text-white/40 hover:text-white/70 hover:bg-white/5',
+                  ? 'bg-slate-950 text-slate-100 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60',
               ].join(' ')}
             >
               <tab.icon className="w-4 h-4" aria-hidden="true" />
@@ -108,51 +98,84 @@ export default function DetailsPage() {
             </button>
           ))}
         </div>
+        
         {activeTab === 'shipments' && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-white/15 bg-white/5 hover:bg-white/10 text-white transition-colors"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors"
             >
-              <Upload className="w-4 h-4" aria-hidden="true" />
+              <Upload className="w-4 h-4" />
               Import
             </button>
             <button
               onClick={handleExport}
               disabled={isExporting || isLoading || shipments.length === 0}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-white/15 bg-white/5 hover:bg-white/10 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors disabled:opacity-50"
             >
-              <Download className="w-4 h-4" aria-hidden="true" />
+              <Download className="w-4 h-4" />
               {isExporting ? 'Exporting...' : 'Export'}
             </button>
             <button
               onClick={openAdd}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:brightness-110 text-white transition-all shadow-lg shadow-blue-500/20"
             >
-              <Plus className="w-4 h-4" aria-hidden="true" />
+              <Plus className="w-4 h-4" />
               Add Shipment
             </button>
           </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {activeTab === 'overview' && <OverviewTab shipments={shipments} isLoading={isLoading} />}
-        {activeTab === 'shipments' && (
-          <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
+      <motion.div 
+        variants={PAGE_ENTER}
+        initial="hidden"
+        animate="visible"
+        className="flex-1 overflow-y-auto custom-scrollbar"
+      >
+        {activeTab === 'overview' && (
+          <ErrorBoundary fallback={<MinimalErrorFallback name="Overview Tab" />}>
+            <OverviewTab shipments={shipments} isLoading={isLoading} />
+          </ErrorBoundary>
         )}
-      </div>
+        {activeTab === 'shipments' && (
+          <ErrorBoundary fallback={<MinimalErrorFallback name="Shipments Tab" />}>
+            <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
+          </ErrorBoundary>
+        )}
+      </motion.div>
 
       {modalState.open && (
-        <ShipmentModal
-          shipment={modalState.shipment}
-          onClose={closeModal}
-          onDelete={closeModal}
-        />
+        <ErrorBoundary fallback={<MinimalErrorFallback name="Shipment Modal" />}>
+          <ShipmentModal
+            shipment={modalState.shipment}
+            onClose={closeModal}
+            onDelete={closeModal}
+          />
+        </ErrorBoundary>
       )}
       {isImportModalOpen && (
-        <ShipmentImportModal onClose={() => setIsImportModalOpen(false)} />
+        <ErrorBoundary fallback={<MinimalErrorFallback name="Shipment Import Modal" />}>
+          <ShipmentImportModal onClose={() => setIsImportModalOpen(false)} />
+        </ErrorBoundary>
       )}
+    </div>
+  );
+}
+
+function ShipmentsPageSkeleton() {
+  return (
+    <div className="flex-1 p-6 space-y-6">
+      <div className="h-10 w-72 rounded-xl bg-slate-900 animate-pulse" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-24 rounded-2xl bg-slate-900 animate-pulse" />
+        ))}
+      </div>
+      <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+        <div className="h-9 w-80 rounded-xl bg-slate-900 animate-pulse" />
+        <div className="h-105 rounded-2xl bg-slate-900 animate-pulse" />
+      </div>
     </div>
   );
 }

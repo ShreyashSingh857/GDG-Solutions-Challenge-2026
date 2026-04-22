@@ -62,10 +62,21 @@ async function requestJson(url, options) {
 async function runCommand(command, args, logger) {
   logger.write(`$ ${command} ${args.join(' ')}`);
   return new Promise((resolve) => {
-    const executable = process.platform === 'win32' && command === 'npm' ? 'npm.cmd' : command;
-    const child = spawn(executable, args, { shell: false, windowsHide: true });
+    const isWindowsNpm = process.platform === 'win32' && command === 'npm';
+    const executable = isWindowsNpm ? command : (process.platform === 'win32' && command === 'npm' ? 'npm.cmd' : command);
+    const child = spawn(executable, args, {
+      shell: isWindowsNpm,
+      windowsHide: true,
+      cwd: process.cwd(),
+      env: process.env,
+    });
     let stdout = '';
     let stderr = '';
+
+    child.on('error', (err) => {
+      logger.write(`  [spawn-error] ${err?.message || String(err)}`);
+      resolve({ command: `${command} ${args.join(' ')}`, code: 1, stdout, stderr: `${stderr}${err?.stack || err?.message || err}` });
+    });
 
     child.stdout.on('data', (chunk) => {
       const text = chunk.toString();
@@ -178,7 +189,14 @@ async function main() {
 
   logger.write('Running scraper smoke checks');
   const scraperSmoke = await runCommand('npm', ['run', 'smoke:scraper'], logger);
-  const scraperToolingSmoke = await runCommand('node', ['--test', 'disruption/tests/*.smoke.test.js'], logger);
+  const scraperToolingSmoke = await runCommand('node', [
+    '--test',
+    'disruption/tests/aisResolver.smoke.test.js',
+    'disruption/tests/ecmwfScraper.smoke.test.js',
+    'disruption/tests/flexportTracker.smoke.test.js',
+    'disruption/tests/marineTrafficScraper.smoke.test.js',
+    'disruption/tests/vesselFinderScraper.smoke.test.js',
+  ], logger);
 
   const summary = {
     timestamp: nowIso,

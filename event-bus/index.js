@@ -4,14 +4,18 @@ import { broker } from './broker.js';
 import { TOPICS } from './topics.js';
 import { createLogger } from '../shared/lib/logger.js';
 import { createMetrics } from '../shared/lib/metrics.js';
+import { startTelemetry } from '../shared/lib/telemetry.js';
+import { buildHealthPayload } from '../shared/lib/health.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
 const logger = createLogger('event-bus');
 const metrics = createMetrics('event-bus');
+startTelemetry('event-bus');
 
 const startTime = Date.now();
 const deadLetterLog = [];
+let lastEventAt = null;
 
 app.addHook('onRequest', async (req) => {
   req._startAt = Date.now();
@@ -26,19 +30,30 @@ broker.on('dead-letter', (dlq) => {
   if (deadLetterLog.length > 100) deadLetterLog.shift();
 });
 
+Object.values(TOPICS).forEach((topic) => {
+  broker.on(topic, () => {
+    lastEventAt = new Date().toISOString();
+  });
+});
+
 /**
  * Health check - used by UptimeRobot and agents to verify the bus is live.
  */
 app.get('/health', async (req, reply) => {
-  reply.send({
-    status: 'ok',
-    service: 'event-bus',
-    uptime: Math.floor((Date.now() - startTime) / 1000),
-    topics: Object.values(TOPICS),
-    messageCounts: Object.fromEntries(
-      Object.values(TOPICS).map((t) => [t, broker.getReplay(t).length])
-    ),
-  });
+  reply.send(
+    buildHealthPayload({
+      service: 'event-bus',
+      startedAt: startTime,
+      lastEventAt,
+      pendingQueueDepth: 0,
+      extra: {
+        topics: Object.values(TOPICS),
+        messageCounts: Object.fromEntries(
+          Object.values(TOPICS).map((t) => [t, broker.getReplay(t).length])
+        ),
+      },
+    })
+  );
 });
 
 /**
@@ -103,6 +118,21 @@ app.get('/subscribe/:topic', async (req, reply) => {
   }, 30000);
 
   req.raw.on('close', () => clearInterval(keepAlive));
+});
+
+app.get('/replay/:topic', async (req, reply) => {
+  const { topic } = req.params;
+
+  if (!Object.values(TOPICS).includes(topic)) {
+    return reply.status(400).send({ error: `Unknown topic: ${topic}` });
+  }
+
+  const since = Number(req.query.since || 0);
+  reply.send({
+    topic,
+    since,
+    events: broker.getReplaySince(topic, since),
+  });
 });
 
 app.get('/dead-letters', async (req, reply) => {

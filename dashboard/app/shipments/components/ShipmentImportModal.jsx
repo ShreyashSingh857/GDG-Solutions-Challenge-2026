@@ -8,11 +8,26 @@ import { useShipmentStore } from '../../store/shipmentStore.js';
  * @param {{ onClose:()=>void }} props
  */
 export default function ShipmentImportModal({ onClose }) {
+  const [activeTab, setActiveTab] = useState('excel');
   const [file, setFile] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [validationDetails, setValidationDetails] = useState([]);
+  const [manualForm, setManualForm] = useState({
+    origin: '',
+    destination: '',
+    originLat: '',
+    originLng: '',
+    destLat: '',
+    destLng: '',
+    carrier: 'Maersk',
+    mode: 'sea-freight',
+    cargoValueUSD: '',
+    corridor: 'Pacific',
+    trackingNumber: '',
+  });
 
   const canImport = useMemo(() => {
     if (!file) return false;
@@ -74,6 +89,92 @@ export default function ShipmentImportModal({ onClose }) {
       setError(err.message || 'Import failed');
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const handleManualField = (key, value) => {
+    setManualForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleManualSubmit = async (event) => {
+    event.preventDefault();
+
+    setIsSubmittingManual(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const payload = {
+        origin: manualForm.origin.trim(),
+        destination: manualForm.destination.trim(),
+        originLat: Number(manualForm.originLat),
+        originLng: Number(manualForm.originLng),
+        destLat: Number(manualForm.destLat),
+        destLng: Number(manualForm.destLng),
+        currentLat: Number(manualForm.originLat),
+        currentLng: Number(manualForm.originLng),
+        status: 'active',
+        carrier: manualForm.carrier.trim(),
+        mode: manualForm.mode,
+        cargoValueUSD: Number(manualForm.cargoValueUSD),
+        corridor: manualForm.corridor.trim(),
+        trackingNumber: manualForm.trackingNumber.trim() || null,
+        eta: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+
+      const requiredFields = ['origin', 'destination', 'carrier', 'corridor'];
+      for (const field of requiredFields) {
+        if (!payload[field]) {
+          throw new Error(`Please provide ${field}`);
+        }
+      }
+
+      if (
+        !Number.isFinite(payload.originLat) ||
+        !Number.isFinite(payload.originLng) ||
+        !Number.isFinite(payload.destLat) ||
+        !Number.isFinite(payload.destLng) ||
+        !Number.isFinite(payload.cargoValueUSD)
+      ) {
+        throw new Error('Latitude, longitude, and cargo value must be valid numbers');
+      }
+
+      const res = await fetch('/api/shipments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.error) {
+        throw new Error(json.error || `Manual shipment creation failed: HTTP ${res.status}`);
+      }
+
+      if (json.data) {
+        useShipmentStore.setState((state) => ({
+          shipments: [json.data, ...state.shipments.filter((s) => s.id !== json.data.id)],
+          isLoading: false,
+        }));
+      }
+
+      setResult({ insertedCount: 1, skippedEmptyRows: 0 });
+      setManualForm({
+        origin: '',
+        destination: '',
+        originLat: '',
+        originLng: '',
+        destLat: '',
+        destLng: '',
+        carrier: 'Maersk',
+        mode: 'sea-freight',
+        cargoValueUSD: '',
+        corridor: 'Pacific',
+        trackingNumber: '',
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to create shipment');
+    } finally {
+      setIsSubmittingManual(false);
     }
   };
 
@@ -144,26 +245,71 @@ export default function ShipmentImportModal({ onClose }) {
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <label className="block text-sm font-medium text-white/80 mb-2">Excel file (.xlsx or .xls)</label>
-            <input
-              type="file"
-              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-white/80 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-white/20 file:bg-white/10 file:text-white file:cursor-pointer"
-            />
-            <p className="mt-2 text-xs text-white/40">
-              Required columns: origin, destination, originLat, originLng, destLat, destLng, status, carrier, cargoValueUSD, eta, corridor.
-            </p>
+          <div className="flex gap-2 rounded-xl border border-white/10 bg-white/3 p-1">
             <button
               type="button"
-              onClick={handleDownloadTemplate}
-              className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-cyan-400/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition-colors"
+              onClick={() => setActiveTab('excel')}
+              className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${activeTab === 'excel' ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30' : 'text-white/55 hover:bg-white/5'}`}
             >
-              <Download className="w-3.5 h-3.5" aria-hidden="true" />
-              Download Sample Template
+              Import Excel
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('manual')}
+              className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${activeTab === 'manual' ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/30' : 'text-white/55 hover:bg-white/5'}`}
+            >
+              Add Manually
             </button>
           </div>
+
+          {activeTab === 'excel' ? (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <label className="block text-sm font-medium text-white/80 mb-2">Excel file (.xlsx or .xls)</label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-white/80 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-white/20 file:bg-white/10 file:text-white file:cursor-pointer"
+              />
+              <p className="mt-2 text-xs text-white/40">
+                Required columns: origin, destination, originLat, originLng, destLat, destLng, status, carrier, cargoValueUSD, eta, corridor.
+              </p>
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border border-cyan-400/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                Download Sample Template
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleManualSubmit} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <InputField label="Origin" value={manualForm.origin} onChange={(value) => handleManualField('origin', value)} />
+                <InputField label="Destination" value={manualForm.destination} onChange={(value) => handleManualField('destination', value)} />
+                <InputField label="Origin Lat" type="number" value={manualForm.originLat} onChange={(value) => handleManualField('originLat', value)} />
+                <InputField label="Origin Lng" type="number" value={manualForm.originLng} onChange={(value) => handleManualField('originLng', value)} />
+                <InputField label="Dest Lat" type="number" value={manualForm.destLat} onChange={(value) => handleManualField('destLat', value)} />
+                <InputField label="Dest Lng" type="number" value={manualForm.destLng} onChange={(value) => handleManualField('destLng', value)} />
+                <InputField label="Carrier" value={manualForm.carrier} onChange={(value) => handleManualField('carrier', value)} />
+                <InputField label="Mode" value={manualForm.mode} onChange={(value) => handleManualField('mode', value)} />
+                <InputField label="Cargo Value (USD)" type="number" value={manualForm.cargoValueUSD} onChange={(value) => handleManualField('cargoValueUSD', value)} />
+                <InputField label="Corridor" value={manualForm.corridor} onChange={(value) => handleManualField('corridor', value)} />
+                <div className="md:col-span-2">
+                  <InputField label="Tracking Number" value={manualForm.trackingNumber} onChange={(value) => handleManualField('trackingNumber', value)} />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingManual}
+                className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors disabled:opacity-60"
+              >
+                {isSubmittingManual ? 'Adding Shipment...' : 'Add Shipment'}
+              </button>
+            </form>
+          )}
 
           {result && (
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3 text-sm text-emerald-200">
@@ -198,17 +344,33 @@ export default function ShipmentImportModal({ onClose }) {
           >
             Close
           </button>
-          <button
-            onClick={handleImport}
-            disabled={!canImport || isImporting}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isImporting && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/50 border-t-transparent animate-spin" />}
-            {!isImporting && <Upload className="w-4 h-4" aria-hidden="true" />}
-            {isImporting ? 'Importing...' : 'Import File'}
-          </button>
+          {activeTab === 'excel' ? (
+            <button
+              onClick={handleImport}
+              disabled={!canImport || isImporting}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isImporting && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/50 border-t-transparent animate-spin" />}
+              {!isImporting && <Upload className="w-4 h-4" aria-hidden="true" />}
+              {isImporting ? 'Importing...' : 'Import File'}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
+  );
+}
+
+function InputField({ label, value, onChange, type = 'text' }) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] uppercase tracking-[0.16em] text-white/45 mb-1">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/50"
+      />
+    </label>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { adminDb } from '../../../../lib/firebase-admin.js';
+import { normalizeDisruption as normalizeBaseDisruption } from '../../../../../shared/lib/normalizeDisruption.js';
 
 function parseDate(value, fallback) {
 	if (!value) return fallback;
@@ -9,14 +10,16 @@ function parseDate(value, fallback) {
 }
 
 function normalizeDisruption(record) {
+	const base = normalizeBaseDisruption(record);
+
 	return {
-		id: record.id,
-		type: record.type || record.disruptionType || 'UNKNOWN',
-		severity: Number(record.severity ?? record.severityScore ?? 0),
+		id: base.id,
+		type: base.type || 'UNKNOWN',
+		severity: base.severity,
 		location: record.location || record.disruptionLocation || 'Unknown location',
 		epicenterLat: record.epicenterLat ?? record.epicenter_lat ?? null,
 		epicenterLng: record.epicenterLng ?? record.epicenter_lng ?? null,
-		detectedAt: record.detectedAt || record.detected_at || record.receivedAt || record.timestamp || new Date().toISOString(),
+		detectedAt: base.detectedAt || record.timestamp || new Date().toISOString(),
 		confidence: Number(record.confidence ?? 0),
 		rawDescription: record.rawDescription || record.description || '',
 		affectedZones: record.affectedZones || record.affected_zones || [],

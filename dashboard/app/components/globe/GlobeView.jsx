@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Cartesian2,
   Cartesian3,
@@ -40,6 +41,7 @@ function isValidCoord(lat, lon) {
 
 function dominantStatus(statuses) {
   if (statuses.has('rerouted')) return 'rerouted';
+  if (statuses.has('disrupted')) return 'disrupted';
   if (statuses.has('delayed')) return 'delayed';
   return 'active';
 }
@@ -93,7 +95,7 @@ export default function GlobeView() {
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow);
   const disruptions = useAlertStore((x) => x.disruptions);
-  const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
+  const reroutedRoutes = useAlertStore(useShallow((x) => x.reroutedRoutes));
   const vessels = useVesselPositions();
   const ports = usePortCongestion();
   const corridors = useCorridorWeather();
@@ -232,7 +234,10 @@ export default function GlobeView() {
       const originKey = getEndpointKey(shipment, 'originCode', 'origin', 'originLat', 'originLon', 'origin');
       const destKey = getEndpointKey(shipment, 'destCode', 'destination', 'destLat', 'destLon', 'dest');
       const routeKey = [originKey, destKey].sort().join('|');
-      const reroutedRoute = shipment.status === 'rerouted' && shipment.disruptionId ? reroutedRoutes[shipment.disruptionId] : null;
+      const reroutedRoute =
+        shipment.status === 'rerouted' && shipment.disruptionId
+          ? reroutedRoutes.get(shipment.disruptionId)
+          : null;
       if (!routeMap.has(routeKey)) {
         routeMap.set(routeKey, {
           routeKey,
@@ -288,7 +293,7 @@ export default function GlobeView() {
           if (existing.destinationDot) entities.remove(existing.destinationDot);
         }
 
-        const colorMap = { active: C.active, delayed: C.delayed, rerouted: C.rerouted };
+        const colorMap = { active: C.active, delayed: C.delayed, rerouted: C.rerouted, disrupted: C.disrupted };
         const color = Color.fromCssColorString(colorMap[route.status] || colorMap.active).withAlpha(0.75);
         const positions = generateGeodesicRoutePositions(getRoutePoints(route), routeIndex, 48);
         const width = Math.min(1 + Math.floor(route.count / 3), 5);
@@ -413,7 +418,7 @@ export default function GlobeView() {
         existing.ellipse.semiMinorAxis = new ConstantProperty(radius);
         existing.ellipse.material = color;
         if (existing.label) {
-          existing.label.show = new ConstantProperty(zoomLevel === 'close');
+          existing.label.show = new ConstantProperty(zoomLevel === 'state' || zoomLevel === 'city');
           existing.label.text = `${port.name}\n${waitH.toFixed(0)}h wait`;
         }
       } else {
@@ -436,7 +441,7 @@ export default function GlobeView() {
             showBackground: true,
             backgroundColor: Color.BLACK.withAlpha(0.55),
             pixelOffset: new Cartesian2(0, -70),
-            show: new ConstantProperty(zoomLevel === 'close'),
+            show: new ConstantProperty(zoomLevel === 'state' || zoomLevel === 'city'),
             style: LabelStyle.FILL_AND_OUTLINE,
             outlineWidth: 2,
             outlineColor: Color.BLACK,
@@ -643,5 +648,31 @@ export default function GlobeView() {
     viewer.scene.requestRender();
   }, [vessels]);
 
-  return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" /><div ref={tooltipRef} style={{ position: "fixed", top: 0, left: 0, transform: "translate(-9999px, -9999px)", zIndex: 20, pointerEvents: "none", transition: "none" }} className={`bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white ${t ? 'visible' : 'invisible'}`}><p className="font-medium">{t?.label || ''}</p><p className="text-white/60 capitalize">{t?.kind || ''} • {t?.status || ''}</p></div></div>;
+  return (
+    <div className="relative w-full h-full bg-[#020617]">
+      <GlobeControls onFilterChange={setF} />
+      <div ref={cRef} className="h-full w-full" />
+      <div 
+        ref={tooltipRef} 
+        style={{ 
+          position: "fixed", 
+          top: 0, 
+          left: 0, 
+          transform: "translate(-9999px, -9999px)", 
+          zIndex: 50, 
+          pointerEvents: "none", 
+          transition: "transform 0.08s ease-out" 
+        }} 
+        className={`bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[160px] ${t ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-200`}
+      >
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 leading-none">{t?.kind || 'Entity'}</p>
+        <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{t?.label || ''}</p>
+        {t?.status && (
+          <div className="mt-2 text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed bg-white/5 rounded-lg px-2 py-1 border border-white/5">
+            {t.status}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
