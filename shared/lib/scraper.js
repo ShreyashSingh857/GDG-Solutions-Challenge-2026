@@ -9,6 +9,38 @@ const DEFAULT_HEADERS = {
 
 const lastRequestTime = new Map();
 const responseCache = new Map();
+const circuitBreakers = new Map();
+
+function getCircuitBreakerState(hostname) {
+  if (!circuitBreakers.has(hostname)) {
+    circuitBreakers.set(hostname, {
+      failures: 0,
+      pausedUntil: 0,
+    });
+  }
+
+  return circuitBreakers.get(hostname);
+}
+
+function isCircuitOpen(hostname) {
+  const state = getCircuitBreakerState(hostname);
+  return Date.now() < state.pausedUntil;
+}
+
+function recordScraperFailure(hostname) {
+  const state = getCircuitBreakerState(hostname);
+  state.failures += 1;
+  if (state.failures >= 5) {
+    state.pausedUntil = Date.now() + 15 * 60_000;
+    console.warn(`[Scraper] Circuit open for ${hostname} until ${new Date(state.pausedUntil).toISOString()}`);
+  }
+}
+
+function recordScraperSuccess(hostname) {
+  const state = getCircuitBreakerState(hostname);
+  state.failures = 0;
+  state.pausedUntil = 0;
+}
 
 export async function politeFetch(url, opts = {}) {
   const {
@@ -23,13 +55,18 @@ export async function politeFetch(url, opts = {}) {
   }
 
   const hostname = new URL(url).hostname;
+  if (isCircuitOpen(hostname)) {
+    throw new Error(`[Scraper] Circuit breaker open for ${hostname}`);
+  }
+
   const lastReq = lastRequestTime.get(hostname) || 0;
   const wait = minIntervalMs - (Date.now() - lastReq);
   if (wait > 0) await sleep(wait);
 
-  let attempt = 0;
-  while (attempt < 4) {
-    try {
+  const { retryWithBackoff } = await import('./retryWithBackoff.js');
+
+  try {
+    const data = await retryWithBackoff(async (attempt) => {
       const res = await fetch(url, {
         headers: { ...DEFAULT_HEADERS, ...headers },
         signal: AbortSignal.timeout(20_000),
@@ -39,28 +76,25 @@ export async function politeFetch(url, opts = {}) {
       lastRequestTime.set(hostname, Date.now());
 
       if (res.status === 429 || res.status === 503) {
-        const backoff = Math.pow(2, attempt) * 15_000;
-        console.warn(`[Scraper] ${hostname} rate limited (${res.status}), backing off ${backoff / 1000}s`);
-        await sleep(backoff);
-        attempt++;
-        continue;
-      }
-
-      if (!res.ok) {
+        recordScraperFailure(hostname);
         throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
       }
 
-      const data = await res.text();
-      responseCache.set(url, { data, expiresAt: Date.now() + cacheTtlMs });
-      return data;
-    } catch (err) {
-      if (attempt >= 3) throw err;
-      await sleep(Math.pow(2, attempt) * 5_000);
-      attempt++;
-    }
-  }
+      if (!res.ok) {
+        recordScraperFailure(hostname);
+        throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
+      }
 
-  throw new Error(`[Scraper] All retries exhausted for ${url}`);
+      recordScraperSuccess(hostname);
+      return await res.text();
+    }, { maxRetries: 4, baseDelayMs: 5_000 });
+
+    responseCache.set(url, { data, expiresAt: Date.now() + cacheTtlMs });
+    return data;
+  } catch (err) {
+    recordScraperFailure(hostname);
+    throw err;
+  }
 }
 
 export async function politeJsonFetch(url, opts = {}) {
@@ -154,4 +188,5 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export function resetScraperState() {
   lastRequestTime.clear();
   responseCache.clear();
+  circuitBreakers.clear();
 }
