@@ -112,7 +112,7 @@ export default function AnalyticsPage() {
     return (
       <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
         <NavBar />
-        <div className="flex flex-1 items-center justify-center text-sm text-[var(--text-muted)]">Loading analytics...</div>
+        <AnalyticsSkeleton />
       </div>
     );
   }
@@ -193,5 +193,23 @@ export default function AnalyticsPage() {
         </motion.section>
       </motion.main>
     </div>
+  );
+}
+
+function AnalyticsSkeleton() {
+  return (
+    <main className="flex-1 p-6 space-y-6 overflow-hidden">
+      <div className="h-8 w-48 rounded-lg bg-[var(--bg-elevated)] animate-pulse" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+        ))}
+      </div>
+      <div className="h-64 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="h-56 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+        <div className="h-56 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+      </div>
+    </main>
   );
 }
