@@ -40,6 +40,7 @@ function isValidCoord(lat, lon) {
 
 function dominantStatus(statuses) {
   if (statuses.has('rerouted')) return 'rerouted';
+  if (statuses.has('disrupted')) return 'disrupted';
   if (statuses.has('delayed')) return 'delayed';
   return 'active';
 }
@@ -288,7 +289,7 @@ export default function GlobeView() {
           if (existing.destinationDot) entities.remove(existing.destinationDot);
         }
 
-        const colorMap = { active: C.active, delayed: C.delayed, rerouted: C.rerouted };
+        const colorMap = { active: C.active, delayed: C.delayed, rerouted: C.rerouted, disrupted: C.disrupted };
         const color = Color.fromCssColorString(colorMap[route.status] || colorMap.active).withAlpha(0.75);
         const positions = generateGeodesicRoutePositions(getRoutePoints(route), routeIndex, 48);
         const width = Math.min(1 + Math.floor(route.count / 3), 5);

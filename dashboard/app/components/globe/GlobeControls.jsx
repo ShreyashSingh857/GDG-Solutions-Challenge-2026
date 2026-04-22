@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 
-const STATUS_FILTERS = ['all', 'active', 'delayed', 'rerouted'];
+const STATUS_FILTERS = ['all', 'active', 'delayed', 'rerouted', 'disrupted'];
 
 /**
  * HUD overlay for the globe: status filter buttons and shipment counters.
@@ -19,6 +19,7 @@ export default function GlobeControls({ onFilterChange }) {
     active: shipments.filter((s) => s.status === 'active').length,
     delayed: shipments.filter((s) => s.status === 'delayed').length,
     rerouted: shipments.filter((s) => s.status === 'rerouted').length,
+    disrupted: shipments.filter((s) => s.status === 'disrupted').length,
   };
 
   const handleFilter = (filter) => {
@@ -29,7 +30,7 @@ export default function GlobeControls({ onFilterChange }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      const keyMap = { 'a': 'all', 'v': 'active', 'd': 'delayed', 'r': 'rerouted' };
+      const keyMap = { 'a': 'all', 'v': 'active', 'd': 'delayed', 'r': 'rerouted', 'x': 'disrupted' };
       const filter = keyMap[e.key.toLowerCase()];
       if (filter) {
         setActiveFilter(filter);
@@ -58,6 +59,7 @@ export default function GlobeControls({ onFilterChange }) {
     active: 'border-green-500/50 text-green-400 hover:border-green-400',
     delayed: 'border-red-500/50 text-red-400 hover:border-red-400',
     rerouted: 'border-blue-500/50 text-blue-400 hover:border-blue-400',
+    disrupted: 'border-rose-600/50 text-rose-400 hover:border-rose-400',
   };
 
   const activeColors = {
@@ -65,6 +67,7 @@ export default function GlobeControls({ onFilterChange }) {
     active: 'bg-green-500/20 border-green-400 text-green-300',
     delayed: 'bg-red-500/20 border-red-400 text-red-300',
     rerouted: 'bg-blue-500/20 border-blue-400 text-blue-300',
+    disrupted: 'bg-rose-600/20 border-rose-400 text-rose-300',
   };
 
   return (
@@ -80,7 +83,15 @@ export default function GlobeControls({ onFilterChange }) {
                 activeFilter === filter ? activeColors[filter] : filterColors[filter]
               }`}
             >
-              {filter === 'all' ? `All [A] (${shipments.length})` : filter === 'active' ? `Active [V] (${counts[filter]})` : filter === 'delayed' ? `Delayed [D] (${counts[filter]})` : `Rerouted [R] (${counts[filter]})`}
+              {filter === 'all'
+                ? `All [A] (${shipments.length})`
+                : filter === 'active'
+                  ? `Active [V] (${counts[filter]})`
+                  : filter === 'delayed'
+                    ? `Delayed [D] (${counts[filter]})`
+                    : filter === 'rerouted'
+                      ? `Rerouted [R] (${counts[filter]})`
+                      : `Disrupted [X] (${counts[filter]})`}
             </button>
           ))}
         </div>
