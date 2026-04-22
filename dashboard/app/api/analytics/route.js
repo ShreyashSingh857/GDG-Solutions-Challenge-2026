@@ -13,6 +13,40 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function toTs(value) {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+function calculateMttr(resolutions) {
+  const resolvedDurations = resolutions
+    .filter((r) => (r.status || '').toLowerCase() === 'resolved')
+    .map((r) => {
+      const createdTs = toTs(r.created_at ?? r.createdAt);
+      const updatedTs = toTs(r.updated_at ?? r.updatedAt ?? r.resolved_at ?? r.resolvedAt);
+      if (!createdTs || !updatedTs || updatedTs < createdTs) return null;
+      return updatedTs - createdTs;
+    })
+    .filter((durationMs) => durationMs !== null);
+
+  if (!resolvedDurations.length) return 0;
+  const avgMs = resolvedDurations.reduce((sum, value) => sum + value, 0) / resolvedDurations.length;
+  return Math.round(avgMs / 60000);
+}
+
+function calculateTotalCO2t(resolutions) {
+  const totalTons = resolutions.reduce((sum, r) => {
+    const rerouteDeltaKm = toNum(r.reroute_distance_delta_km ?? r.rerouteDistanceDeltaKm, 0);
+    if (rerouteDeltaKm <= 0) return sum;
+
+    // 0.020 kg CO2 per tonne-km * 12 tonnes average cargo per TEU; convert kg to tonnes.
+    return sum + (rerouteDeltaKm * 0.020 * 12) / 1000;
+  }, 0);
+
+  return Number(totalTons.toFixed(2));
+}
+
 function buildDisruptionSeries(disruptions) {
   const map = new Map();
   disruptions.forEach((d) => {
@@ -61,7 +95,10 @@ async function readFromSupabase(sinceIso) {
 
   const [disruptionsResult, resolutionsResult] = await Promise.all([
     supabase.from('disruptions').select('type,severity,detected_at').gte('detected_at', sinceIso),
-    supabase.from('resolutions').select('status,urgency,total_cargo_at_risk_usd,created_at,cascade_risk').gte('created_at', sinceIso),
+    supabase
+      .from('resolutions')
+      .select('status,urgency,total_cargo_at_risk_usd,created_at,updated_at,resolved_at,cascade_risk,reroute_distance_delta_km')
+      .gte('created_at', sinceIso),
   ]);
 
   if (disruptionsResult.error || resolutionsResult.error) return null;
@@ -90,7 +127,10 @@ async function readFromFirestore(sinceDate) {
       urgency: r.urgency,
       totalCargoAtRiskUSD: r.totalCargoAtRiskUSD,
       createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      resolvedAt: r.resolvedAt,
       cascadeRisk: r.cascadeRisk,
+      rerouteDistanceDeltaKm: r.rerouteDistanceDeltaKm,
     }));
 
   return { disruptions, resolutions };
@@ -108,7 +148,7 @@ export async function GET() {
     const mttdMinutes = Math.round(
       resolutions.reduce((sum, r) => sum + (10 - toNum(r.urgency, 5)) * 5, 0) / Math.max(resolutions.length, 1)
     );
-    const mttrMinutes = 47;
+    const mttrMinutes = calculateMttr(resolutions);
     const cargoSavedUSD = Math.round(
       resolutions.reduce(
         (sum, r) => sum + toNum(r.total_cargo_at_risk_usd ?? r.totalCargoAtRiskUSD, 0) * 0.85,
@@ -120,7 +160,7 @@ export async function GET() {
       mttdMinutes,
       mttrMinutes,
       cargoSavedUSD,
-      totalCO2t: 0,
+      totalCO2t: calculateTotalCO2t(resolutions),
       disruptionsByDay: buildDisruptionSeries(disruptions),
       byType: buildByType(disruptions),
       byCorridor: buildByCorridor(resolutions),
