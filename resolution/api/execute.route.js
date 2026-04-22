@@ -12,6 +12,8 @@ export default async function executeRoute(app) {
 			return reply.status(400).send({ error: 'rank must be 1, 2, or 3', data: null });
 		}
 
+		const nowIso = new Date().toISOString();
+
 		const { data: existing, error: checkErr } = await supabase
 			.from('resolution_options')
 			.select('id, selected, rank, title')
@@ -33,7 +35,7 @@ export default async function executeRoute(app) {
 
 		const { error: selErr } = await supabase
 			.from('resolution_options')
-			.update({ selected: true, executed_at: new Date().toISOString() })
+			.update({ selected: true, executed_at: nowIso, updated_at: nowIso })
 			.eq('resolution_id', traceId)
 			.eq('rank', Number(rank));
 
@@ -44,7 +46,7 @@ export default async function executeRoute(app) {
 
 		await supabase
 			.from('resolutions')
-			.update({ status: 'resolved', selected_rank: Number(rank), resolved_at: new Date().toISOString() })
+			.update({ status: 'resolved', selected_rank: Number(rank), resolved_at: nowIso, updated_at: nowIso })
 			.eq('id', traceId);
 
 		const { data: allOptions } = await supabase
@@ -57,11 +59,12 @@ export default async function executeRoute(app) {
 
 		try {
 			const optionRef = db.collection('resolutions').doc(traceId).collection('options').doc(String(rank));
-			await optionRef.update({ selected: true, executedAt: new Date().toISOString() });
+			await optionRef.update({ selected: true, executedAt: nowIso, updatedAt: nowIso });
 			await db.collection('resolutions').doc(traceId).update({
 				status: 'resolved',
 				selectedRank: Number(rank),
-				resolvedAt: new Date().toISOString(),
+				resolvedAt: nowIso,
+				updatedAt: nowIso,
 			});
 
 			const resDoc = await db.collection('resolutions').doc(traceId).get();
