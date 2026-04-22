@@ -60,6 +60,25 @@ export async function POST(req) {
       receivedAt: new Date().toISOString(),
     }, { merge: true });
 
+    if (collection === 'disruptions') {
+      const notifyUrl = new URL('/api/push/notify', req.url);
+      await fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.INTERNAL_TOKEN ? { Authorization: `Bearer ${process.env.INTERNAL_TOKEN}` } : {}),
+        },
+        body: JSON.stringify({
+          orgId: payload.orgId || process.env.DEFAULT_ORG_ID || 'demo-org',
+          title: '⚠️ Disruption Detected',
+          body: `${payload.type || 'Disruption'} at ${payload.location || 'an unknown location'} — Severity ${payload.severity ?? 'N/A'}`,
+          url: '/',
+        }),
+      }).catch((error) => {
+        console.warn('[WebhookDisruption] Push notify failed:', error.message);
+      });
+    }
+
     return NextResponse.json({ ok: true, collection, traceId });
   } catch (err) {
     console.error('[WebhookDisruption] Error:', err.message);
