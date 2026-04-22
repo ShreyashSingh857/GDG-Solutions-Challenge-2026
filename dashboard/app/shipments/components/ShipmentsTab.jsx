@@ -76,12 +76,9 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
 
     return rows;
   }, [shipments, sortKey, sortDir, search]);
-
-  useEffect(() => {
-    if (selectedIndex >= displayed.length) {
-      setSelectedIndex(Math.max(displayed.length - 1, 0));
-    }
-  }, [displayed.length, selectedIndex]);
+  const boundedSelectedIndex = displayed.length
+    ? Math.min(selectedIndex, displayed.length - 1)
+    : 0;
 
   useEffect(() => {
     const onKeyDown = async (event) => {
@@ -103,13 +100,13 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
 
       if (event.key === 'Enter' || event.key.toLowerCase() === 'e') {
         event.preventDefault();
-        const shipment = displayed[selectedIndex];
+        const shipment = displayed[boundedSelectedIndex];
         if (shipment) onEdit?.(shipment);
       }
 
       if (event.key === 'Delete') {
         event.preventDefault();
-        const shipment = displayed[selectedIndex];
+        const shipment = displayed[boundedSelectedIndex];
         if (!shipment) return;
         const label = shipment.trackingNumber || shipment.id.slice(-8);
         if (!window.confirm(`Delete shipment ${label}? This cannot be undone.`)) return;
@@ -119,7 +116,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [deleteShipment, displayed, onEdit, selectedIndex]);
+  }, [boundedSelectedIndex, deleteShipment, displayed, onEdit]);
 
   const renderSortIcon = (key) => {
     if (sortKey !== key) return null;
@@ -175,7 +172,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
               <AnimatePresence mode="popLayout">
-                {displayed.map((s) => (
+                {displayed.map((s, idx) => (
                   <motion.tr
                     key={s.id}
                     layout

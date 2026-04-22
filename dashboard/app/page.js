@@ -41,10 +41,10 @@ export default function Home() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('agent');
   const [globeEnabled, setGlobeEnabled] = useState(true);
-  const [shouldLoadGlobe, setShouldLoadGlobe] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const isGlobeActive = globeEnabled && isPageVisible;
+  const shouldLoadGlobe = globeEnabled;
   const shipments = useShipmentStore((s) => s.shipments);
   const disruptions = useAlertStore((s) => s.disruptions);
   const newsAlerts = useAlertStore((s) => s.newsAlerts);
@@ -95,11 +95,6 @@ export default function Home() {
       .catch(() => null)
       .finally(() => window.localStorage.setItem(promptedKey, '1'));
   }, []);
-
-  useEffect(() => {
-    if (!globeEnabled) return;
-    setShouldLoadGlobe(true);
-  }, [globeEnabled]);
 
   return (
     <div data-globe="true" className="flex flex-col h-screen w-screen overflow-hidden bg-[#020617]">

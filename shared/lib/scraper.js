@@ -66,7 +66,7 @@ export async function politeFetch(url, opts = {}) {
   const { retryWithBackoff } = await import('./retryWithBackoff.js');
 
   try {
-    const data = await retryWithBackoff(async (attempt) => {
+    const data = await retryWithBackoff(async () => {
       const res = await fetch(url, {
         headers: { ...DEFAULT_HEADERS, ...headers },
         signal: AbortSignal.timeout(20_000),

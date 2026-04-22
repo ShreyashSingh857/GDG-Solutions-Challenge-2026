@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webPush from 'web-push';
+import { verifyInternalToken } from '../../_internal-auth.js';
 
 export const runtime = 'nodejs';
 
@@ -37,14 +38,8 @@ function buildSubscription(record) {
 
 export async function POST(req) {
   try {
-    const internalToken = process.env.INTERNAL_TOKEN;
-    if (internalToken) {
-      const authorization = req.headers.get('authorization') || '';
-      const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
-      if (bearer !== internalToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    }
+    const unauthorized = verifyInternalToken(req);
+    if (unauthorized) return unauthorized;
 
     if (!configureWebPush()) {
       return NextResponse.json({ error: 'Web push is not configured' }, { status: 503 });

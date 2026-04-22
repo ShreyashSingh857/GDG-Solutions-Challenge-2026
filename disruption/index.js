@@ -5,12 +5,15 @@ import { lastEventAt } from './state.js';
 import { createLogger } from '../shared/lib/logger.js';
 import { createMetrics } from '../shared/lib/metrics.js';
 import { validateEnv } from '../shared/lib/validateEnv.js';
+import { startTelemetry } from '../shared/lib/telemetry.js';
+import { buildHealthPayload } from '../shared/lib/health.js';
 import { supabase } from '../shared/db/supabase.js';
 import { sendDailyDigest } from '../shared/lib/emailDigest.js';
 
 validateEnv('DisruptionAgent', ['GEMINI_API_KEY', 'FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY']);
 const logger = createLogger('disruption-agent');
 const metrics = createMetrics('disruption-agent');
+startTelemetry('disruption-agent');
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
@@ -65,12 +68,14 @@ const { pollPortCongestion, pollCanalStatus, pollCorridorWeather } = await impor
 const { startAISStream, MAJOR_CORRIDORS } = await import('./tools/aisStreamTool.js');
 
 app.get('/health', async (req, reply) => {
-	reply.send({
-		status: 'ok',
-		agent: 'disruption-monitor',
-		uptime: Math.floor((Date.now() - startTime) / 1000),
-		lastEventAt,
-	});
+	reply.send(
+		buildHealthPayload({
+			agent: 'disruption-monitor',
+			startedAt: startTime,
+			lastEventAt,
+			pendingQueueDepth: 0,
+		})
+	);
 });
 
 app.get('/metrics', async (req, reply) => {
