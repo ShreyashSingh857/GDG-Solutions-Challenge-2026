@@ -9,7 +9,7 @@ export const useAlertStore = create((set, get) => ({
 	// Resolution with options combined
 	activeResolution: null,
 	resolutionOptions: [],
-	reroutedRoutes: {},
+	reroutedRoutes: new Map(),
 
 	addDisruption: (disruption) =>
 		set((state) => ({
@@ -45,6 +45,17 @@ export const useAlertStore = create((set, get) => ({
 		set((state) => {
 			if (!state.activeResolution) return {};
 			const selectedOption = state.activeResolution.options.find((o) => o.rank === rank);
+			const nextReroutedRoutes = selectedOption?.route
+				? (() => {
+					const nextMap = new Map(state.reroutedRoutes);
+					nextMap.set(state.activeResolution.disruptionId, {
+						...selectedOption.route,
+						transportMode:
+							selectedOption.transportMode || selectedOption.route?.properties?.mode || 'sea-freight',
+					});
+					return nextMap;
+				})()
+				: state.reroutedRoutes;
 			return {
 				activeResolution: {
 					...state.activeResolution,
@@ -54,15 +65,7 @@ export const useAlertStore = create((set, get) => ({
 						o.rank === rank ? { ...o, selected: true } : o
 					),
 				},
-				reroutedRoutes: selectedOption?.route
-					? {
-						...state.reroutedRoutes,
-						[state.activeResolution.disruptionId]: {
-							...selectedOption.route,
-							transportMode: selectedOption.transportMode || selectedOption.route?.properties?.mode || 'sea-freight',
-						},
-					}
-					: state.reroutedRoutes,
+				reroutedRoutes: nextReroutedRoutes,
 			};
 		}),
 

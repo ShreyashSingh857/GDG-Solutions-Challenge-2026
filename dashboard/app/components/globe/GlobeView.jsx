@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Cartesian2,
   Cartesian3,
@@ -94,7 +95,7 @@ export default function GlobeView() {
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow);
   const disruptions = useAlertStore((x) => x.disruptions);
-  const reroutedRoutes = useAlertStore((x) => x.reroutedRoutes);
+  const reroutedRoutes = useAlertStore(useShallow((x) => x.reroutedRoutes));
   const vessels = useVesselPositions();
   const ports = usePortCongestion();
   const corridors = useCorridorWeather();
@@ -233,7 +234,10 @@ export default function GlobeView() {
       const originKey = getEndpointKey(shipment, 'originCode', 'origin', 'originLat', 'originLon', 'origin');
       const destKey = getEndpointKey(shipment, 'destCode', 'destination', 'destLat', 'destLon', 'dest');
       const routeKey = [originKey, destKey].sort().join('|');
-      const reroutedRoute = shipment.status === 'rerouted' && shipment.disruptionId ? reroutedRoutes[shipment.disruptionId] : null;
+      const reroutedRoute =
+        shipment.status === 'rerouted' && shipment.disruptionId
+          ? reroutedRoutes.get(shipment.disruptionId)
+          : null;
       if (!routeMap.has(routeKey)) {
         routeMap.set(routeKey, {
           routeKey,
