@@ -413,7 +413,7 @@ export default function GlobeView() {
         existing.ellipse.semiMinorAxis = new ConstantProperty(radius);
         existing.ellipse.material = color;
         if (existing.label) {
-          existing.label.show = new ConstantProperty(zoomLevel === 'close');
+          existing.label.show = new ConstantProperty(zoomLevel === 'state' || zoomLevel === 'city');
           existing.label.text = `${port.name}\n${waitH.toFixed(0)}h wait`;
         }
       } else {
@@ -436,7 +436,7 @@ export default function GlobeView() {
             showBackground: true,
             backgroundColor: Color.BLACK.withAlpha(0.55),
             pixelOffset: new Cartesian2(0, -70),
-            show: new ConstantProperty(zoomLevel === 'close'),
+            show: new ConstantProperty(zoomLevel === 'state' || zoomLevel === 'city'),
             style: LabelStyle.FILL_AND_OUTLINE,
             outlineWidth: 2,
             outlineColor: Color.BLACK,
