@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../lib/firebase.js';
 
 export default function FeedbackThumb({ traceId, rank }) {
   const [rating, setRating] = useState(null);
@@ -11,10 +9,22 @@ export default function FeedbackThumb({ traceId, rank }) {
   async function handleFeedback(nextRating) {
     if (submitted || !traceId || !rank) return;
     setRating(nextRating);
-    await setDoc(doc(db, 'resolutions', traceId, 'feedback', String(rank)), {
-      rating: nextRating,
-      timestamp: serverTimestamp(),
+
+    const response = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        traceId,
+        rank,
+        thumbs: nextRating,
+      }),
     });
+
+    if (!response.ok) {
+      setRating(null);
+      return;
+    }
+
     setSubmitted(true);
   }
 
