@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { adminDb } from '../../../lib/firebase-admin.js';
+import { getSupabaseClientForRequest } from '../v1/_auth.js';
 import { normalizeDisruption } from '../../../../shared/lib/normalizeDisruption.js';
 
 function dayKey(input) {
@@ -87,14 +88,8 @@ function buildByCorridor(resolutions) {
   }));
 }
 
-async function readFromSupabase(sinceIso) {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-
-  const supabase = createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+async function readFromSupabase(sinceIso, supabase) {
+  if (!supabase) return null;
 
   const [disruptionsResult, resolutionsResult] = await Promise.all([
     supabase.from('disruptions').select('type,severity,detected_at').gte('detected_at', sinceIso),
@@ -139,12 +134,15 @@ async function readFromFirestore(sinceDate) {
   return { disruptions, resolutions };
 }
 
-export async function GET() {
+export async function GET(req) {
   try {
     const sinceDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const sinceIso = sinceDate.toISOString();
+    const supabase = getSupabaseClientForRequest(req) || (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
+      : null);
 
-    const source = (await readFromSupabase(sinceIso)) || (await readFromFirestore(sinceDate));
+    const source = (await readFromSupabase(sinceIso, supabase)) || (await readFromFirestore(sinceDate));
     const disruptions = source.disruptions;
     const resolutions = source.resolutions;
 

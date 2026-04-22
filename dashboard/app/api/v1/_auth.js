@@ -1,12 +1,37 @@
 import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
-function getSupabaseAdmin() {
+function createSupabaseClient({ useServiceRole = true } = {}) {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = useServiceRole ? process.env.SUPABASE_SERVICE_ROLE_KEY : process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return null;
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+export function getSupabaseAdmin() {
+  return createSupabaseClient({ useServiceRole: true });
+}
+
+export function getSupabaseAnon() {
+  return createSupabaseClient({ useServiceRole: false });
+}
+
+export function getSupabaseClientForRequest(req) {
+  const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (!bearer) {
+    return getSupabaseAdmin();
+  }
+
+  const anonClient = getSupabaseAnon();
+  if (!anonClient) {
+    return getSupabaseAdmin();
+  }
+
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${bearer}` } },
   });
 }
 
