@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import StatusPill from './StatusPill.jsx';
 import { CARD_ITEM } from '../../lib/motion.js';
+import { useShipmentMutations } from '../hooks/useShipmentMutations.js';
 
 const MODE_ICONS = {
   'sea-freight': Ship,
@@ -40,6 +41,8 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
   const [sortKey, setSortKey] = useState('createdAt');
   const [sortDir, setSortDir] = useState('desc');
   const [search, setSearch] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const { deleteShipment } = useShipmentMutations();
 
   const toggleSort = (key) => {
     if (sortKey === key) {
@@ -74,6 +77,50 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
     return rows;
   }, [shipments, sortKey, sortDir, search]);
 
+  useEffect(() => {
+    if (selectedIndex >= displayed.length) {
+      setSelectedIndex(Math.max(displayed.length - 1, 0));
+    }
+  }, [displayed.length, selectedIndex]);
+
+  useEffect(() => {
+    const onKeyDown = async (event) => {
+      const target = event.target;
+      const tag = target?.tagName?.toLowerCase();
+      if (target?.isContentEditable || ['input', 'textarea', 'select'].includes(tag)) return;
+
+      if (!displayed.length) return;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSelectedIndex((index) => Math.min(index + 1, displayed.length - 1));
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSelectedIndex((index) => Math.max(index - 1, 0));
+      }
+
+      if (event.key === 'Enter' || event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        const shipment = displayed[selectedIndex];
+        if (shipment) onEdit?.(shipment);
+      }
+
+      if (event.key === 'Delete') {
+        event.preventDefault();
+        const shipment = displayed[selectedIndex];
+        if (!shipment) return;
+        const label = shipment.trackingNumber || shipment.id.slice(-8);
+        if (!window.confirm(`Delete shipment ${label}? This cannot be undone.`)) return;
+        await deleteShipment(shipment.id);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [deleteShipment, displayed, onEdit, selectedIndex]);
+
   const renderSortIcon = (key) => {
     if (sortKey !== key) return null;
     return sortDir === 'asc'
@@ -96,7 +143,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
   const fmtDate = (iso) =>
     iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';
 
-  if (isLoading) return <div className="p-8 text-[var(--text-muted)] text-sm">Loading shipments...</div>;
+  if (isLoading) return <ShipmentsSkeleton />;
 
   return (
     <div className="p-6 flex flex-col gap-6">
@@ -133,8 +180,9 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                     key={s.id}
                     layout
                     variants={CARD_ITEM}
-                    onClick={() => onEdit(s)}
-                    className="group hover:bg-[var(--bg-elevated)]/50 cursor-pointer transition-colors relative"
+                    onClick={() => { setSelectedIndex(idx); onEdit(s); }}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    className={`group hover:bg-[var(--bg-elevated)]/50 cursor-pointer transition-colors relative ${selectedIndex === idx ? 'bg-[var(--bg-elevated)]/40' : ''}`}
                   >
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
@@ -207,6 +255,19 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
         <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
           Showing {displayed.length} of {shipments.length} global shipments
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ShipmentsSkeleton() {
+  return (
+    <div className="p-6 flex flex-col gap-6">
+      <div className="relative max-w-md h-11 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+      <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-[var(--shadow-card)] overflow-hidden">
+        <div className="overflow-hidden">
+          <div className="h-[540px] bg-[var(--bg-elevated)] animate-pulse" />
+        </div>
       </div>
     </div>
   );

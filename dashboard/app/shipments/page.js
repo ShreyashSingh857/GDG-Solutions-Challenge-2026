@@ -5,17 +5,19 @@ import dynamic from 'next/dynamic';
 import { Download, PackageSearch, Plus, ShipWheel, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import NavBar from '../components/NavBar.jsx';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
+import MinimalErrorFallback from '../components/MinimalErrorFallback.jsx';
 import { useShipmentStore } from '../store/shipmentStore.js';
 import { PAGE_ENTER } from '../lib/motion.js';
 
 const OverviewTab = dynamic(() => import('./components/OverviewTab.jsx'), {
   ssr: false,
-  loading: () => <div className="p-8 text-[var(--text-muted)] text-sm">Loading overview...</div>,
+  loading: () => <ShipmentsPageSkeleton />, 
 });
 
 const ShipmentsTab = dynamic(() => import('./components/ShipmentsTab.jsx'), {
   ssr: false,
-  loading: () => <div className="p-8 text-[var(--text-muted)] text-sm">Loading shipments...</div>,
+  loading: () => <ShipmentsPageSkeleton />,
 });
 
 const ShipmentModal = dynamic(() => import('./components/ShipmentModal.jsx'), {
@@ -75,11 +77,11 @@ export default function DetailsPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
+    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
       <NavBar />
       
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-overlay)] backdrop-blur-md z-30">
-        <div className="flex bg-[var(--bg-elevated)] p-1 rounded-xl border border-[var(--border-subtle)] gap-0.5">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md z-30">
+        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-0.5">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -87,8 +89,8 @@ export default function DetailsPage() {
               className={[
                 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
                 activeTab === tab.id
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-overlay)]/40',
+                  ? 'bg-slate-950 text-slate-100 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60',
               ].join(' ')}
             >
               <tab.icon className="w-4 h-4" aria-hidden="true" />
@@ -101,7 +103,7 @@ export default function DetailsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors"
             >
               <Upload className="w-4 h-4" />
               Import
@@ -109,14 +111,14 @@ export default function DetailsPage() {
             <button
               onClick={handleExport}
               disabled={isExporting || isLoading || shipments.length === 0}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               {isExporting ? 'Exporting...' : 'Export'}
             </button>
             <button
               onClick={openAdd}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-[var(--accent-blue)] hover:brightness-110 text-white transition-all shadow-lg shadow-blue-500/20"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:brightness-110 text-white transition-all shadow-lg shadow-blue-500/20"
             >
               <Plus className="w-4 h-4" />
               Add Shipment
@@ -131,22 +133,49 @@ export default function DetailsPage() {
         animate="visible"
         className="flex-1 overflow-y-auto custom-scrollbar"
       >
-        {activeTab === 'overview' && <OverviewTab shipments={shipments} isLoading={isLoading} />}
+        {activeTab === 'overview' && (
+          <ErrorBoundary fallback={<MinimalErrorFallback name="Overview Tab" />}>
+            <OverviewTab shipments={shipments} isLoading={isLoading} />
+          </ErrorBoundary>
+        )}
         {activeTab === 'shipments' && (
-          <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
+          <ErrorBoundary fallback={<MinimalErrorFallback name="Shipments Tab" />}>
+            <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
+          </ErrorBoundary>
         )}
       </motion.div>
 
       {modalState.open && (
-        <ShipmentModal
-          shipment={modalState.shipment}
-          onClose={closeModal}
-          onDelete={closeModal}
-        />
+        <ErrorBoundary fallback={<MinimalErrorFallback name="Shipment Modal" />}>
+          <ShipmentModal
+            shipment={modalState.shipment}
+            onClose={closeModal}
+            onDelete={closeModal}
+          />
+        </ErrorBoundary>
       )}
       {isImportModalOpen && (
-        <ShipmentImportModal onClose={() => setIsImportModalOpen(false)} />
+        <ErrorBoundary fallback={<MinimalErrorFallback name="Shipment Import Modal" />}>
+          <ShipmentImportModal onClose={() => setIsImportModalOpen(false)} />
+        </ErrorBoundary>
       )}
+    </div>
+  );
+}
+
+function ShipmentsPageSkeleton() {
+  return (
+    <div className="flex-1 p-6 space-y-6">
+      <div className="h-10 w-72 rounded-xl bg-slate-900 animate-pulse" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-24 rounded-2xl bg-slate-900 animate-pulse" />
+        ))}
+      </div>
+      <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+        <div className="h-9 w-80 rounded-xl bg-slate-900 animate-pulse" />
+        <div className="h-105 rounded-2xl bg-slate-900 animate-pulse" />
+      </div>
     </div>
   );
 }
