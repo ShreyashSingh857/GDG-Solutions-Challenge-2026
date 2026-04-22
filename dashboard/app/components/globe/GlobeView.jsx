@@ -644,5 +644,31 @@ export default function GlobeView() {
     viewer.scene.requestRender();
   }, [vessels]);
 
-  return <div className="relative w-full h-full bg-[#000108]"><GlobeControls onFilterChange={setF} /><div ref={cRef} className="h-full w-full" /><div ref={tooltipRef} style={{ position: "fixed", top: 0, left: 0, transform: "translate(-9999px, -9999px)", zIndex: 20, pointerEvents: "none", transition: "none" }} className={`bg-black/80 border border-white/10 rounded-lg p-3 text-xs text-white ${t ? 'visible' : 'invisible'}`}><p className="font-medium">{t?.label || ''}</p><p className="text-white/60 capitalize">{t?.kind || ''} • {t?.status || ''}</p></div></div>;
+  return (
+    <div className="relative w-full h-full bg-[#020617]">
+      <GlobeControls onFilterChange={setF} />
+      <div ref={cRef} className="h-full w-full" />
+      <div 
+        ref={tooltipRef} 
+        style={{ 
+          position: "fixed", 
+          top: 0, 
+          left: 0, 
+          transform: "translate(-9999px, -9999px)", 
+          zIndex: 50, 
+          pointerEvents: "none", 
+          transition: "transform 0.08s ease-out" 
+        }} 
+        className={`bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[160px] ${t ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-200`}
+      >
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 leading-none">{t?.kind || 'Entity'}</p>
+        <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{t?.label || ''}</p>
+        {t?.status && (
+          <div className="mt-2 text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed bg-white/5 rounded-lg px-2 py-1 border border-white/5">
+            {t.status}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

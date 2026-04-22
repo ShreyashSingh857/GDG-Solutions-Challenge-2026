@@ -1,9 +1,21 @@
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Space_Grotesk, Fira_Code } from 'next/font/google';
 import './globals.css';
 import DataProvider from './providers/DataProvider.jsx';
+import { ThemeProvider } from './providers/ThemeProvider.jsx';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-display',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+});
+
+const firaCode = Fira_Code({
+  variable: '--font-mono',
+  subsets: ['latin'],
+  weight: ['300', '400', '500'],
+});
 
 export const metadata = {
   title: 'AI Supply Chain - Anti-Fragile Command Center',
@@ -24,9 +36,11 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
-      <body className="min-h-full flex flex-col bg-gray-950 text-white">
-        <DataProvider>{children}</DataProvider>
+    <html lang="en" className={`${geistSans.variable} ${firaCode.variable} ${spaceGrotesk.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>
+          <DataProvider>{children}</DataProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

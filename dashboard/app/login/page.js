@@ -1,28 +1,71 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { motion } from 'framer-motion';
+import { Globe, Shield, Zap, Search } from 'lucide-react';
 import { app, auth } from '../lib/firebase.js';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState('');
+  const starsRef = useRef(null);
 
   const isConfigured = useMemo(() => Boolean(app && auth), []);
 
+  useEffect(() => {
+    const canvas = starsRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrame;
+
+    const stars = Array.from({ length: 80 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 1.5,
+      speed: 0.1 + Math.random() * 0.2,
+      opacity: 0.2 + Math.random() * 0.5,
+    }));
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', resize);
+    resize();
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      stars.forEach(s => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+        s.y -= s.speed;
+        if (s.y < 0) s.y = canvas.height;
+      });
+      animationFrame = requestAnimationFrame(draw);
+    };
+    draw();
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
   const handleSignIn = useCallback(async () => {
     if (!auth) {
-      setError('Firebase client config is missing. Set NEXT_PUBLIC_FIREBASE_* variables.');
+      setError('Firebase configuration missing.');
       return;
     }
-
     setIsSigningIn(true);
     setError('');
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
-      router.push('/onboarding');
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign-in failed');
     } finally {
@@ -31,36 +74,80 @@ export default function LoginPage() {
   }, [router]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#040615] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(245,158,11,0.15),transparent_38%)]" />
-      <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)', backgroundSize: '36px 36px' }} />
+    <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white flex items-center justify-center">
+      {/* Background Layer */}
+      <div className="absolute inset-0">
+        <canvas ref={starsRef} className="absolute inset-0 w-full h-full opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#040615]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,211,238,0.05),transparent_70%)]" />
+      </div>
 
-      <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md rounded-3xl border border-white/15 bg-white/5 p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-300/80">Supply Chain Intelligence</p>
-          <h1 className="mt-3 text-2xl font-semibold leading-tight">Sign in to access live disruption monitoring</h1>
-          <p className="mt-3 text-sm leading-6 text-white/60">
-            Authenticate with Google to continue to your organization dashboard.
-          </p>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-md px-6"
+      >
+        <div className="rounded-[32px] border border-white/10 bg-[rgba(15,23,42,0.6)] p-10 shadow-2xl backdrop-blur-2xl overflow-hidden relative">
+          {/* Neon border decoration */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)]/40 to-transparent" />
+          
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-2">
+              <Globe className="w-8 h-8 text-[var(--accent-cyan)] shadow-[0_0_20px_var(--accent-cyan)]" />
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent-cyan)]">Anti-Fragile Protocol</p>
+              <h1 className="text-3xl font-bold tracking-tight font-display">System Entry</h1>
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed px-4">
+                Global supply chain intelligence and multi-agent AI disruption resolution.
+              </p>
+            </div>
 
-          <button
-            type="button"
-            onClick={handleSignIn}
-            disabled={!isConfigured || isSigningIn}
-            className="mt-8 w-full rounded-2xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSigningIn ? 'Signing in...' : 'Continue With Google'}
-          </button>
+            <button
+              onClick={handleSignIn}
+              disabled={!isConfigured || isSigningIn}
+              className="group relative w-full overflow-hidden rounded-2xl bg-white text-[#020617] px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-3">
+                {isSigningIn ? (
+                  <div className="w-5 h-5 border-2 border-[#020617]/30 border-t-[#020617] rounded-full animate-spin" />
+                ) : (
+                  <>Continue with Security Insight</>
+                )}
+              </span>
+            </button>
 
-          {!isConfigured ? (
-            <p className="mt-4 text-xs text-amber-200/90">
-              Firebase web config is not set. Add NEXT_PUBLIC_FIREBASE_* values to enable sign-in.
-            </p>
-          ) : null}
+            {!isConfigured && (
+              <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-[11px] text-amber-200">
+                Environment configuration incomplete. Use mock mode or set Firebase keys.
+              </div>
+            )}
+            
+            {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
 
-          {error ? <p className="mt-4 text-xs text-red-300">{error}</p> : null}
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
+              <div className="flex flex-col items-center gap-1">
+                <Search className="w-4 h-4 text-[var(--text-muted)]" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Real-time</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Zap className="w-4 h-4 text-[var(--text-muted)]" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">AI Response</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Shield className="w-4 h-4 text-[var(--text-muted)]" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Certified</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
+        
+        <p className="mt-8 text-center text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.2em] opacity-40">
+          SECURE ENCRYPTED CHANNEL 409-A
+        </p>
+      </motion.div>
     </main>
   );
 }

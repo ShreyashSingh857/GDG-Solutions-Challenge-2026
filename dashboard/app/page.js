@@ -91,7 +91,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#020617]">
+    <div data-globe="true" className="flex flex-col h-screen w-screen overflow-hidden bg-[#020617]">
       <NavBar />
       <div className="relative flex-1 overflow-hidden">
         <Toaster position="bottom-right" theme="dark" />

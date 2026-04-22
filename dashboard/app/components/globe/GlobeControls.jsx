@@ -3,24 +3,38 @@
 import { useEffect, useState } from 'react';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 
-const STATUS_FILTERS = ['all', 'active', 'delayed', 'rerouted', 'disrupted'];
+const STATUS_FILTERS = [
+  { id: 'all', label: 'All', key: 'A', color: 'var(--text-secondary)' },
+  { id: 'active', label: 'Active', key: 'V', color: 'var(--accent-green)' },
+  { id: 'delayed', label: 'Delayed', key: 'D', color: 'var(--accent-red)' },
+  { id: 'rerouted', label: 'Rerouted', key: 'R', color: 'var(--accent-blue)' },
+  { id: 'disrupted', label: 'Disrupted', key: 'X', color: 'var(--accent-amber)' },
+];
 
-/**
- * HUD overlay for the globe: status filter buttons and shipment counters.
- * @param {object} props
- * @param {function(string): void} props.onFilterChange
- */
+function MiniSparkline({ status, shipments }) {
+  // Take last 20 shipments
+  const last20 = shipments.slice(-20);
+  
+  return (
+    <div className="flex gap-[1px] h-2 px-1">
+      {last20.map((s, i) => (
+        <div 
+          key={i} 
+          className="w-[3px] rounded-t-[1px]" 
+          style={{ 
+            height: '7px',
+            backgroundColor: s.status === status ? 'currentColor' : 'rgba(255,255,255,0.05)' 
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function GlobeControls({ onFilterChange }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [injecting, setInjecting] = useState(null);
   const shipments = useShipmentStore((s) => s.shipments);
-
-  const counts = {
-    active: shipments.filter((s) => s.status === 'active').length,
-    delayed: shipments.filter((s) => s.status === 'delayed').length,
-    rerouted: shipments.filter((s) => s.status === 'rerouted').length,
-    disrupted: shipments.filter((s) => s.status === 'disrupted').length,
-  };
 
   const handleFilter = (filter) => {
     setActiveFilter(filter);
@@ -32,10 +46,7 @@ export default function GlobeControls({ onFilterChange }) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       const keyMap = { 'a': 'all', 'v': 'active', 'd': 'delayed', 'r': 'rerouted', 'x': 'disrupted' };
       const filter = keyMap[e.key.toLowerCase()];
-      if (filter) {
-        setActiveFilter(filter);
-        onFilterChange(filter);
-      }
+      if (filter) handleFilter(filter);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -54,61 +65,67 @@ export default function GlobeControls({ onFilterChange }) {
     }
   }
 
-  const filterColors = {
-    all: 'border-white/30 text-white/70 hover:border-white/60',
-    active: 'border-green-500/50 text-green-400 hover:border-green-400',
-    delayed: 'border-red-500/50 text-red-400 hover:border-red-400',
-    rerouted: 'border-blue-500/50 text-blue-400 hover:border-blue-400',
-    disrupted: 'border-rose-600/50 text-rose-400 hover:border-rose-400',
-  };
-
-  const activeColors = {
-    all: 'bg-white/10 border-white/60 text-white',
-    active: 'bg-green-500/20 border-green-400 text-green-300',
-    delayed: 'bg-red-500/20 border-red-400 text-red-300',
-    rerouted: 'bg-blue-500/20 border-blue-400 text-blue-300',
-    disrupted: 'bg-rose-600/20 border-rose-400 text-rose-300',
-  };
-
   return (
-    <div className="absolute top-4 left-4 z-10 flex flex-col gap-3">
-      <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-3 flex flex-col gap-2">
-        <p className="text-white/40 text-xs uppercase tracking-widest font-medium">Filter</p>
-        <div className="flex flex-col gap-1">
-          {STATUS_FILTERS.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => handleFilter(filter)}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-all capitalize ${
-                activeFilter === filter ? activeColors[filter] : filterColors[filter]
-              }`}
-            >
-              {filter === 'all'
-                ? `All [A] (${shipments.length})`
-                : filter === 'active'
-                  ? `Active [V] (${counts[filter]})`
-                  : filter === 'delayed'
-                    ? `Delayed [D] (${counts[filter]})`
-                    : filter === 'rerouted'
-                      ? `Rerouted [R] (${counts[filter]})`
-                      : `Disrupted [X] (${counts[filter]})`}
-            </button>
-          ))}
+    <div className="absolute top-20 left-6 z-40 flex flex-col gap-4">
+      {/* Filter HUD */}
+      <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[180px] space-y-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 pl-1">Operational Filter</p>
+          <div className="space-y-1">
+            {STATUS_FILTERS.map((f) => {
+              const active = activeFilter === f.id;
+              const count = f.id === 'all' 
+                ? shipments.length 
+                : shipments.filter(s => s.status === f.id).length;
+                
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => handleFilter(f.id)}
+                  style={{ color: f.color }}
+                  className={`w-full group flex flex-col items-start gap-1 p-2 rounded-lg transition-all relative ${active ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
+                >
+                  <div className="w-full flex items-center justify-between">
+                    <span className={`text-[11px] font-bold tracking-tight uppercase ${active ? '' : 'text-[var(--text-muted)]'}`}>
+                      {f.label} <span className="text-[9px] opacity-40 ml-1 font-mono">[{f.key}]</span>
+                    </span>
+                    <span className="text-[11px] font-mono opacity-50">{count}</span>
+                  </div>
+                  
+                  {f.id !== 'all' && (
+                    <MiniSparkline status={f.id} shipments={shipments} />
+                  )}
+
+                  {/* Underline for active state */}
+                  {active && (
+                    <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full shadow-[0_-2px_6px_currentColor]" style={{ backgroundColor: 'currentColor' }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-3 flex flex-col gap-2">
-        <p className="text-white/40 text-xs uppercase tracking-widest font-medium">Scenarios</p>
-        {['Pacific Storm', 'Port Strike', 'Suez Closure'].map((name) => (
-          <button
-            key={name}
-            onClick={() => injectScenario(name)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-white/80 hover:border-white/30 transition flex items-center justify-center gap-2"
-          >
-            {injecting === name ? <span className="w-3 h-3 rounded-full border-2 border-white/60 border-t-transparent animate-spin" /> : null}
-            <span>{name}</span>
-          </button>
-        ))}
+      {/* Scenario Injection */}
+      <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl space-y-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] pl-1">Simulation</p>
+        <div className="grid grid-cols-1 gap-2">
+          {['Pacific Storm', 'Port Strike', 'Suez Closure'].map((name) => (
+            <button
+              key={name}
+              onClick={() => injectScenario(name)}
+              className="text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 transition-all flex items-center justify-between group"
+            >
+              <span>{name}</span>
+              {injecting === name ? (
+                <div className="w-3 h-3 rounded-full border-2 border-[var(--accent-cyan)] border-t-transparent animate-spin" />
+              ) : (
+                <div className="w-1 h-1 rounded-full bg-[var(--text-muted)] group-hover:bg-[var(--accent-cyan)] transition-colors" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

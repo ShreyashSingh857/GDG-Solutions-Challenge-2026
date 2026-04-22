@@ -3,17 +3,19 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Download, PackageSearch, Plus, ShipWheel, Upload } from 'lucide-react';
+import { motion } from 'framer-motion';
 import NavBar from '../components/NavBar.jsx';
 import { useShipmentStore } from '../store/shipmentStore.js';
+import { PAGE_ENTER } from '../lib/motion.js';
 
 const OverviewTab = dynamic(() => import('./components/OverviewTab.jsx'), {
   ssr: false,
-  loading: () => <div className="p-8 text-white/40 text-sm">Loading overview...</div>,
+  loading: () => <div className="p-8 text-[var(--text-muted)] text-sm">Loading overview...</div>,
 });
 
 const ShipmentsTab = dynamic(() => import('./components/ShipmentsTab.jsx'), {
   ssr: false,
-  loading: () => <div className="p-8 text-white/40 text-sm">Loading shipments...</div>,
+  loading: () => <div className="p-8 text-[var(--text-muted)] text-sm">Loading shipments...</div>,
 });
 
 const ShipmentModal = dynamic(() => import('./components/ShipmentModal.jsx'), {
@@ -52,25 +54,13 @@ export default function DetailsPage() {
         ID: shipment.id,
         Origin: shipment.origin,
         Destination: shipment.destination,
-        OriginLat: shipment.originLat,
-        OriginLng: shipment.originLng,
-        DestLat: shipment.destLat,
-        DestLng: shipment.destLng,
-        CurrentLat: shipment.currentLat,
-        CurrentLng: shipment.currentLng,
         Status: shipment.status,
         Carrier: shipment.carrier,
         CargoValueUSD: shipment.cargoValueUSD,
         ETA: shipment.eta,
         Corridor: shipment.corridor,
         Mode: shipment.mode,
-        PaymentAmountUSD: shipment.paymentAmountUSD,
-        PaymentStatus: shipment.paymentStatus,
-        ImportExport: shipment.importExport,
-        DepartureDate: shipment.departureDate,
         TrackingNumber: shipment.trackingNumber,
-        CreatedAt: shipment.createdAt,
-        UpdatedAt: shipment.updatedAt,
       }));
 
       const sheet = XLSX.utils.json_to_sheet(rows);
@@ -85,10 +75,11 @@ export default function DetailsPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#020617] text-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
       <NavBar />
-      <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-black/40">
-        <div className="flex gap-1">
+      
+      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-overlay)] backdrop-blur-md z-30">
+        <div className="flex bg-[var(--bg-elevated)] p-1 rounded-xl border border-[var(--border-subtle)] gap-0.5">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -96,8 +87,8 @@ export default function DetailsPage() {
               className={[
                 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
                 activeTab === tab.id
-                  ? 'bg-blue-600/30 border border-blue-500/40 text-blue-200'
-                  : 'text-white/40 hover:text-white/70 hover:bg-white/5',
+                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-overlay)]/40',
               ].join(' ')}
             >
               <tab.icon className="w-4 h-4" aria-hidden="true" />
@@ -105,40 +96,46 @@ export default function DetailsPage() {
             </button>
           ))}
         </div>
+        
         {activeTab === 'shipments' && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-white/15 bg-white/5 hover:bg-white/10 text-white transition-colors"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors"
             >
-              <Upload className="w-4 h-4" aria-hidden="true" />
+              <Upload className="w-4 h-4" />
               Import
             </button>
             <button
               onClick={handleExport}
               disabled={isExporting || isLoading || shipments.length === 0}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-white/15 bg-white/5 hover:bg-white/10 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors disabled:opacity-50"
             >
-              <Download className="w-4 h-4" aria-hidden="true" />
+              <Download className="w-4 h-4" />
               {isExporting ? 'Exporting...' : 'Export'}
             </button>
             <button
               onClick={openAdd}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-[var(--accent-blue)] hover:brightness-110 text-white transition-all shadow-lg shadow-blue-500/20"
             >
-              <Plus className="w-4 h-4" aria-hidden="true" />
+              <Plus className="w-4 h-4" />
               Add Shipment
             </button>
           </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <motion.div 
+        variants={PAGE_ENTER}
+        initial="hidden"
+        animate="visible"
+        className="flex-1 overflow-y-auto custom-scrollbar"
+      >
         {activeTab === 'overview' && <OverviewTab shipments={shipments} isLoading={isLoading} />}
         {activeTab === 'shipments' && (
           <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
         )}
-      </div>
+      </motion.div>
 
       {modalState.open && (
         <ShipmentModal
