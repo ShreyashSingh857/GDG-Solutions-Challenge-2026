@@ -9,6 +9,7 @@ export function proxy(req) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/login') ||
+    pathname.startsWith('/onboarding') ||
     pathname === '/favicon.ico' ||
     STATIC_FILE.test(pathname)
   ) {

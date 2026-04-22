@@ -22,7 +22,7 @@ export default function LoginPage() {
     setError('');
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
-      router.push('/');
+      router.push('/onboarding');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign-in failed');
     } finally {
