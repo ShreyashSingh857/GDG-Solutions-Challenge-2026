@@ -28,7 +28,7 @@ const GlobeActivationToggle = dynamic(() => import('./components/globe/GlobeActi
   ssr: false,
   loading: () => null,
 });
-const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
+const GlobeView = dynamic(() => import(/* webpackPrefetch: false */ './components/globe/GlobeView.jsx'), {
   ssr: false,
   loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>,
 });
@@ -41,6 +41,7 @@ export default function Home() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('agent');
   const [globeEnabled, setGlobeEnabled] = useState(true);
+  const [shouldLoadGlobe, setShouldLoadGlobe] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const isGlobeActive = globeEnabled && isPageVisible;
@@ -95,6 +96,11 @@ export default function Home() {
       .finally(() => window.localStorage.setItem(promptedKey, '1'));
   }, []);
 
+  useEffect(() => {
+    if (!globeEnabled) return;
+    setShouldLoadGlobe(true);
+  }, [globeEnabled]);
+
   return (
     <div data-globe="true" className="flex flex-col h-screen w-screen overflow-hidden bg-[#020617]">
       <NavBar />
@@ -113,7 +119,11 @@ export default function Home() {
         ) : isGlobeActive ? (
           <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable - WebGL may not be supported</div>}>
             <div className="absolute inset-0">
-              <GlobeView />
+              {shouldLoadGlobe ? (
+                <GlobeView />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>
+              )}
             </div>
           </ErrorBoundary>
         ) : (
