@@ -46,7 +46,10 @@ export default function GlobeControls({ onFilterChange }) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       const keyMap = { 'a': 'all', 'v': 'active', 'd': 'delayed', 'r': 'rerouted', 'x': 'disrupted' };
       const filter = keyMap[e.key.toLowerCase()];
-      if (filter) handleFilter(filter);
+      if (filter) {
+        setActiveFilter(filter);
+        onFilterChange(filter);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);

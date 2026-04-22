@@ -1,22 +1,21 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
 
-export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState('dark');
+function getInitialTheme() {
+  if (typeof window === 'undefined') return 'dark';
+  const stored = window.localStorage.getItem('gdg_theme');
+  return (stored === 'light' || stored === 'dark') ? stored : 'dark';
+}
 
-  // Hydrate from localStorage on mount
+export function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState(getInitialTheme);
+
   useEffect(() => {
-    const stored = typeof window !== 'undefined'
-      ? window.localStorage.getItem('gdg_theme')
-      : null;
-    if (stored === 'light' || stored === 'dark') {
-      setTheme(stored);
-      document.documentElement.setAttribute('data-theme', stored);
-    }
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
