@@ -105,6 +105,21 @@ app.get('/subscribe/:topic', async (req, reply) => {
   req.raw.on('close', () => clearInterval(keepAlive));
 });
 
+app.get('/replay/:topic', async (req, reply) => {
+  const { topic } = req.params;
+
+  if (!Object.values(TOPICS).includes(topic)) {
+    return reply.status(400).send({ error: `Unknown topic: ${topic}` });
+  }
+
+  const since = Number(req.query.since || 0);
+  reply.send({
+    topic,
+    since,
+    events: broker.getReplaySince(topic, since),
+  });
+});
+
 app.get('/dead-letters', async (req, reply) => {
   reply.send({ count: deadLetterLog.length, items: deadLetterLog });
 });

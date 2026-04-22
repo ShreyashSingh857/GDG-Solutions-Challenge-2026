@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { TOPICS } from './topics.js';
 
-const MESSAGE_LOG_LIMIT = 50; // keep last 50 messages per topic for replay
+const MESSAGE_LOG_LIMIT = 500; // keep last 500 messages per topic for replay
 const MAX_RETRIES = 5;
 
 class EventBroker extends EventEmitter {
@@ -64,6 +64,13 @@ class EventBroker extends EventEmitter {
    */
   getReplay(topic) {
     return this.messageLog[topic] || [];
+  }
+
+  getReplaySince(topic, since = 0) {
+    return this.getReplay(topic).filter((message) => {
+      const publishedAt = message._publishedAt ? new Date(message._publishedAt).getTime() : 0;
+      return publishedAt > since;
+    });
   }
 }
 
