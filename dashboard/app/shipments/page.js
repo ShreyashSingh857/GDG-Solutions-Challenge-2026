@@ -4,7 +4,6 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Download, PackageSearch, Plus, ShipWheel, Upload } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
-import { useShipments } from '../hooks/useShipments.js';
 import { useShipmentStore } from '../store/shipmentStore.js';
 
 const OverviewTab = dynamic(() => import('./components/OverviewTab.jsx'), {
@@ -38,8 +37,6 @@ export default function DetailsPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Mount Firestore subscription (same hook as Globe page)
-  useShipments();
   const shipments = useShipmentStore((s) => s.shipments);
   const isLoading = useShipmentStore((s) => s.isLoading);
 
