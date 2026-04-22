@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { adminDb } from '../../../lib/firebase-admin.js';
+import { normalizeDisruption } from '../../../../shared/lib/normalizeDisruption.js';
 
 function dayKey(input) {
   const d = new Date(input);
@@ -49,8 +50,9 @@ function calculateTotalCO2t(resolutions) {
 
 function buildDisruptionSeries(disruptions) {
   const map = new Map();
-  disruptions.forEach((d) => {
-    const key = dayKey(d.detected_at || d.detectedAt);
+  disruptions.forEach((rawDisruption) => {
+    const d = normalizeDisruption(rawDisruption);
+    const key = dayKey(d.detectedAt);
     if (!key) return;
     map.set(key, (map.get(key) || 0) + 1);
   });
@@ -62,8 +64,9 @@ function buildDisruptionSeries(disruptions) {
 
 function buildByType(disruptions) {
   const map = new Map();
-  disruptions.forEach((d) => {
-    const key = d.type || d.disruptionType || 'OTHER';
+  disruptions.forEach((rawDisruption) => {
+    const d = normalizeDisruption(rawDisruption);
+    const key = d.type;
     map.set(key, (map.get(key) || 0) + 1);
   });
   return Array.from(map.entries()).map(([type, count]) => ({ type, count }));
