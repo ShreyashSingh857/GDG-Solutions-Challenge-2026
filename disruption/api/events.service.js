@@ -110,22 +110,34 @@ function fallbackDisruption(rawDescription) {
 
 export async function classifyAndPublish(rawDescription, traceId = null) {
 	let parsed;
+	let rawModelResponse = '';
+	let parseError = null;
 	try {
 		const toolHandlers = { get_weather_data: getWeatherData, search_web: searchWeb };
-		const rawResponse = await generateWithTools(
+		rawModelResponse = await generateWithTools(
 			`${SYSTEM_PROMPT}\n\n## Event to Classify\n\n${rawDescription}`,
 			[weatherToolDeclaration, searchToolDeclaration],
 			toolHandlers
 		);
-		parsed = JSON.parse(rawResponse.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim());
+		parsed = JSON.parse(rawModelResponse.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim());
 	} catch (err) {
 		console.warn('[DisruptionService] Gemini parse failed, using fallback classifier:', err.message);
+		parseError = err.message;
 		parsed = fallbackDisruption(rawDescription);
 	}
 	if (parsed.type === 'WEATHER' && parsed.epicenterLat && parsed.epicenterLng) parsed._weatherData = await getWeatherData({ latitude: parsed.epicenterLat, longitude: parsed.epicenterLng }).catch(() => null);
 	const disruptionEvent = createDisruptionEvent({ ...parsed, rawDescription });
 	validateDisruptionEvent(disruptionEvent);
-	await db.collection('disruptions').doc(disruptionEvent.id).set(disruptionEvent);
+	await db.collection('disruptions').doc(disruptionEvent.id).set({
+		...disruptionEvent,
+		systemPromptSnapshot: SYSTEM_PROMPT.slice(0, 2000),
+		inputPayloadSnapshot: rawDescription.slice(0, 3000),
+		modelOutputSnapshot: String(rawModelResponse || '').slice(0, 10000),
+		validationStatus: {
+			valid: !parseError,
+			errors: parseError ? [parseError] : [],
+		},
+	});
 	const { queued } = await resilientUpsert('disruptions', {
 		id: disruptionEvent.id,
 		trace_id: traceId || disruptionEvent.id,

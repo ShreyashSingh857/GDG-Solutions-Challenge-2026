@@ -27,6 +27,8 @@ app.addHook('onResponse', async (req, reply) => {
 
 const { default: optionsRoute } = await import('./api/options.route.js');
 if (typeof optionsRoute === 'function') app.register(optionsRoute);
+const { default: streamRoute } = await import('./api/stream.route.js');
+if (typeof streamRoute === 'function') app.register(streamRoute);
 const { default: executeRoute } = await import('./api/execute.route.js');
 if (typeof executeRoute === 'function') app.register(executeRoute);
 const { startResolutionSubscriber } = await import('./api/options.service.js');
