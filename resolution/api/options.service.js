@@ -1,7 +1,9 @@
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { generateStream } from '../../shared/lib/gemini.js';
+import { generate, generateStream } from '../../shared/lib/gemini.js';
+import { extractJSON, generateWithRetry } from '../../shared/lib/llmJson.js';
+import { RESOLUTION_OPTION_SCHEMA, validateAndRepair } from '../../shared/lib/validateSchema.js';
 import { db } from '../../shared/db/firebase.js';
 import { resilientUpsert } from '../../shared/db/supabase.js';
 import { publish, subscribe } from '../../shared/eventBusClient.js';
@@ -57,13 +59,10 @@ export function pickSupplierRegion(disruptionContext) {
 }
 
 function sanitizeJsonResponse(rawResponse) {
-	return String(rawResponse || '')
-		.replace(/^```(?:json)?\n?/m, '')
-		.replace(/\n?```$/m, '')
-		.trim();
+	return extractJSON(rawResponse);
 }
 
-function summarizeResolutionValidation(rawResponse) {
+function summarizeResolutionValidation(rawResponse, parsedOverride = null) {
 	const errors = [];
 	const trimmed = sanitizeJsonResponse(rawResponse);
 
@@ -72,12 +71,14 @@ function summarizeResolutionValidation(rawResponse) {
 		return { valid: false, errors };
 	}
 
-	let parsed;
-	try {
-		parsed = JSON.parse(trimmed);
-	} catch (err) {
-		errors.push(`invalid JSON: ${err.message}`);
-		return { valid: false, errors };
+	let parsed = parsedOverride;
+	if (!parsed) {
+		try {
+			parsed = JSON.parse(trimmed);
+		} catch (err) {
+			errors.push(`invalid JSON: ${err.message}`);
+			return { valid: false, errors };
+		}
 	}
 
 	if (!Array.isArray(parsed)) {
@@ -197,6 +198,7 @@ function createFallbackOptionBases(routes, balancedCost, fastestCost, cheapestCo
 
 export function buildValidatedResolutionOptions({
 	rawResponse,
+	parsedResponse = null,
 	routes,
 	balancedCost,
 	fastestCost,
@@ -209,6 +211,7 @@ export function buildValidatedResolutionOptions({
 	impactReport,
 	freightRates = {},
 }) {
+	const repairErrors = [];
 	const fallbackOptions = createFallbackOptionBases(
 		routes,
 		balancedCost,
@@ -221,9 +224,12 @@ export function buildValidatedResolutionOptions({
 	let options = fallbackOptions;
 
 	try {
-		const trimmed = sanitizeJsonResponse(rawResponse);
-		if (!trimmed) throw new Error('Empty response');
-		const parsed = JSON.parse(trimmed);
+		let parsed = parsedResponse;
+		if (!parsed) {
+			const trimmed = sanitizeJsonResponse(rawResponse);
+			if (!trimmed) throw new Error('Empty response');
+			parsed = JSON.parse(trimmed);
+		}
 		if (!Array.isArray(parsed) || parsed.length < 3) throw new Error('Not a 3-element array');
 		options = parsed;
 	} catch (err) {
@@ -231,8 +237,19 @@ export function buildValidatedResolutionOptions({
 	}
 
 	const routesByRank = [routes.balanced, routes.fastest, routes.cheapest];
+	const normalizedOptions = options.slice(0, 3).map((opt, index) => {
+		const schemaFallback = {
+			...fallbackOptions[index],
+			rank: index + 1,
+		};
+		const repaired = validateAndRepair({ ...schemaFallback, ...(opt || {}) }, RESOLUTION_OPTION_SCHEMA, schemaFallback);
+		if (repaired.errors.length) {
+			repaired.errors.forEach((err) => repairErrors.push(`option ${index + 1}: ${err}`));
+		}
+		return repaired.data;
+	});
 
-	return options.slice(0, 3).map((opt, index) => {
+	const resolvedOptions = normalizedOptions.map((opt, index) => {
 		try {
 			const normalized = {
 				...fallbackOptions[index],
@@ -281,6 +298,8 @@ export function buildValidatedResolutionOptions({
 			);
 		}
 	});
+
+	return { options: resolvedOptions, repairErrors };
 }
 
 async function processImpactReport(agentPayload) {
@@ -358,8 +377,30 @@ async function processImpactReport(agentPayload) {
 		console.warn('[ResolutionService] generateStream failed, using deterministic fallback options:', err.message);
 	}
 
-	const validatedOptions = buildValidatedResolutionOptions({
-		rawResponse: fullResponse,
+	let parseError = null;
+	let parseRetries = 0;
+	let parsedOptions = null;
+	let modelOutput = fullResponse;
+	try {
+		const modelResult = await generateWithRetry(prompt, SYSTEM_PROMPT, {
+			maxRetries: 2,
+			initialRawResponse: fullResponse,
+			invokeModel: (retryPrompt) => generate(retryPrompt),
+		});
+		parsedOptions = modelResult.parsed;
+		modelOutput = modelResult.raw;
+		parseRetries = Math.max(0, modelResult.attempts - 1);
+		if (parseRetries > 0) {
+			activeStreams.set(traceId, modelOutput);
+		}
+	} catch (err) {
+		parseError = err.message;
+		modelOutput = String(err.rawModelResponse || modelOutput || '');
+	}
+
+	const { options: validatedOptions, repairErrors } = buildValidatedResolutionOptions({
+		rawResponse: modelOutput,
+		parsedResponse: parsedOptions,
 		routes,
 		balancedCost,
 		fastestCost,
@@ -373,7 +414,16 @@ async function processImpactReport(agentPayload) {
 		freightRates,
 	});
 
-	const validationStatus = summarizeResolutionValidation(fullResponse);
+	const structuralValidation = summarizeResolutionValidation(modelOutput, parsedOptions);
+	const validationErrors = parseError
+		? [`parse failure after retry: ${parseError}`, ...repairErrors]
+		: [...structuralValidation.errors, ...repairErrors];
+	const validationStatus = {
+		valid: !parseError,
+		errors: validationErrors,
+		repairedCount: parseError ? repairErrors.length : structuralValidation.errors.length + repairErrors.length,
+		parseRetries,
+	};
 	const nowIso = new Date().toISOString();
 
 	const { queued: resQueued } = await resilientUpsert(
@@ -438,7 +488,7 @@ async function processImpactReport(agentPayload) {
 		status: 'pending',
 		systemPromptSnapshot: SYSTEM_PROMPT.slice(0, 2000),
 		inputPayloadSnapshot: JSON.stringify(impactReport).slice(0, 3000),
-		modelOutputSnapshot: fullResponse.slice(0, 10000),
+		modelOutputSnapshot: modelOutput.slice(0, 10000),
 		validationStatus,
 	});
 

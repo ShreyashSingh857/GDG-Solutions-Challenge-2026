@@ -1,4 +1,6 @@
-import { generateWithTools } from '../../shared/lib/gemini.js';
+import { generateWithToolsAndTrace } from '../../shared/lib/gemini.js';
+import { generateWithRetry } from '../../shared/lib/llmJson.js';
+import { DISRUPTION_SCHEMA, validateAndRepair } from '../../shared/lib/validateSchema.js';
 import { db } from '../../shared/db/firebase.js';
 import { resilientUpsert, supabase } from '../../shared/db/supabase.js';
 import { publish } from '../../shared/eventBusClient.js';
@@ -100,32 +102,151 @@ async function sendPushToSubscribers(disruptionEvent) {
 function fallbackDisruption(rawDescription) {
 	const text = rawDescription.toLowerCase();
 	if (text.includes('storm') || text.includes('weather') || text.includes('typhoon') || text.includes('hurricane')) {
-		return { type: 'WEATHER', severity: 8, location: 'Pacific Ocean', epicenterLat: 25, epicenterLng: 140, confidence: 0.85, affectedZones: ['Pacific'] };
+		return {
+			type: 'WEATHER',
+			severity: 8,
+			location: 'Pacific Ocean',
+			epicenterLat: 25,
+			epicenterLng: 140,
+			confidence: 0.85,
+			affectedZones: ['Pacific'],
+			unverified: false,
+			corroboratingSources: 1,
+		};
 	}
 	if (text.includes('strike') || text.includes('port') || text.includes('labor')) {
-		return { type: 'STRIKE', severity: 7, location: 'Major Port Hub', epicenterLat: 25.0, epicenterLng: 55.0, confidence: 0.7, affectedZones: ['Middle East Corridor'] };
+		return {
+			type: 'STRIKE',
+			severity: 7,
+			location: 'Major Port Hub',
+			epicenterLat: 25.0,
+			epicenterLng: 55.0,
+			confidence: 0.7,
+			affectedZones: ['Middle East Corridor'],
+			unverified: false,
+			corroboratingSources: 1,
+		};
 	}
-	return { type: 'OTHER', severity: 5, location: 'Global Shipping Corridor', epicenterLat: 20, epicenterLng: 0, confidence: 0.65, affectedZones: [] };
+	return {
+		type: 'OTHER',
+		severity: 5,
+		location: 'Global Shipping Corridor',
+		epicenterLat: 20,
+		epicenterLng: 0,
+		confidence: 0.65,
+		affectedZones: [],
+		unverified: true,
+		corroboratingSources: 0,
+	};
+}
+
+function parseDomain(url) {
+	try {
+		return new URL(url).hostname.toLowerCase();
+	} catch {
+		return '';
+	}
+}
+
+function countCorroboratingSources(toolTrace = []) {
+	const domains = new Set();
+	for (const call of toolTrace) {
+		if (call?.name !== 'search_web') continue;
+		for (const result of call?.response?.results || []) {
+			const sourceDomain = String(result?.source || '').toLowerCase();
+			const urlDomain = parseDomain(result?.url || '');
+			const domain = sourceDomain || urlDomain;
+			if (domain) domains.add(domain);
+		}
+	}
+	return domains.size;
+}
+
+function applyConfidenceCalibration(event, corroboratingSources) {
+	const errors = [];
+	const sourceCount = Number.isFinite(corroboratingSources) ? corroboratingSources : 0;
+
+	event.corroboratingSources = sourceCount;
+
+	if (sourceCount === 0) {
+		if (event.confidence > 0.55) {
+			errors.push(`confidence capped to 0.55 due to zero corroborating sources (was ${event.confidence})`);
+			event.confidence = 0.55;
+		}
+		if (event.unverified !== true) {
+			errors.push('unverified set to true due to zero corroborating sources');
+			event.unverified = true;
+		}
+	}
+
+	if (sourceCount < 2 && event.confidence > 0.9) {
+		errors.push(`confidence capped to 0.9 due to fewer than 2 corroborating sources (was ${event.confidence})`);
+		event.confidence = 0.9;
+	}
+
+	if (sourceCount >= 2 && event.unverified === undefined) {
+		event.unverified = false;
+	}
+
+	return errors;
 }
 
 export async function classifyAndPublish(rawDescription, traceId = null) {
 	let parsed;
 	let rawModelResponse = '';
 	let parseError = null;
+	let retriesUsed = 0;
+	let toolTrace = [];
 	try {
 		const toolHandlers = { get_weather_data: getWeatherData, search_web: searchWeb };
-		rawModelResponse = await generateWithTools(
+		const modelResult = await generateWithRetry(
 			`${SYSTEM_PROMPT}\n\n## Event to Classify\n\n${rawDescription}`,
-			[weatherToolDeclaration, searchToolDeclaration],
-			toolHandlers
+			SYSTEM_PROMPT,
+			{
+				maxRetries: 2,
+				invokeModel: (prompt) =>
+					generateWithToolsAndTrace(
+						prompt,
+						[weatherToolDeclaration, searchToolDeclaration],
+						toolHandlers
+					),
+				extractText: (result) => result?.text ?? '',
+			}
 		);
-		parsed = JSON.parse(rawModelResponse.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim());
+		rawModelResponse = modelResult.raw;
+		parsed = modelResult.parsed;
+		retriesUsed = Math.max(0, modelResult.attempts - 1);
+		toolTrace = modelResult.modelResult?.toolTrace || [];
 	} catch (err) {
 		console.warn('[DisruptionService] Gemini parse failed, using fallback classifier:', err.message);
 		parseError = err.message;
+		rawModelResponse = String(err.rawModelResponse || rawModelResponse || '');
 		parsed = fallbackDisruption(rawDescription);
 	}
-	if (parsed.type === 'WEATHER' && parsed.epicenterLat && parsed.epicenterLng) parsed._weatherData = await getWeatherData({ latitude: parsed.epicenterLat, longitude: parsed.epicenterLng }).catch(() => null);
+	const corroboratingSources = countCorroboratingSources(toolTrace);
+	const fallback = {
+		...fallbackDisruption(rawDescription),
+		corroboratingSources,
+		unverified: corroboratingSources === 0,
+	};
+	const validated = validateAndRepair(parsed, DISRUPTION_SCHEMA, fallback);
+	parsed = {
+		...validated.data,
+		corroboratingSources,
+	};
+	const confidenceCalibrationErrors = applyConfidenceCalibration(parsed, corroboratingSources);
+
+	if (parsed.type === 'WEATHER' && parsed.epicenterLat && parsed.epicenterLng) {
+		parsed._weatherData = await getWeatherData({
+			latitude: parsed.epicenterLat,
+			longitude: parsed.epicenterLng,
+		}).catch(() => null);
+	}
+
+	const nonParseErrors = [...validated.errors, ...confidenceCalibrationErrors];
+	const validationErrors = parseError
+		? [`parse failure after retry: ${parseError}`, ...nonParseErrors]
+		: nonParseErrors;
 	const disruptionEvent = createDisruptionEvent({ ...parsed, rawDescription });
 	validateDisruptionEvent(disruptionEvent);
 	await db.collection('disruptions').doc(disruptionEvent.id).set({
@@ -135,7 +256,10 @@ export async function classifyAndPublish(rawDescription, traceId = null) {
 		modelOutputSnapshot: String(rawModelResponse || '').slice(0, 10000),
 		validationStatus: {
 			valid: !parseError,
-			errors: parseError ? [parseError] : [],
+			errors: validationErrors,
+			repairedCount: nonParseErrors.length,
+			parseRetries: retriesUsed,
+			corroboratingSources,
 		},
 	});
 	const { queued } = await resilientUpsert('disruptions', {

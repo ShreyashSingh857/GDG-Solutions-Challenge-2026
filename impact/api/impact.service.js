@@ -2,6 +2,8 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { generate } from '../../shared/lib/gemini.js';
+import { generateWithRetry } from '../../shared/lib/llmJson.js';
+import { IMPACT_SCHEMA, validateAndRepair } from '../../shared/lib/validateSchema.js';
 import { db } from '../../shared/db/firebase.js';
 import { resilientUpsert } from '../../shared/db/supabase.js';
 import { publish, subscribe } from '../../shared/eventBusClient.js';
@@ -20,6 +22,37 @@ let _lastMessageAt = null;
 
 const HEALTH_CHECK_INTERVAL = 60000;
 const STALE_THRESHOLD = 300000;
+
+function isChokepoint(disruption) {
+	const text = [disruption?.location, ...(disruption?.affectedZones || [])].join(' ').toLowerCase();
+	return /suez|malacca|panama/.test(text);
+}
+
+function deriveCascadeRisk(disruption, shipmentCount, totalCargoAtRiskUSD) {
+	if (isChokepoint(disruption) || totalCargoAtRiskUSD > 50_000_000 || shipmentCount >= 15) return 'HIGH';
+	if (totalCargoAtRiskUSD >= 10_000_000 || shipmentCount >= 5) return 'MEDIUM';
+	return 'LOW';
+}
+
+function deriveUrgency(disruption, scoredShipments = []) {
+	const highestShipmentValue = scoredShipments.reduce(
+		(maxValue, shipment) => Math.max(maxValue, Number(shipment?.cargoValueUSD || 0)),
+		0
+	);
+	if (highestShipmentValue > 10_000_000) return 8;
+	if (disruption?.type === 'WEATHER' && Number(disruption?.severity || 0) >= 8) return 9;
+	if (Number(disruption?.severity || 0) >= 7) return 7;
+	if (Number(disruption?.severity || 0) >= 5) return 6;
+	return 4;
+}
+
+function deriveDelayRangeHours(disruption) {
+	const severity = Number(disruption?.severity || 5);
+	if (severity >= 9) return [60, 120];
+	if (severity >= 7) return [36, 72];
+	if (severity >= 5) return [24, 48];
+	return [8, 24];
+}
 
 export async function processDisruptionEvent(agentPayload) {
 	const disruption = agentPayload.payload;
@@ -42,17 +75,33 @@ export async function processDisruptionEvent(agentPayload) {
 	let geminiResult;
 	let rawModelResponse = '';
 	let parseError = null;
+	let retriesUsed = 0;
+	const [minDelayHours, maxDelayHours] = deriveDelayRangeHours(disruption);
+	const fallback = {
+		cascadeRisk: deriveCascadeRisk(disruption, scoredShipments.length, totalCargoAtRiskUSD),
+		urgency: deriveUrgency(disruption, scoredShipments),
+		analysisText:
+			`${scoredShipments.length} shipments totaling $${totalCargoAtRiskUSD.toLocaleString()} are affected near ${disruption.location}. ` +
+			`Expected delays are ${minDelayHours}-${maxDelayHours} hours across ${disruption.affectedZones.join(', ') || disruption.location}.`,
+	};
 	try {
-		rawModelResponse = await generate(prompt);
-		geminiResult = JSON.parse(rawModelResponse.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim());
+		const modelResult = await generateWithRetry(prompt, SYSTEM_PROMPT, {
+			maxRetries: 2,
+			invokeModel: (retryPrompt) => generate(retryPrompt),
+		});
+		rawModelResponse = modelResult.raw;
+		geminiResult = modelResult.parsed;
+		retriesUsed = Math.max(0, modelResult.attempts - 1);
 	} catch (err) {
 		parseError = err.message;
-		geminiResult = {
-			cascadeRisk: disruption.severity >= 7 ? 'HIGH' : 'MEDIUM',
-			urgency: disruption.severity,
-			analysisText: `Disruption at ${disruption.location} affects ${scoredShipments.length} shipments with $${totalCargoAtRiskUSD.toLocaleString()} cargo at risk.`,
-		};
+		rawModelResponse = String(err.rawModelResponse || rawModelResponse || '');
+		geminiResult = fallback;
 	}
+	const validated = validateAndRepair(geminiResult, IMPACT_SCHEMA, fallback);
+	const nonParseErrors = validated.errors;
+	const validationErrors = parseError
+		? [`parse failure after retry: ${parseError}`, ...nonParseErrors]
+		: nonParseErrors;
 
 	const impactReport = createImpactReport({
 		disruptionId: disruption.id,
@@ -61,10 +110,10 @@ export async function processDisruptionEvent(agentPayload) {
 		affectedZones: disruption.affectedZones || [],
 		traceId,
 		affectedShipments: scoredShipments,
-		cascadeRisk: geminiResult.cascadeRisk || 'MEDIUM',
-		urgency: geminiResult.urgency || disruption.severity,
+		cascadeRisk: validated.data.cascadeRisk || fallback.cascadeRisk,
+		urgency: validated.data.urgency || fallback.urgency,
 		totalCargoAtRiskUSD,
-		analysisText: geminiResult.analysisText || '',
+		analysisText: validated.data.analysisText || fallback.analysisText,
 	});
 	validateImpactReport(impactReport);
 
@@ -79,7 +128,9 @@ export async function processDisruptionEvent(agentPayload) {
 		modelOutputSnapshot: String(rawModelResponse || '').slice(0, 10000),
 		validationStatus: {
 			valid: !parseError,
-			errors: parseError ? [parseError] : [],
+			errors: validationErrors,
+			repairedCount: nonParseErrors.length,
+			parseRetries: retriesUsed,
 		},
 	});
 

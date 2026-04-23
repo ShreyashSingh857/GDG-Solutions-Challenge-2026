@@ -10,7 +10,7 @@ test('buildValidatedResolutionOptions returns safe fallbacks for empty responses
 		cheapest: { title: 'Cheapest Sea Route', mode: 'sea-freight', distanceKm: 1500, timeDeltaHours: 48 },
 	};
 
-	const options = buildValidatedResolutionOptions({
+	const { options } = buildValidatedResolutionOptions({
 		rawResponse: '',
 		routes,
 		balancedCost: { costDelta: 12500 },
