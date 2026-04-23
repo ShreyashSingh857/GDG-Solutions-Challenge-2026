@@ -480,6 +480,7 @@ export default function VisualizePage() {
 	}, [executeStatus, traceDetails, eventCounts, heartbeatByNode, metricsByNode]);
 
 	const validation = normalizeValidation(activeTabPayload?.validationStatus);
+	const validationMessage = validation.errors[0] || (validation.parseRetries > 0 ? 'JSON parse required retry before validation.' : '');
 	const finalJsonText = prettyJson(activeTabPayload?.finalJson || {});
 	const promptText = activeTabPayload?.systemPrompt || '';
 	const inputPayloadText = prettyJson(activeTabPayload?.inputPayload || '{}');
@@ -589,22 +590,35 @@ export default function VisualizePage() {
 								<Panel
 									title="Final Parsed JSON"
 									right={
-										validation.valid ? (
-											<span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
-												<ShieldCheck className="h-3.5 w-3.5" />
-												Pass
-											</span>
-										) : (
+										!validation.valid ? (
 											<span className="inline-flex items-center gap-1 rounded-full border border-rose-300/30 bg-rose-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-200">
 												<ShieldAlert className="h-3.5 w-3.5" />
 												Fail
 											</span>
+										) : validation.repairedCount > 0 ? (
+											<span className="inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200">
+												<ShieldAlert className="h-3.5 w-3.5" />
+												{`Repaired ${validation.repairedCount}`}
+											</span>
+										) : (
+											<span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
+												<ShieldCheck className="h-3.5 w-3.5" />
+												Pass
+											</span>
 										)
 									}
 								>
-									{!validation.valid && validation.errors.length ? (
-										<div className="mb-2 rounded-xl border border-rose-300/25 bg-rose-400/10 px-3 py-2 text-xs text-rose-100">
-											{validation.errors[0]}
+									{(validation.errors.length > 0 || validation.parseRetries > 0) ? (
+										<div
+											className={[
+												'mb-2 rounded-xl px-3 py-2 text-xs',
+												validation.valid
+													? 'border border-amber-300/25 bg-amber-400/10 text-amber-100'
+													: 'border border-rose-300/25 bg-rose-400/10 text-rose-100',
+											].join(' ')}
+										>
+											{validationMessage}
+											{validation.parseRetries > 0 ? ` (retry attempts: ${validation.parseRetries})` : ''}
 										</div>
 									) : null}
 									<pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-[#040914] p-3 font-mono text-[11px] leading-relaxed text-blue-100/90 custom-scrollbar">
@@ -700,7 +714,9 @@ function normalizeValidation(value) {
 		return {
 			valid: Boolean(value.valid),
 			errors: Array.isArray(value.errors) ? value.errors : [],
+			repairedCount: Number(value.repairedCount || 0),
+			parseRetries: Number(value.parseRetries || 0),
 		};
 	}
-	return { valid: true, errors: [] };
+	return { valid: true, errors: [], repairedCount: 0, parseRetries: 0 };
 }

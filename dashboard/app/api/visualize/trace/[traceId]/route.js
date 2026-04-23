@@ -25,9 +25,12 @@ function normalizeValidationStatus(status) {
 		return {
 			valid: Boolean(status.valid),
 			errors: Array.isArray(status.errors) ? status.errors : [],
+			repairedCount: Number(status.repairedCount || 0),
+			parseRetries: Number(status.parseRetries || 0),
+			corroboratingSources: Number(status.corroboratingSources || 0),
 		};
 	}
-	return { valid: true, errors: [] };
+	return { valid: true, errors: [], repairedCount: 0, parseRetries: 0, corroboratingSources: 0 };
 }
 
 function compactDisruption(disruption) {
