@@ -8,7 +8,7 @@ import { Pause, Play } from 'lucide-react';
  */
 export default function GlobeActivationToggle({ isActive, isPageVisible, onToggle }) {
   return (
-    <div className="absolute bottom-6 right-6 z-40">
+    <div className="absolute top-6 right-6 z-40">
       <button
         type="button"
         onClick={onToggle}
