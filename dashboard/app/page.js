@@ -28,7 +28,7 @@ const GlobeActivationToggle = dynamic(() => import('./components/globe/GlobeActi
   ssr: false,
   loading: () => null,
 });
-const GlobeView = dynamic(() => import(/* webpackPrefetch: false */ './components/globe/GlobeView.jsx'), {
+const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
   ssr: false,
   loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>,
 });
