@@ -43,11 +43,14 @@ export default function Home() {
   const [globeEnabled, setGlobeEnabled] = useState(true);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [globalStats, setGlobalStats] = useState(null);
   const isGlobeActive = globeEnabled && isPageVisible;
   const shouldLoadGlobe = globeEnabled;
   const shipments = useShipmentStore((s) => s.shipments);
   const disruptions = useAlertStore((s) => s.disruptions);
   const newsAlerts = useAlertStore((s) => s.newsAlerts);
+  const activeShipments = shipments.filter((s) => s.status === 'active');
+  const cargoUnderProtectionUSD = activeShipments.reduce((sum, shipment) => sum + Number(shipment.cargoValueUSD || 0), 0);
 
   useEffect(() => {
     const unsub = useAlertStore.subscribe(
@@ -96,11 +99,59 @@ export default function Home() {
       .finally(() => window.localStorage.setItem(promptedKey, '1'));
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStats = async () => {
+      try {
+        const response = await fetch('/api/visualize/stats', { cache: 'no-store' });
+        const payload = await response.json();
+        if (!cancelled) {
+          setGlobalStats(payload?.data || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setGlobalStats(null);
+        }
+      }
+    };
+
+    loadStats();
+    const interval = setInterval(() => loadStats().catch(() => {}), 60_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div data-globe="true" className="flex flex-col h-screen w-screen overflow-hidden bg-[#020617]">
       <NavBar />
       <div className="relative flex-1 overflow-hidden">
         <Toaster position="bottom-right" theme="dark" />
+        <div className="absolute left-4 top-4 z-20 pointer-events-none">
+          <div className="pointer-events-auto rounded-3xl border border-cyan-300/20 bg-[#06111f]/92 px-4 py-3 shadow-[0_18px_48px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-100/70">Pipeline Impact</div>
+            <div className="mt-1 text-sm font-semibold text-white">
+              Cargo under protection: ${(cargoUnderProtectionUSD / 1e6).toFixed(1)}M
+            </div>
+            <div className="mt-1 text-xs text-white/60">
+              across {activeShipments.length} active shipments · {shipments.filter((s) => s.status !== 'delivered').length} monitored
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/70">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                Sessions run: {globalStats?.totalResolutions ?? 0}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                Human hours saved: {globalStats?.humanHoursSaved ?? 0}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                Total cargo analyzed: ${((globalStats?.totalCargoAnalyzedUSD ?? 0) / 1e6).toFixed(1)}M
+              </span>
+            </div>
+          </div>
+        </div>
         <AlertToastController />
         <ErrorBoundary fallback={<MinimalErrorFallback name="Decision Modal" />}>
           <DecisionModal />

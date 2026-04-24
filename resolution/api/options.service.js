@@ -5,6 +5,7 @@ import { generate, generateStream } from '../../shared/lib/gemini.js';
 import { extractJSON, generateWithRetry } from '../../shared/lib/llmJson.js';
 import { RESOLUTION_OPTION_SCHEMA, validateAndRepair } from '../../shared/lib/validateSchema.js';
 import { db } from '../../shared/db/firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
 import { resilientUpsert } from '../../shared/db/supabase.js';
 import { publish, subscribe } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
@@ -493,6 +494,20 @@ async function processImpactReport(agentPayload) {
 	});
 
 	await batch.commit();
+
+	try {
+		await db.collection('stats').doc('global').set(
+			{
+				totalResolutions: FieldValue.increment(1),
+				humanHoursSaved: FieldValue.increment(6),
+				totalCargoAnalyzedUSD: FieldValue.increment(Number(impactReport.totalCargoAtRiskUSD || 0)),
+				updatedAt: nowIso,
+			},
+			{ merge: true }
+		);
+	} catch (err) {
+		console.warn('[ResolutionService] stats update failed:', err.message);
+	}
 
 	await publish(
 		TOPICS.RESOLUTION_OPTIONS,
