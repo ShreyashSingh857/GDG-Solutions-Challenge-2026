@@ -111,9 +111,9 @@ export default function NewsFeed() {
                       <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color }}>
                         {alert.disruptionType || 'General'}
                       </span>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)] font-bold">SEV {alert.severity}/10</span>
+                      <span className="text-[10px] font-mono text-[var(--text-secondary)] font-bold">SEV {alert.severity}/10</span>
                       <div className="flex-1" />
-                      <div className={`px-2 py-0.5 rounded-lg border text-[10px] font-mono font-bold ${importance >= 85 ? 'bg-[var(--accent-red)]/10 border-[var(--accent-red)]/20 text-[var(--accent-red)]' : 'bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-secondary)]'}`}>
+                      <div className={`px-2 py-0.5 rounded-lg border text-[10px] font-mono font-bold ${importance >= 85 ? 'bg-[var(--accent-red)]/10 border-[var(--accent-red)]/20 text-[var(--accent-red)]' : 'bg-[var(--bg-elevated)] border-[var(--border-default)] text-[var(--text-primary)]'}`}>
                         {importance}% MATCH
                       </div>
                     </div>
@@ -132,12 +132,12 @@ export default function NewsFeed() {
                 <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
                   <div className="flex gap-2">
                     {alert.affectedCorridors?.slice(0, 2).map((c) => (
-                      <span key={c} className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] bg-[var(--bg-elevated)]/50 px-2 py-1 rounded-md border border-[var(--border-subtle)]">
+                      <span key={c} className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--bg-elevated)] px-2 py-1 rounded-md border border-[var(--border-default)]">
                         {c}
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] opacity-60 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-80 group-hover:opacity-100 transition-opacity">
                     <div className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
                     {alert.source || 'Intelligence Cache'}
                     <ExternalLink className="w-3 h-3 ml-1" />

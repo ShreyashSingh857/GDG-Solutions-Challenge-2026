@@ -71,13 +71,13 @@ export default function OverviewTab({ shipments, isLoading }) {
       </div>
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-4">
           Shipments by Corridor
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={corridorData} barSize={32}>
-            <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip
               contentStyle={{
                 background: 'var(--bg-surface)',

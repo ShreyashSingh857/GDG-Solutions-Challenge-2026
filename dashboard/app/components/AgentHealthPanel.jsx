@@ -25,16 +25,16 @@ function formatNumber(value) {
 
 function MetricChip({ label, value, tone = 'slate' }) {
 	const colorClasses = {
-		cyan: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
-		amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-		rose: 'border-rose-400/20 bg-rose-400/10 text-rose-100',
+		cyan: 'border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)]',
+		amber: 'border-[var(--accent-amber)]/20 bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]',
+		rose: 'border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 text-[var(--accent-red)]',
 		slate: 'border-[var(--border-default)] bg-[var(--bg-elevated)]/40 text-[var(--text-primary)]',
 	};
 
 	return (
 		<div className={`rounded-xl border px-3 py-2 backdrop-blur ${colorClasses[tone] || colorClasses.slate}`}>
-			<div className="text-[10px] uppercase tracking-[0.24em] opacity-70">{label}</div>
-			<div className="mt-1 text-lg font-semibold leading-none">{value}</div>
+			<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-secondary)] font-bold">{label}</div>
+			<div className="mt-1 text-lg font-semibold leading-none text-[var(--text-primary)]">{value}</div>
 		</div>
 	);
 }
@@ -115,8 +115,8 @@ export default function AgentHealthPanel() {
 						<div className="relative px-5 py-4 sm:px-6 sm:py-5">
 							<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 								<div className="space-y-2">
-									<div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-100">
-										<span className={`h-2 w-2 rounded-full ${loadState === 'ready' ? 'bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]' : 'bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.75)]'}`} />
+									<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--accent-cyan)]">
+										<span className={`h-2 w-2 rounded-full ${loadState === 'ready' ? 'bg-[var(--accent-green)] shadow-[0_0_14px_rgba(34,197,94,0.6)]' : 'bg-[var(--accent-amber)] shadow-[0_0_14px_rgba(245,158,11,0.6)]'}`} />
 										Live telemetry
 									</div>
 									<div>
@@ -169,7 +169,7 @@ export default function AgentHealthPanel() {
 													<div className="text-[10px] uppercase tracking-[0.28em] text-[var(--text-muted)]">Service</div>
 													<div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{agent.name}</div>
 												</div>
-												<div className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${agent.ok ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100' : 'border-rose-400/20 bg-rose-400/10 text-rose-100'}`}>
+												<div className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${agent.ok ? 'border-[var(--accent-green)]/20 bg-[var(--accent-green)]/10 text-[var(--accent-green)]' : 'border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 text-[var(--accent-red)]'}`}>
 													{agent.ok ? (errorCount > 0 ? 'Degraded' : 'Live') : 'Down'}
 												</div>
 											</div>
@@ -181,7 +181,7 @@ export default function AgentHealthPanel() {
 												</div>
 
 												{waking[agent.name] ? (
-													<div className="rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-100">
+													<div className="rounded-lg border border-[var(--accent-amber)]/20 bg-[var(--accent-amber)]/10 px-3 py-2 text-[11px] text-[var(--accent-amber)]">
 														Waking agent... ETA ~30s
 													</div>
 												) : null}

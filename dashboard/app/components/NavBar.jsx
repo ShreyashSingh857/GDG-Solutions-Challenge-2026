@@ -20,7 +20,7 @@ function ThemeToggleButton({ theme, onToggle }) {
       onClick={onToggle}
       aria-label="Toggle theme"
       className="p-1.5 rounded-lg border border-[var(--border-subtle)] 
-                 text-[var(--text-muted)] hover:text-[var(--text-secondary)]
+                 text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                  hover:bg-[var(--bg-elevated)] transition-colors"
     >
       {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
@@ -42,15 +42,15 @@ export default function NavBar() {
     >
       {/* Brand */}
       <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500/30 to-blue-600/20
-                        border border-cyan-400/25 flex items-center justify-center">
-          <span className="text-[10px] font-bold text-cyan-300 tracking-tighter">SC</span>
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/10
+                        border border-cyan-400/40 flex items-center justify-center">
+          <span className="text-[10px] font-bold text-cyan-600 tracking-tighter">SC</span>
         </div>
         <div className="hidden sm:block">
           <span className="text-[13px] font-semibold text-[var(--text-primary)] tracking-tight">
             Anti-Fragile
           </span>
-          <span className="ml-1.5 text-[11px] text-[var(--text-muted)] tracking-wide hidden md:inline">
+          <span className="ml-1.5 text-[11px] text-[var(--text-secondary)] tracking-wide hidden md:inline">
             Supply Chain
           </span>
         </div>
@@ -72,7 +72,7 @@ export default function NavBar() {
                 'transition-all duration-150',
                 active
                   ? 'bg-[var(--bg-overlay)] text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-overlay)]/40',
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
               ].join(' ')}
             >
               <Icon className="w-3.5 h-3.5" aria-hidden="true" />
@@ -90,7 +90,7 @@ export default function NavBar() {
         <Link
           href="/settings"
           className="p-1.5 rounded-lg border border-[var(--border-subtle)]
-                     text-[var(--text-muted)] hover:text-[var(--text-secondary)]
+                     text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                      hover:bg-[var(--bg-elevated)] transition-colors"
           aria-label="Settings"
         >

@@ -15,7 +15,7 @@ export default function MetricCard({ label, value, icon: Icon, color = 'default'
         {Icon ? <Icon className="w-5 h-5 text-[var(--text-primary)]/80" aria-hidden="true" /> : null}
       </div>
       <p className="text-2xl font-bold text-[var(--text-primary)]">{value}</p>
-      <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest">{label}</p>
+      <p className="text-xs text-[var(--text-secondary)] uppercase tracking-widest">{label}</p>
     </div>
   );
 }
