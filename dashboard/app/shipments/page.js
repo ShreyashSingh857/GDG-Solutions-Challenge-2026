@@ -80,51 +80,64 @@ export default function DetailsPage() {
     <div className="flex flex-col h-screen bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
       <NavBar />
       
-      <div className="flex items-center justify-between px-6 py-3 glass-panel !rounded-none !border-t-0 !border-x-0 !border-b z-30">
-        <div className="flex bg-[var(--bg-surface)] p-1 rounded-xl border border-[var(--border-default)] gap-0.5">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={[
-                'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2',
-                activeTab === tab.id
-                  ? 'bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/60 border border-transparent',
-              ].join(' ')}
-            >
-              <tab.icon className="w-3.5 h-3.5" aria-hidden="true" />
-              {tab.label}
-            </button>
-          ))}
+      <div className="flex flex-col px-6 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/40 z-30 space-y-3">
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">Anti-Fragile</span>
+          <span className="opacity-30">/</span>
+          <span className="text-[var(--text-secondary)]">Shipments</span>
+          <span className="opacity-30">/</span>
+          <span className="text-[var(--text-primary)]">{activeTab === 'overview' ? 'Overview' : 'Logistics Feed'}</span>
         </div>
-        
-        {activeTab === 'shipments' && (
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-default)] bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-all active:scale-95"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Import
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={isExporting || isLoading || shipments.length === 0}
-              className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-default)] bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-all active:scale-95 disabled:opacity-50"
-            >
-              <Download className="w-3.5 h-3.5" />
-              {isExporting ? 'Exporting...' : 'Export'}
-            </button>
-            <button
-              onClick={openAdd}
-              className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest bg-[var(--accent-blue)] hover:brightness-110 text-white transition-all active:scale-95 shadow-lg shadow-[var(--accent-blue)]/20"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Shipment
-            </button>
+
+        <div className="flex items-center justify-between">
+          <div className="flex glass-panel !bg-[var(--bg-elevated)]/40 p-1 gap-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={[
+                  'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2',
+                  activeTab === tab.id
+                    ? 'bg-[var(--bg-overlay)] text-[var(--text-primary)] shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40 border border-transparent',
+                ].join(' ')}
+              >
+                <tab.icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-[var(--accent-cyan)]' : 'opacity-70'}`} aria-hidden="true" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
           </div>
-        )}
+          
+          {activeTab === 'shipments' && (
+            <div className="flex items-center gap-2.5">
+              <div className="hidden md:flex items-center gap-2.5">
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-default)] bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-all active:scale-95"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Import
+                </button>
+                <button
+                  onClick={handleExport}
+                  disabled={isExporting || isLoading || shipments.length === 0}
+                  className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-default)] bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {isExporting ? 'Exporting...' : 'Export'}
+                </button>
+              </div>
+              <button
+                onClick={openAdd}
+                className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest bg-[var(--accent-blue)] hover:brightness-110 text-white transition-all active:scale-95 shadow-lg shadow-[var(--accent-blue)]/20"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Add Shipment</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <motion.div 
@@ -193,16 +206,19 @@ function EmptyState({ onAdd }) {
 
 function ShipmentsPageSkeleton() {
   return (
-    <div className="flex-1 p-6 space-y-6">
+    <div className="flex-1 p-6 space-y-8">
       <div className="h-10 w-72 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+          <div key={i} className="h-24 rounded-2xl glass-panel !bg-[var(--bg-elevated)]/40 animate-pulse" />
         ))}
       </div>
-      <div className="glass-panel p-4 space-y-3">
-        <div className="h-9 w-80 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
-        <div className="h-[400px] rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
+      <div className="glass-panel glass-edge !bg-[var(--bg-elevated)]/20 p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="h-9 w-64 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+          <div className="h-9 w-32 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+        </div>
+        <div className="h-[400px] rounded-2xl bg-[var(--bg-elevated)]/40 animate-pulse border border-[var(--border-subtle)]" />
       </div>
     </div>
   );

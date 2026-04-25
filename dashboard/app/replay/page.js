@@ -184,13 +184,31 @@ export default function ReplayPage() {
               <div className="space-y-6">
                 {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="animate-pulse flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)]" />
+                    <div className="glass-panel w-8 h-8 rounded-full !bg-[var(--bg-elevated)]" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-3 w-24 bg-[var(--bg-elevated)] rounded" />
-                      <div className="h-4 w-full bg-[var(--bg-elevated)] rounded" />
+                      <div className="h-3 w-24 bg-[var(--bg-elevated)] rounded-lg" />
+                      <div className="h-4 w-full bg-[var(--bg-elevated)] rounded-lg" />
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : events.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4 opacity-60">
+                <div className="w-16 h-16 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center border border-dashed border-[var(--border-subtle)]">
+                  <RotateCcw className="w-8 h-8 text-[var(--text-muted)]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">No Sequences Found</h3>
+                  <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                    There are no recorded disruptions for the selected {daysBack}-day window.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setDaysBack(daysBack)}
+                  className="px-6 py-2 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--bg-surface)] transition-all"
+                >
+                  Refresh Feed
+                </button>
               </div>
             ) : (
               <div className="relative">
@@ -202,7 +220,7 @@ export default function ReplayPage() {
                     <button
                       key={event.id}
                       onClick={() => { setSelectedIndex(idx); setIsPlaying(false); }}
-                      className={`w-full flex gap-4 p-3 rounded-2xl transition-all group relative ${selectedIndex === idx ? 'bg-[var(--bg-elevated)]' : 'hover:bg-[var(--bg-elevated)]/40'}`}
+                      className={`w-full flex gap-4 p-3 rounded-2xl transition-all group relative ${selectedIndex === idx ? 'bg-[var(--bg-elevated)] border border-[var(--border-subtle)]' : 'hover:bg-[var(--bg-elevated)]/40 border border-transparent'}`}
                     >
                       <TimelineDot severity={event.severity} active={selectedIndex === idx} />
                       <div className="flex-1 text-left">
@@ -304,11 +322,19 @@ export default function ReplayPage() {
                 </div>
               </motion.div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-4 text-[var(--text-muted)]">
-                <div className="w-16 h-16 rounded-full border border-dashed border-[var(--border-subtle)] flex items-center justify-center">
-                  <Activity className="w-8 h-8 opacity-20" />
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-6 opacity-60">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[var(--accent-cyan)]/5 blur-3xl rounded-full" />
+                  <div className="w-24 h-24 rounded-[40px] bg-[var(--bg-elevated)]/40 flex items-center justify-center relative border border-dashed border-[var(--border-subtle)]">
+                    <MapIcon className="w-10 h-10 text-[var(--text-muted)] opacity-30" />
+                  </div>
                 </div>
-                <p className="text-sm">Select an event from the timeline to view details</p>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--text-primary)]">No Target Selected</h3>
+                  <p className="text-[11px] text-[var(--text-secondary)] max-w-[240px] mx-auto leading-relaxed font-medium">
+                    Select a historical disruption from the timeline to initiate spatial analysis and impact replay.
+                  </p>
+                </div>
               </div>
             )}
           </AnimatePresence>

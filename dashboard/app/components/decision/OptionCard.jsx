@@ -41,7 +41,7 @@ export default function OptionCard({ option, onApprove, isApproving, isSelected,
   return (
     <motion.div 
       layout
-      className={`relative flex flex-col gap-4 bg-[var(--bg-surface)] rounded-2xl border p-5 flex-1 min-w-0 transition-all duration-500 overflow-hidden ${isSelected ? 'border-[var(--accent-green)]/50 shadow-[0_0_40px_rgba(34,197,94,0.1)]' : 'border-[var(--border-default)]'}`}
+      className={`relative flex flex-col gap-4 bg-[var(--bg-surface)] rounded-2xl border p-5 flex-1 min-w-0 transition-all duration-500 overflow-hidden group hover:shadow-[0_0_0_2px_var(--accent-cyan)]/20 ${isSelected ? 'border-[var(--accent-green)]/50 shadow-[0_0_40px_rgba(34,197,94,0.1)]' : 'border-[var(--border-default)]'}`}
       style={{ opacity: !isSelected && isApproving ? 0.3 : 1 }}
     >
       {/* Background sweep animation for selected state */}

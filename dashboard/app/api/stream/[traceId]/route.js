@@ -34,9 +34,10 @@ export async function GET(_req, context) {
 		return NextResponse.json({ error: detail || 'Upstream stream unavailable' }, { status: upstream.status || 502 });
 	}
 
+	let reader;
 	const stream = new ReadableStream({
 		async start(controller) {
-			const reader = upstream.body.getReader();
+			reader = upstream.body.getReader();
 			let didError = false;
 			try {
 				while (true) {
@@ -55,7 +56,9 @@ export async function GET(_req, context) {
 			}
 		},
 		cancel() {
-			upstream.body?.cancel?.();
+			if (reader) {
+				reader.cancel();
+			}
 		},
 	});
 

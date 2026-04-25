@@ -75,20 +75,25 @@ export default function OnboardingPage() {
       <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center px-6 py-16">
         
         {/* Step Indicator */}
-        <div className="mb-10 flex items-center gap-4">
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-6 w-6 rounded-full bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/40 flex items-center justify-center text-[10px] font-bold text-[var(--accent-cyan)]">1</div>
-            <span className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Account</span>
+        <div className="mb-10 flex flex-col items-center gap-4">
+          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">
+            Step 2 of 2: <span className="text-[var(--accent-cyan)]">Organization Setup</span>
           </div>
-          <div className="h-px w-8 bg-[var(--border-subtle)] -mt-4" />
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-6 w-6 rounded-full bg-[var(--accent-cyan)] border border-[var(--accent-cyan)] shadow-[0_0_12px_var(--accent-cyan)] flex items-center justify-center text-[10px] font-bold text-[#020617]">2</div>
-            <span className="text-[9px] uppercase tracking-widest text-[var(--accent-cyan)] font-bold">Setup</span>
-          </div>
-          <div className="h-px w-8 bg-[var(--border-subtle)] -mt-4" />
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-6 w-6 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)]">3</div>
-            <span className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Panel</span>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-6 w-6 rounded-full bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/40 flex items-center justify-center text-[10px] font-bold text-[var(--accent-cyan)]">1</div>
+              <span className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Account</span>
+            </div>
+            <div className="h-px w-8 bg-[var(--border-subtle)] -mt-4" />
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-6 w-6 rounded-full bg-[var(--accent-cyan)] border border-[var(--accent-cyan)] shadow-[0_0_12px_var(--accent-cyan)] flex items-center justify-center text-[10px] font-bold text-[#020617]">2</div>
+              <span className="text-[9px] uppercase tracking-widest text-[var(--accent-cyan)] font-bold">Setup</span>
+            </div>
+            <div className="h-px w-8 bg-[var(--border-subtle)] -mt-4" />
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-6 w-6 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)]">3</div>
+              <span className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Dashboard</span>
+            </div>
           </div>
         </div>
 
@@ -116,7 +121,7 @@ export default function OnboardingPage() {
               />
               <div className="mt-3 space-y-2">
                 <p className="text-[11px] font-medium text-[var(--text-muted)] leading-relaxed">
-                  Your org ID is used to scope your team&apos;s shipment data. Use lowercase letters, numbers, and hyphens only.
+                  Your org ID is used to scope your team&apos;s shipment data. Use lowercase letters, numbers, and hyphens only. Example: acme-logistics
                 </p>
                 <div className="flex items-center gap-2 text-[10px] font-mono text-[var(--accent-cyan)] bg-[var(--accent-cyan)]/5 border border-[var(--accent-cyan)]/10 px-2 py-1 rounded-md w-fit">
                   <span>PREVIEW:</span>

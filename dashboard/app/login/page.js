@@ -131,15 +131,15 @@ export default function LoginPage() {
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/5">
               <div className="flex flex-col items-center gap-1.5 text-center">
                 <Search className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Live feeds</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Live disruption feeds</span>
               </div>
               <div className="flex flex-col items-center gap-1.5 text-center">
                 <Zap className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">AI Agents</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Multi-agent resolution</span>
               </div>
               <div className="flex flex-col items-center gap-1.5 text-center">
                 <Shield className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Certified</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Enterprise-grade security</span>
               </div>
             </div>
           </div>

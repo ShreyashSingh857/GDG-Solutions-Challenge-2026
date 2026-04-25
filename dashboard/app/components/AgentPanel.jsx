@@ -66,16 +66,16 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
             ].join(' ')}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
-              <div className="flex gap-1 bg-[var(--bg-elevated)]/50 rounded-lg p-0.5">
+              <div className="flex gap-1.5 bg-[var(--bg-elevated)]/50 rounded-xl p-1 border border-[var(--border-subtle)]">
                 {TABS.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => onTabChange(tab.id)}
                     className={[
-                      'px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5',
+                      'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border border-transparent',
                       activeTab === tab.id
-                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]',
+                        ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/30 shadow-sm shadow-[var(--accent-cyan)]/10'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
                     ].join(' ')}
                   >
                     {tab.label}
@@ -84,12 +84,12 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
               </div>
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center hover:bg-[var(--bg-elevated)] transition-colors"
+                className="w-8 h-8 rounded-full glass-panel !shadow-sm flex items-center justify-center hover:bg-[var(--glass-bg-elevated)] hover:!border-[var(--accent-cyan)]/30 transition-all group"
                 aria-label="Close panel"
               >
                 <svg
                   viewBox="0 0 14 14"
-                  className="w-3 h-3 text-[var(--text-muted)]"
+                  className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"

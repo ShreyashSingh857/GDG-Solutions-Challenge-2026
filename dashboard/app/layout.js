@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono, Space_Grotesk, Fira_Code } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import DataProvider from './providers/DataProvider.jsx';
 import { ThemeProvider } from './providers/ThemeProvider.jsx';
@@ -38,7 +39,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${firaCode.variable} ${spaceGrotesk.variable} h-full antialiased`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
   (function() {
     try {
       var t = localStorage.getItem('gdg_theme');
@@ -51,7 +56,9 @@ export default function RootLayout({ children }) {
       document.documentElement.setAttribute('data-theme', 'dark');
     }
   })();
-`}} />
+`,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>

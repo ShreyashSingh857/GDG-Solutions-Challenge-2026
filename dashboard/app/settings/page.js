@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [orgDisplayName, setOrgDisplayName] = useState('');
   const [autoRotate, setAutoRotate] = useState('10s');
   const [defaultFilter, setDefaultFilter] = useState('all');
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     setAutoRotate(getLocalSetting('gdg_globe_auto_rotate', '10s'));
@@ -100,6 +101,8 @@ export default function SettingsPage() {
       import('sonner').then(({ toast }) => {
         toast.success('Preferences saved successfully');
       });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 1500);
     } finally {
       setSaving(false);
     }
@@ -110,10 +113,44 @@ export default function SettingsPage() {
       <NavBar />
       <main className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="mx-auto max-w-4xl space-y-8">
-          <header className="space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Preferences</p>
-            <h1 className="text-3xl font-bold tracking-tight font-display">Settings</h1>
-            <p className="text-sm text-[var(--text-secondary)]">Control alerts, layout defaults, and the visual theme from one place.</p>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+            <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">Anti-Fragile</span>
+            <span className="opacity-30">/</span>
+            <span className="text-[var(--text-secondary)]">Settings</span>
+          </div>
+
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Operations Preferences</p>
+              <h1 className="text-3xl font-bold tracking-tight font-display">System Settings</h1>
+              <p className="text-sm text-[var(--text-secondary)] max-w-lg leading-relaxed">
+                Configure your global command center preferences, notification triggers, and visual identity.
+              </p>
+            </div>
+            
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Environment Theme</p>
+              <div className="flex items-center gap-4 bg-[var(--bg-elevated)]/40 p-2 rounded-2xl border border-[var(--border-subtle)] glass-panel">
+                <span className="text-xs font-bold text-[var(--text-primary)] pl-2">
+                  {theme === 'dark' ? 'Dark Command Mode' : 'Light Operations Mode'}
+                </span>
+                <div className="flex gap-1">
+                  {['light', 'dark'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => handleThemeToggle(t)}
+                      className={`p-2 rounded-xl border transition-all active:scale-95 ${
+                        theme === t 
+                          ? 'bg-[var(--accent-cyan)]/10 border-[var(--accent-cyan)]/40 text-[var(--accent-cyan)] shadow-lg shadow-cyan-500/5' 
+                          : 'bg-transparent border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {t === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </header>
 
           {loading ? (
@@ -182,9 +219,25 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleSave}
                       disabled={saving}
-                      className="w-full rounded-xl bg-[var(--accent-blue)] px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-all hover:brightness-110 disabled:opacity-60 active:scale-95 shadow-lg shadow-[var(--accent-blue)]/20"
+                      className={`w-full rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
+                        isSaved 
+                          ? 'bg-[var(--accent-green)] text-white shadow-[var(--accent-green)]/20' 
+                          : 'bg-[var(--accent-blue)] text-white hover:brightness-110 disabled:opacity-60 shadow-[var(--accent-blue)]/20'
+                      }`}
                     >
-                      {saving ? 'Saving...' : 'Save Preferences'}
+                      {saving ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Saving...
+                        </>
+                      ) : isSaved ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Preferences Saved
+                        </>
+                      ) : 'Save Preferences'}
                     </button>
                   </div>
                 </SettingCard>

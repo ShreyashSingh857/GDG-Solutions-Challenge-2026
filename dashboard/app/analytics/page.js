@@ -156,12 +156,30 @@ export default function AnalyticsPage() {
         animate="visible"
         className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar"
       >
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">Anti-Fragile</span>
+          <span className="opacity-30">/</span>
+          <span className="text-[var(--text-secondary)]">Analytics</span>
+        </div>
+
         <header>
           <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Operations Intelligence</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight font-display">30-Day Analytics</h1>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight font-display">30-Day Performance</h1>
         </header>
 
-        <motion.section variants={STAGGER_CHILDREN} className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+        {(!data || Object.keys(data).length === 0) ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-12 glass-panel !bg-transparent border-dashed border-2 opacity-60">
+             <div className="w-16 h-16 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-subtle)] mb-4">
+               <BarChart3 className="w-8 h-8 text-[var(--text-muted)]" />
+             </div>
+             <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">No Intelligence Data</h3>
+             <p className="text-[11px] text-[var(--text-secondary)] mt-2 max-w-xs text-center leading-relaxed">
+               Historical performance metrics are calculated every 24 hours. Check back once your first disruption protocol has been executed.
+             </p>
+          </div>
+        ) : (
+          <>
+            <motion.section variants={STAGGER_CHILDREN} className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
           {cards.map((kpi) => (
             <KpiCard key={kpi.label} {...kpi} />
           ))}
@@ -215,6 +233,8 @@ export default function AnalyticsPage() {
             </ChartPanel>
           </div>
         </motion.section>
+        </>
+        )}
       </motion.main>
     </div>
   );

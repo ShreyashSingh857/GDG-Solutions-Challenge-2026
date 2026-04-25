@@ -242,9 +242,16 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
         </div>
 
         {displayed.length === 0 && (
-          <div className="py-20 text-center space-y-3 bg-[var(--bg-elevated)]/20">
-            <Search className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-20" />
-            <p className="text-[var(--text-muted)] text-sm">No shipments found matching your search</p>
+          <div className="py-20 text-center space-y-4 bg-[var(--bg-elevated)]/20 rounded-2xl border border-dashed border-[var(--border-subtle)] mx-6 mb-6">
+            <div className="w-16 h-16 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center mx-auto shadow-sm">
+              <Ship className="w-8 h-8 text-[var(--accent-cyan)] opacity-60" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-[var(--text-primary)] font-bold">No shipments yet</p>
+              <p className="text-[var(--text-muted)] text-xs max-w-[240px] mx-auto">
+                Add your first shipment to start tracking cargo in real time.
+              </p>
+            </div>
           </div>
         )}
       </div>
