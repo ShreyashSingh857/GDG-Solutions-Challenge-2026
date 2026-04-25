@@ -11,6 +11,11 @@ const ThemeContext = createContext({
 function getInitialTheme() {
   if (typeof window === 'undefined') return 'dark';
   const stored = window.localStorage.getItem('gdg_theme');
+  // Also check what's already on the document
+  const current = document.documentElement.getAttribute('data-theme');
+  if (current && (current === 'light' || current === 'dark')) {
+    return current;
+  }
   return stored === 'light' || stored === 'dark' ? stored : 'dark';
 }
 
@@ -23,11 +28,28 @@ function persistTheme(theme) {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(getInitialTheme);
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Sync initial state on mount
   useEffect(() => {
-    persistTheme(theme);
-  }, [theme]);
+    const stored = window.localStorage.getItem('gdg_theme');
+    const fromDoc = document.documentElement.getAttribute('data-theme');
+    const initialTheme = (stored === 'light' || stored === 'dark') ? stored : (fromDoc === 'light' || fromDoc === 'dark') ? fromDoc : 'dark';
+    
+    if (initialTheme !== theme) {
+      setTheme(initialTheme);
+    }
+    persistTheme(initialTheme);
+    setIsMounted(true);
+  }, []);
 
+  // Persist theme whenever it changes
+  useEffect(() => {
+    if (!isMounted) return;
+    persistTheme(theme);
+  }, [theme, isMounted]);
+
+  // Listen for storage changes and custom events
   useEffect(() => {
     const onStorage = (event) => {
       if (event.key === 'gdg_theme' && (event.newValue === 'light' || event.newValue === 'dark')) {

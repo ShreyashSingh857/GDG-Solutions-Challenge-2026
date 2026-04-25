@@ -49,15 +49,15 @@ export default function AlertToastController() {
           <div className="flex items-center gap-2">
             <span className="text-lg">{icon}</span>
             <div>
-              <p className="font-semibold text-white text-sm">
+              <p className="font-semibold text-[var(--text-primary)] text-sm">
                 {newest.type} — Severity {newest.severity}/10
               </p>
-              <p className="text-white/70 text-xs">{newest.location}</p>
+              <p className="text-[var(--text-secondary)] text-xs">{newest.location}</p>
             </div>
           </div>
-          <p className="text-white/50 text-xs">{zones} affected</p>
+          <p className="text-[var(--text-muted)] text-xs">{zones} affected</p>
           <button
-            className="mt-1 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition-colors text-left"
+            className="mt-1 text-xs bg-[var(--bg-elevated)] hover:bg-[var(--bg-base)] text-[var(--text-primary)] px-3 py-1 rounded-lg border border-[var(--border-default)] transition-colors text-left"
             onClick={() => {
               useAlertStore.getState().setActiveDisruptionId(id);
             }}
@@ -68,10 +68,10 @@ export default function AlertToastController() {
         {
           duration: 15000,
           style: {
-            background: '#111827',
+            background: 'var(--bg-surface)',
             border: `1px solid ${borderColor}40`,
             borderLeft: `4px solid ${borderColor}`,
-            color: '#f9fafb',
+            color: 'var(--text-primary)',
           },
         }
       );

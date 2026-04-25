@@ -37,6 +37,14 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${firaCode.variable} ${spaceGrotesk.variable} h-full antialiased`}>
+      <script dangerouslySetInnerHTML={{ __html: `
+  (function() {
+    var t = localStorage.getItem('gdg_theme');
+    if (t === 'light' || t === 'dark') {
+      document.documentElement.setAttribute('data-theme', t);
+    }
+  })();
+`}} />
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <DataProvider>{children}</DataProvider>

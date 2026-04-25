@@ -28,7 +28,7 @@ function MetricChip({ label, value, tone = 'slate' }) {
 		cyan: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
 		amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
 		rose: 'border-rose-400/20 bg-rose-400/10 text-rose-100',
-		slate: 'border-white/10 bg-white/5 text-white/80',
+		slate: 'border-[var(--border-default)] bg-[var(--bg-elevated)]/40 text-[var(--text-primary)]',
 	};
 
 	return (
@@ -108,7 +108,7 @@ export default function AgentHealthPanel() {
 				className="absolute top-5 left-5 right-5 z-20 pointer-events-none"
 			>
 				<div className="mx-auto w-full max-w-6xl pointer-events-auto">
-					<div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-slate-950/88 shadow-[0_24px_90px_rgba(2,6,23,0.6)] backdrop-blur-2xl">
+					<div className="relative overflow-hidden rounded-[30px] border border-[var(--border-default)] bg-[var(--bg-surface)]/95 shadow-[var(--shadow-modal)] backdrop-blur-2xl">
 						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_25%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_40%)]" />
 						<div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-cyan-300/70 to-transparent" />
 						<div className="absolute inset-y-0 left-0 w-px bg-linear-to-b from-cyan-300/0 via-cyan-300/45 to-cyan-300/0" />
@@ -120,29 +120,29 @@ export default function AgentHealthPanel() {
 										Live telemetry
 									</div>
 									<div>
-										<h2 className="text-xl font-semibold tracking-[0.18em] text-white sm:text-2xl">
+										<h2 className="text-xl font-semibold tracking-[0.18em] text-[var(--text-primary)] sm:text-2xl">
 											Mission Control
 										</h2>
-										<p className="mt-1 max-w-2xl text-sm text-white/58">
+										<p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
 											Rolling health from every service. Watch the stack breathe, degrade, and recover in real time.
 										</p>
 									</div>
 								</div>
 
-								<div className="flex flex-wrap items-center gap-2 text-[11px] text-white/55">
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+								<div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{onlineCount}/{metrics.length || AGENTS.length} online
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{degradedCount} degraded
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{formatNumber(totalErrors)} errors
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{formatNumber(meanLatency)}ms avg latency
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'waiting...'}
 									</div>
 								</div>
@@ -162,12 +162,12 @@ export default function AgentHealthPanel() {
 											initial={{ opacity: 0, y: 8 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: index * 0.06, duration: 0.24 }}
-											className="group rounded-2xl border border-white/10 bg-white/[0.035] p-3 transition-colors hover:border-white/18 hover:bg-white/5.5"
+											className="group rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]/60 p-3 transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]"
 										>
 											<div className="flex items-start justify-between gap-3">
 												<div>
-													<div className="text-[10px] uppercase tracking-[0.28em] text-white/38">Service</div>
-													<div className="mt-1 text-sm font-medium text-white">{agent.name}</div>
+													<div className="text-[10px] uppercase tracking-[0.28em] text-[var(--text-muted)]">Service</div>
+													<div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{agent.name}</div>
 												</div>
 												<div className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${agent.ok ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100' : 'border-rose-400/20 bg-rose-400/10 text-rose-100'}`}>
 													{agent.ok ? (errorCount > 0 ? 'Degraded' : 'Live') : 'Down'}
@@ -175,7 +175,7 @@ export default function AgentHealthPanel() {
 											</div>
 
 											<div className="mt-3 space-y-3">
-												<div className="flex items-center justify-between text-[11px] text-white/50">
+												<div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
 													<span>{agent.url.replace(/^https?:\/\//, '')}</span>
 													<span className={`h-2 w-2 rounded-full ${agent.ok ? (errorCount > 0 ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-rose-400'}`} />
 												</div>
@@ -193,7 +193,7 @@ export default function AgentHealthPanel() {
 													<MetricChip label="Uptime" value={`${formatNumber(uptime)}s`} tone={healthTone} />
 												</div>
 
-												<div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+												<div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
 													<div
 														className="h-full rounded-full"
 														style={{

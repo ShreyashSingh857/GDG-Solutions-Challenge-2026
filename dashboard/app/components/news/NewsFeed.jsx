@@ -92,7 +92,7 @@ export default function NewsFeed() {
             return (
               <article
                 key={alert.id}
-                className={`group relative flex flex-col rounded-2xl border bg-white/[0.02] transition-all duration-300 hover:bg-white/[0.05] p-5 ${isHighSeverity ? 'border-[var(--accent-red)]/20 shadow-[0_4px_24px_rgba(239,68,68,0.08)]' : 'border-[var(--border-subtle)]'}`}
+                className={`group relative flex flex-col rounded-2xl border bg-[var(--bg-elevated)]/30 transition-all duration-300 hover:bg-[var(--bg-elevated)]/60 p-5 ${isHighSeverity ? 'border-[var(--accent-red)]/20 shadow-[0_4px_24px_rgba(239,68,68,0.08)]' : 'border-[var(--border-subtle)]'}`}
               >
                 {isHighSeverity && (
                   <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent-red)]/10 text-[var(--accent-red)] text-[9px] font-bold uppercase tracking-wider border border-[var(--accent-red)]/20 animate-pulse">

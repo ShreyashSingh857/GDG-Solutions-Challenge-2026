@@ -44,7 +44,7 @@ export default function OverviewTab({ shipments, isLoading }) {
     : [];
 
   if (isLoading) return <OverviewSkeleton />;
-  if (!metrics) return <div className="p-8 text-white/40 text-sm">No shipments found.</div>;
+  if (!metrics) return <div className="p-8 text-[var(--text-muted)] text-sm">No shipments found.</div>;
 
   const fmt = (n) =>
     new Intl.NumberFormat('en-US', {
@@ -70,22 +70,22 @@ export default function OverviewTab({ shipments, isLoading }) {
         <MetricCard label="Transit" value={metrics.byIE.transit?.length ?? 0} color="purple" icon={ArrowRightLeft} />
       </div>
 
-      <div className="rounded-2xl border border-white/5 bg-white/2 p-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-4">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-4">
           Shipments by Corridor
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={corridorData} barSize={32}>
-            <XAxis dataKey="name" tick={{ fill: '#ffffff80', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#ffffff50', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip
               contentStyle={{
-                background: '#0f172a',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-default)',
                 borderRadius: 8,
               }}
-              labelStyle={{ color: '#fff' }}
-              itemStyle={{ color: '#94a3b8' }}
+              labelStyle={{ color: 'var(--text-primary)' }}
+              itemStyle={{ color: 'var(--text-secondary)' }}
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]}>
               {corridorData.map((entry) => (

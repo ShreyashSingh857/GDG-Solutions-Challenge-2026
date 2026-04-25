@@ -6,12 +6,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 const AgentChatSidebar = dynamic(() => import('./agent/AgentChatSidebar.jsx'), {
   ssr: false,
-  loading: () => <div className="p-4 text-xs text-white/40">Loading agent reasoning...</div>,
+  loading: () => <div className="p-4 text-xs text-[var(--text-muted)]">Loading agent reasoning...</div>,
 });
 
 const NewsFeed = dynamic(() => import('./news/NewsFeed.jsx'), {
   ssr: false,
-  loading: () => <div className="p-4 text-xs text-white/40">Loading news intelligence...</div>,
+  loading: () => <div className="p-4 text-xs text-[var(--text-muted)]">Loading news intelligence...</div>,
 });
 
 const TABS = [
@@ -62,12 +62,12 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
             className={[
               'absolute bottom-24 right-6 z-30 pointer-events-auto',
               'w-100 max-h-[70vh] flex flex-col',
-              'bg-gray-950/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl',
+              'bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-default)] rounded-2xl shadow-[var(--shadow-modal)]',
               'overflow-hidden',
             ].join(' ')}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-              <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
+              <div className="flex gap-1 bg-[var(--bg-elevated)]/50 rounded-lg p-0.5">
                 {TABS.map((tab) => (
                   <button
                     key={tab.id}
@@ -75,8 +75,8 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
                     className={[
                       'px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5',
                       activeTab === tab.id
-                        ? 'bg-white/15 text-white shadow-sm'
-                        : 'text-white/40 hover:text-white/70',
+                        ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]',
                     ].join(' ')}
                   >
                     {tab.label}
@@ -85,12 +85,12 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
               </div>
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                className="w-7 h-7 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center hover:bg-[var(--bg-elevated)] transition-colors"
                 aria-label="Close panel"
               >
                 <svg
                   viewBox="0 0 14 14"
-                  className="w-3 h-3 text-white/50"
+                  className="w-3 h-3 text-[var(--text-muted)]"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"

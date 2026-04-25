@@ -279,7 +279,7 @@ The difference between a student project and a winning hackathon entry is whethe
 
 **Live freight rate context:** You already have `freightRatesTool.js`. Make sure the `freightMarketSummary` field is populated and displayed prominently in the DecisionModal's OptionCard. Judges who know logistics will look for this.
 
-**Sanctions database (static):** You already have `sanctionsChecker.js`. Make sure the `sanctionsWarning` field in OptionCard is always displayed even when the warning is null — show "✅ No sanctions flags" because the absence of a flag is itself useful information.
+**Sanctions database (static):** You already have `sanctionsChecker.js`. Make sure the `sanctionsWarning` field in OptionCard is always displayed even when the warning is null — show "No sanctions flags" because the absence of a flag is itself useful information.
 
 ---
 

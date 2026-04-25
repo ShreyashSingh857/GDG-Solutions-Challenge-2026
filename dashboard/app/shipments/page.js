@@ -77,11 +77,11 @@ export default function DetailsPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
       <NavBar />
       
-      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md z-30">
-        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 gap-0.5">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-base)]/80 backdrop-blur-md z-30">
+        <div className="flex bg-[var(--bg-surface)] p-1 rounded-xl border border-[var(--border-default)] gap-0.5">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -89,8 +89,8 @@ export default function DetailsPage() {
               className={[
                 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
                 activeTab === tab.id
-                  ? 'bg-slate-950 text-slate-100 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60',
+                  ? 'bg-[var(--bg-base)] text-[var(--text-primary)] shadow-sm'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/60',
               ].join(' ')}
             >
               <tab.icon className="w-4 h-4" aria-hidden="true" />
@@ -103,7 +103,7 @@ export default function DetailsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors"
             >
               <Upload className="w-4 h-4" />
               Import
@@ -111,7 +111,7 @@ export default function DetailsPage() {
             <button
               onClick={handleExport}
               disabled={isExporting || isLoading || shipments.length === 0}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               {isExporting ? 'Exporting...' : 'Export'}
@@ -166,15 +166,15 @@ export default function DetailsPage() {
 function ShipmentsPageSkeleton() {
   return (
     <div className="flex-1 p-6 space-y-6">
-      <div className="h-10 w-72 rounded-xl bg-slate-900 animate-pulse" />
+      <div className="h-10 w-72 rounded-xl bg-[var(--bg-surface)] animate-pulse" />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-24 rounded-2xl bg-slate-900 animate-pulse" />
+          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-surface)] animate-pulse" />
         ))}
       </div>
-      <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-        <div className="h-9 w-80 rounded-xl bg-slate-900 animate-pulse" />
-        <div className="h-105 rounded-2xl bg-slate-900 animate-pulse" />
+      <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-base)] p-4 space-y-3">
+        <div className="h-9 w-80 rounded-xl bg-[var(--bg-surface)] animate-pulse" />
+        <div className="h-105 rounded-2xl bg-[var(--bg-surface)] animate-pulse" />
       </div>
     </div>
   );

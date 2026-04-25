@@ -3,7 +3,35 @@
 @import "leaflet/dist/leaflet.css";
 
 /* ── Dark theme (default) ── */
-:root,
+:root {
+  --bg-base:        #020617;
+  --bg-surface:     #0f172a;
+  --bg-elevated:    #1e293b;
+  --bg-overlay:     rgba(0, 0, 0, 0.6);
+
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong:  rgba(255, 255, 255, 0.25);
+
+  --text-primary:   rgba(255, 255, 255, 0.90);
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-muted:     rgba(255, 255, 255, 0.30);
+
+  --accent-cyan:    #22d3ee;
+  --accent-blue:    #3b82f6;
+  --accent-amber:   #f59e0b;
+  --accent-red:     #ef4444;
+  --accent-green:   #22c55e;
+
+  --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-modal:   0 24px 80px rgba(0, 0, 0, 0.70);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+}
+
 [data-theme="dark"] {
   --bg-base:        #020617;
   --bg-surface:     #0f172a;
@@ -26,6 +54,8 @@
 
   --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.45);
   --shadow-modal:   0 24px 80px rgba(0, 0, 0, 0.70);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
 
   --background: var(--bg-base);
   --foreground: var(--text-primary);
@@ -55,15 +85,41 @@
   --shadow-card:    0 2px 12px rgba(0, 0, 0, 0.08);
   --shadow-modal:   0 20px 60px rgba(0, 0, 0, 0.18);
 
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+
   --background: var(--bg-base);
   --foreground: var(--text-primary);
 }
 
 /* ── Globe page always stays dark regardless of theme ── */
-[data-globe="true"],
-[data-globe="true"] * {
-  /* Force dark values inline — Cesium controls all visuals */
+[data-globe="true"] {
   color-scheme: dark;
+  --bg-base:        #020617;
+  --bg-surface:     #0f172a;
+  --bg-elevated:    #1e293b;
+  --bg-overlay:     rgba(0, 0, 0, 0.6);
+
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong:  rgba(255, 255, 255, 0.25);
+
+  --text-primary:   rgba(255, 255, 255, 0.90);
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-muted:     rgba(255, 255, 255, 0.30);
+
+  --accent-cyan:    #22d3ee;
+  --accent-blue:    #3b82f6;
+  --accent-amber:   #f59e0b;
+  --accent-red:     #ef4444;
+  --accent-green:   #22c55e;
+
+  --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-modal:   0 24px 80px rgba(0, 0, 0, 0.70);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
@@ -98,17 +154,17 @@ body {
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.25);
+  background: color-mix(in srgb, var(--scrollbar-thumb) 160%, transparent);
 }
 
 .sidebar {
