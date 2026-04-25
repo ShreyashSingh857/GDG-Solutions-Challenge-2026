@@ -80,7 +80,7 @@ export default function DetailsPage() {
     <div className="flex flex-col h-screen bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
       <NavBar />
       
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-base)]/80 backdrop-blur-md z-30">
+      <div className="flex items-center justify-between px-6 py-3 glass-panel !rounded-none !border-t-0 !border-x-0 !border-b z-30">
         <div className="flex bg-[var(--bg-surface)] p-1 rounded-xl border border-[var(--border-default)] gap-0.5">
           {TABS.map((tab) => (
             <button

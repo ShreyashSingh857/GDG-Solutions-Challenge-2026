@@ -108,10 +108,7 @@ export default function AgentHealthPanel() {
 				className="absolute top-5 left-5 right-5 z-20 pointer-events-none"
 			>
 				<div className="mx-auto w-full max-w-6xl pointer-events-auto">
-					<div className="relative overflow-hidden rounded-[30px] border border-[var(--border-default)] bg-[var(--bg-surface)]/95 shadow-[var(--shadow-modal)] backdrop-blur-2xl">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_25%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_40%)]" />
-						<div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-cyan-300/70 to-transparent" />
-						<div className="absolute inset-y-0 left-0 w-px bg-linear-to-b from-cyan-300/0 via-cyan-300/45 to-cyan-300/0" />
+					<div className="glass-panel glass-edge rounded-[30px] transition-all duration-500">
 						<div className="relative px-5 py-4 sm:px-6 sm:py-5">
 							<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 								<div className="space-y-2">

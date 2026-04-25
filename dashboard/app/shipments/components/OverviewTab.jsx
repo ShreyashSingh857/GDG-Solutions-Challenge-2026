@@ -70,7 +70,7 @@ export default function OverviewTab({ shipments, isLoading }) {
         <MetricCard label="Transit" value={metrics.byIE.transit?.length ?? 0} color="purple" icon={ArrowRightLeft} />
       </div>
 
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-5">
+      <div className="glass-panel p-5">
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-4">
           Shipments by Corridor
         </p>

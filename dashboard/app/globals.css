@@ -26,10 +26,23 @@
   --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.45);
   --shadow-modal:   0 24px 80px rgba(0, 0, 0, 0.70);
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-
   --background: var(--bg-base);
   --foreground: var(--text-primary);
+
+  /* ── Glassmorphism tokens ── */
+  --glass-bg:          rgba(15, 23, 42, 0.72);
+  --glass-bg-elevated: rgba(30, 41, 59, 0.80);
+  --glass-bg-modal:    rgba(9, 14, 28, 0.88);
+  --glass-border:      rgba(255, 255, 255, 0.09);
+  --glass-border-hover:rgba(255, 255, 255, 0.18);
+  --glass-shadow:      0 20px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35);
+  --glass-shadow-sm:   0 8px 24px rgba(0,0,0,0.40);
+  --glass-inset:       inset 0 1px 0 rgba(255,255,255,0.07);
+  --glass-edge-top:    linear-gradient(90deg,transparent,rgba(34,211,238,0.15),transparent);
+
+  /* ── Scrollbar ── */
+  --scrollbar-thumb:   rgba(255,255,255,0.15);
+  --scrollbar-track:   transparent;
 }
 
 [data-theme="dark"] {
@@ -55,10 +68,23 @@
   --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.45);
   --shadow-modal:   0 24px 80px rgba(0, 0, 0, 0.70);
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-
   --background: var(--bg-base);
   --foreground: var(--text-primary);
+
+  /* ── Glassmorphism tokens ── */
+  --glass-bg:          rgba(15, 23, 42, 0.72);
+  --glass-bg-elevated: rgba(30, 41, 59, 0.80);
+  --glass-bg-modal:    rgba(9, 14, 28, 0.88);
+  --glass-border:      rgba(255, 255, 255, 0.09);
+  --glass-border-hover:rgba(255, 255, 255, 0.18);
+  --glass-shadow:      0 20px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35);
+  --glass-shadow-sm:   0 8px 24px rgba(0,0,0,0.40);
+  --glass-inset:       inset 0 1px 0 rgba(255,255,255,0.07);
+  --glass-edge-top:    linear-gradient(90deg,transparent,rgba(34,211,238,0.15),transparent);
+
+  /* ── Scrollbar ── */
+  --scrollbar-thumb:   rgba(255,255,255,0.15);
+  --scrollbar-track:   transparent;
 }
 
 /* ── Light theme ── */
@@ -85,10 +111,23 @@
   --shadow-card:    0 2px 12px rgba(0, 0, 0, 0.08);
   --shadow-modal:   0 20px 60px rgba(0, 0, 0, 0.18);
 
-  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
-
   --background: var(--bg-base);
   --foreground: var(--text-primary);
+
+  /* ── Glassmorphism tokens ── */
+  --glass-bg:          rgba(255, 255, 255, 0.62);
+  --glass-bg-elevated: rgba(248, 250, 252, 0.78);
+  --glass-bg-modal:    rgba(255, 255, 255, 0.88);
+  --glass-border:      rgba(0, 0, 0, 0.07);
+  --glass-border-hover:rgba(0, 0, 0, 0.14);
+  --glass-shadow:      0 20px 60px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  --glass-shadow-sm:   0 8px 24px rgba(0,0,0,0.08);
+  --glass-inset:       inset 0 1px 0 rgba(255,255,255,0.90);
+  --glass-edge-top:    linear-gradient(90deg,transparent,rgba(8,145,178,0.20),transparent);
+
+  /* ── Scrollbar ── */
+  --scrollbar-thumb:   rgba(0,0,0,0.18);
+  --scrollbar-track:   transparent;
 }
 
 /* ── Globe page always stays dark regardless of theme ── */
@@ -116,10 +155,23 @@
   --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.45);
   --shadow-modal:   0 24px 80px rgba(0, 0, 0, 0.70);
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-
   --background: var(--bg-base);
   --foreground: var(--text-primary);
+
+  /* ── Glassmorphism tokens ── */
+  --glass-bg:          rgba(15, 23, 42, 0.72);
+  --glass-bg-elevated: rgba(30, 41, 59, 0.80);
+  --glass-bg-modal:    rgba(9, 14, 28, 0.88);
+  --glass-border:      rgba(255, 255, 255, 0.09);
+  --glass-border-hover:rgba(255, 255, 255, 0.18);
+  --glass-shadow:      0 20px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35);
+  --glass-shadow-sm:   0 8px 24px rgba(0,0,0,0.40);
+  --glass-inset:       inset 0 1px 0 rgba(255,255,255,0.07);
+  --glass-edge-top:    linear-gradient(90deg,transparent,rgba(34,211,238,0.15),transparent);
+
+  /* ── Scrollbar ── */
+  --scrollbar-thumb:   rgba(255,255,255,0.15);
+  --scrollbar-track:   transparent;
 }
 
 @theme inline {
@@ -135,6 +187,44 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   overflow: hidden;
+}
+
+@layer utilities {
+  /* Base glass panel */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inset);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Elevated modal / flyout */
+  .glass-modal {
+    background: var(--glass-bg-modal);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inset);
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Top-edge cyan highlight (add as pseudo or child div) */
+  .glass-edge::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    height: 1px;
+    background: var(--glass-edge-top);
+    pointer-events: none;
+    z-index: 10;
+  }
 }
 
 .hex-pulse {

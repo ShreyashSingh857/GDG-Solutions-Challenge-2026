@@ -36,9 +36,8 @@ export default function NavBar() {
   return (
     <nav
       className="h-14 shrink-0 flex items-center justify-between px-5
-                 bg-[var(--bg-overlay)] backdrop-blur-xl
-                 border-b border-[var(--border-subtle)] z-40
-                 transition-colors duration-300"
+                 glass-panel !rounded-none !border-t-0 !border-x-0 !border-b
+                 z-40 transition-colors duration-300"
     >
       {/* Brand */}
       <div className="flex items-center gap-3">

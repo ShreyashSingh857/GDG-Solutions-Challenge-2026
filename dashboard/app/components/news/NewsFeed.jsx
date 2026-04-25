@@ -44,7 +44,7 @@ export default function NewsFeed() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] shadow-2xl overflow-hidden">
+    <div className="flex flex-col h-full glass-panel glass-edge overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]/20">
         <div>
