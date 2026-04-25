@@ -20,7 +20,7 @@ import {
   IonWorldImageryStyle,
   LabelStyle,
   NearFarScalar,
-  TileMapServiceImageryProvider,
+  UrlTemplateImageryProvider,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Viewer,
@@ -76,11 +76,20 @@ function getEndpointKey(item, codeKey, nameKey, latKey, lonKey, prefix) {
 }
 
 function getRoutePoints(shipment, reroutedRoute) {
-  const source = reroutedRoute || shipment;
+  const waypointSource = reroutedRoute || shipment;
+  const originLat = getCoordValue(shipment, 'originLat', 'originLatitude')
+    ?? getCoordValue(reroutedRoute, 'originLat', 'originLatitude');
+  const originLon = getCoordValue(shipment, 'originLng', 'originLon')
+    ?? getCoordValue(reroutedRoute, 'originLng', 'originLon');
+  const destLat = getCoordValue(shipment, 'destLat', 'destLatitude')
+    ?? getCoordValue(reroutedRoute, 'destLat', 'destLatitude');
+  const destLon = getCoordValue(shipment, 'destLng', 'destLon')
+    ?? getCoordValue(reroutedRoute, 'destLng', 'destLon');
+
   const points = [
-    { lat: getCoordValue(source, 'originLat', 'originLatitude'), lon: getCoordValue(source, 'originLng', 'originLon') },
-    ...((source.waypoints || []).map((w) => ({ lat: getCoordValue(w, 'lat', 'latitude'), lon: getCoordValue(w, 'lon', 'lng') }))),
-    { lat: getCoordValue(source, 'destLat', 'destLatitude'), lon: getCoordValue(source, 'destLng', 'destLon') },
+    { lat: originLat, lon: originLon },
+    ...((waypointSource.waypoints || []).map((w) => ({ lat: getCoordValue(w, 'lat', 'latitude'), lon: getCoordValue(w, 'lon', 'lng') }))),
+    { lat: destLat, lon: destLon },
   ];
   return points.filter((point) => isValidCoord(point.lat, point.lon));
 }
@@ -174,11 +183,12 @@ export default function GlobeView() {
             : new EllipsoidTerrainProvider(),
           baseLayer: ionToken
             ? ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS })
-            : ImageryLayer.fromProviderAsync(
-                TileMapServiceImageryProvider.fromUrl('https://tile.openstreetmap.org/', {
-                  fileExtension: 'png',
-                  maximumLevel: 19,
+            : new ImageryLayer(
+                new UrlTemplateImageryProvider({
+                  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: ['a', 'b', 'c'],
                   credit: 'Map data © OpenStreetMap contributors',
+                  maximumLevel: 19,
                 })
               )
         });
@@ -206,7 +216,7 @@ export default function GlobeView() {
       globe.preloadAncestors = true;
       globe.preloadSiblings = true;
       globe.loadingDescendantLimit = 20;
-      globe.depthTestAgainstTerrain = true;
+      globe.depthTestAgainstTerrain = !!ionToken;
       globe.baseColor = Color.fromCssColorString('#030D1F');
       scene.skyAtmosphere.show = true;
       scene.skyAtmosphere.perFragmentAtmosphere = true;
@@ -222,7 +232,7 @@ export default function GlobeView() {
       scene.screenSpaceCameraController.inertiaSpin = 0.9;
       scene.screenSpaceCameraController.inertiaTranslate = 0.9;
       scene.screenSpaceCameraController.inertiaZoom = 0.8;
-      scene.screenSpaceCameraController.minimumZoomDistance = 500000;
+      scene.screenSpaceCameraController.minimumZoomDistance = 10000;
       scene.screenSpaceCameraController.maximumZoomDistance = 30000000;
       scene.postProcessStages.bloom.enabled = false;
       scene.postProcessStages.fxaa.enabled = true;
