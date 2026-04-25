@@ -6,18 +6,13 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const disruptionId = searchParams.get('disruptionId');
 
-    let resolutionQuery = adminDb.collection('resolutions').orderBy('createdAt', 'desc').limit(1);
-    if (disruptionId) {
-      resolutionQuery = adminDb
-        .collection('resolutions')
-        .where('disruptionId', '==', disruptionId)
-        .orderBy('createdAt', 'desc')
-        .limit(1);
-    }
+    const resolutionQuery = adminDb.collection('resolutions').orderBy('createdAt', 'desc').limit(100);
 
     const parent = await resolutionQuery.get();
-    if (parent.empty) return NextResponse.json({ data: null, error: null });
-    const doc = parent.docs[0];
+    const doc = disruptionId
+      ? parent.docs.find((item) => item.data()?.disruptionId === disruptionId)
+      : parent.docs[0];
+    if (!doc) return NextResponse.json({ data: null, error: null });
     const opt = await adminDb.collection('resolutions').doc(doc.id).collection('options').get();
     const options = opt.docs.map((d) => ({ ...d.data() })).sort((a, b) => a.rank - b.rank);
     return NextResponse.json({ data: { id: doc.id, ...doc.data(), options }, error: null });

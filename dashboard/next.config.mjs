@@ -11,8 +11,8 @@ const cspHeader = `
 	default-src 'self';
 	script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cesium.com;
 	style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-	img-src 'self' data: blob: https://*.tile.openstreetmap.org https://ion.cesium.com;
-	connect-src 'self' https://*.supabase.co https://firestore.googleapis.com https://*.googleapis.com https://ion.cesium.com wss: ws: http://localhost:*;
+	img-src 'self' data: blob: https://*.tile.openstreetmap.org https://ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net;
+	connect-src 'self' https://*.supabase.co https://firestore.googleapis.com https://*.googleapis.com https://api.cesium.com https://ion.cesium.com https://assets.ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net wss: ws: http://localhost:*;
 	font-src 'self' https://fonts.gstatic.com;
 	worker-src 'self' blob:;
 	frame-src 'none';

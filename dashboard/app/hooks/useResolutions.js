@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { collection, onSnapshot, orderBy, query, limit, getDocs, where } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, limit, getDocs } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
@@ -50,17 +50,12 @@ export function useResolutions() {
       return;
     }
 
-    const q = query(
-      collection(db, 'resolutions'),
-      where('disruptionId', '==', activeDisruptionId),
-      orderBy('createdAt', 'desc'),
-      limit(5)
-    );
+    const q = query(collection(db, 'resolutions'), orderBy('createdAt', 'desc'), limit(100));
 
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
-        const latestDoc = snapshot.docs[0];
+        const latestDoc = snapshot.docs.find((doc) => doc.data()?.disruptionId === activeDisruptionId);
         if (!latestDoc) {
           return;
         }

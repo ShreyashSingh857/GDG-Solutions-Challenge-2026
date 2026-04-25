@@ -39,6 +39,11 @@ function isValidCoord(lat, lon) {
   return !(lat === 0 && lon === 0) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 }
 
+function hasRenderableSize(element) {
+  const rect = element?.getBoundingClientRect?.();
+  return !!rect && rect.width > 0 && rect.height > 0;
+}
+
 function dominantStatus(statuses) {
   if (statuses.has('rerouted')) return 'rerouted';
   if (statuses.has('disrupted')) return 'disrupted';
@@ -136,13 +141,24 @@ export default function GlobeView() {
 
   useEffect(() => {
     if (!cRef.current || vRef.current) return;
-    let v;
-    (async () => {
+    let cleanup = () => {};
+    let initFrameId = null;
+    let cancelled = false;
+
+    const tryInit = async () => {
+      if (cancelled || !cRef.current || vRef.current) return;
+      if (!hasRenderableSize(cRef.current)) {
+        initFrameId = requestAnimationFrame(tryInit);
+        return;
+      }
+
+      let v;
+      let events;
+      const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
+
       try {
-        const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
         if (ionToken) Ion.defaultAccessToken = ionToken;
-        
-        v = new Viewer(cRef.current, { 
+        v = new Viewer(cRef.current, {
           animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, msaaSamples: 1, shadows: false, scene3DOnly: true,
           terrainProvider: ionToken
             ? await createWorldTerrainAsync({ requestVertexNormals: true, requestWaterMask: true })
@@ -151,25 +167,55 @@ export default function GlobeView() {
             ? ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS })
             : new ImageryLayer(new OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/', maximumLevel: 19, credit: 'OSM' }))
         });
+        if (cancelled) {
+          v.destroy();
+          return;
+        }
       } catch (err) {
         console.error('[GlobeView] Failed to initialize Cesium Viewer:', err);
         return;
       }
-      const scene = v.scene; const globe = scene.globe; v.resolutionScale = Math.min(window.devicePixelRatio || 1, 2.0); scene.fxaa = true; scene.highDynamicRange = true; globe.enableLighting = true; globe.dynamicAtmosphereLighting = true; globe.dynamicAtmosphereLightingFromSun = true; globe.showGroundAtmosphere = true; globe.atmosphereLightIntensity = 2.0; globe.tileCacheSize = 1000; globe.maximumScreenSpaceError = 1.0; globe.preloadAncestors = true; globe.preloadSiblings = true; globe.loadingDescendantLimit = 20; globe.depthTestAgainstTerrain = true; globe.baseColor = Color.fromCssColorString('#030D1F'); scene.skyAtmosphere.show = true; scene.skyAtmosphere.perFragmentAtmosphere = true; scene.skyAtmosphere.atmosphereLightIntensity = 12.0; scene.skyBox.show = true; scene.sun.show = true; scene.moon.show = false; scene.fog.enabled = true; scene.fog.density = 0.0002; scene.fog.minimumBrightness = 0.03; v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
+
+      const scene = v.scene;
+      const globe = scene.globe;
+      v.resolutionScale = Math.min(window.devicePixelRatio || 1, 2.0);
+      scene.fxaa = true;
+      scene.highDynamicRange = true;
+      globe.enableLighting = true;
+      globe.dynamicAtmosphereLighting = true;
+      globe.dynamicAtmosphereLightingFromSun = true;
+      globe.showGroundAtmosphere = true;
+      globe.atmosphereLightIntensity = 2.0;
+      globe.tileCacheSize = 1000;
+      globe.maximumScreenSpaceError = 1.0;
+      globe.preloadAncestors = true;
+      globe.preloadSiblings = true;
+      globe.loadingDescendantLimit = 20;
+      globe.depthTestAgainstTerrain = true;
+      globe.baseColor = Color.fromCssColorString('#030D1F');
+      scene.skyAtmosphere.show = true;
+      scene.skyAtmosphere.perFragmentAtmosphere = true;
+      scene.skyAtmosphere.atmosphereLightIntensity = 12.0;
+      scene.skyBox.show = true;
+      scene.sun.show = true;
+      scene.moon.show = false;
+      scene.fog.enabled = true;
+      scene.fog.density = 0.0002;
+      scene.fog.minimumBrightness = 0.03;
+      v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
       scene.screenSpaceCameraController.enableCollisionDetection = false;
       scene.screenSpaceCameraController.inertiaSpin = 0.9;
       scene.screenSpaceCameraController.inertiaTranslate = 0.9;
       scene.screenSpaceCameraController.inertiaZoom = 0.8;
       scene.screenSpaceCameraController.minimumZoomDistance = 500000;
       scene.screenSpaceCameraController.maximumZoomDistance = 30000000;
-      // Bloom disabled: post-process blur degrades satellite tile clarity at zoom
       scene.postProcessStages.bloom.enabled = false;
-      // Visual cohesion: enhance contrast, brightness, saturation for deeper immersion
       scene.postProcessStages.fxaa.enabled = true;
       if (scene.postProcessStages.chromaticAberration) scene.postProcessStages.chromaticAberration.enabled = false;
       vRef.current = v;
-      v.scene.canvas.addEventListener("mousedown", () => { resetIdleTimer(); setLastInteraction(); });
-      v.scene.canvas.addEventListener("touchstart", () => { resetIdleTimer(); setLastInteraction(); });
+      const handlePointerActivity = () => { resetIdleTimer(); setLastInteraction(); };
+      v.scene.canvas.addEventListener('mousedown', handlePointerActivity);
+      v.scene.canvas.addEventListener('touchstart', handlePointerActivity);
       resetIdleTimer();
       const onCam = () => {
         const altM = v.camera.positionCartographic.height;
@@ -180,8 +226,15 @@ export default function GlobeView() {
         }
       };
       v.camera.changed.addEventListener(onCam);
-      const events = new ScreenSpaceEventHandler(v.scene.canvas);
+      const handleResize = () => {
+        if (!vRef.current || !hasRenderableSize(cRef.current)) return;
+        vRef.current.resize();
+        vRef.current.scene.requestRender();
+      };
+      window.addEventListener('resize', handleResize);
+      events = new ScreenSpaceEventHandler(v.scene.canvas);
       events.setInputAction((m) => {
+        if (!v.scene.canvas || v.scene.canvas.width <= 0 || v.scene.canvas.height <= 0) return;
         if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
         hoverRafRef.current = requestAnimationFrame(() => {
           const p = v.scene.pick(m.endPosition);
@@ -197,17 +250,29 @@ export default function GlobeView() {
           setT({ label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
         });
       }, ScreenSpaceEventType.MOUSE_MOVE);
-      return () => {
+
+      cleanup = () => {
+        window.removeEventListener('resize', handleResize);
+        v.camera.changed.removeEventListener(onCam);
+        v.scene.canvas.removeEventListener('mousedown', handlePointerActivity);
+        v.scene.canvas.removeEventListener('touchstart', handlePointerActivity);
         if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
         if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current);
         stopAutoRotate();
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
         setZoomLevelDebounced.cancel();
-        events.destroy();
+        events?.destroy();
         v.destroy();
         vRef.current = null;
       };
-    })();
+    };
+
+    tryInit();
+    return () => {
+      cancelled = true;
+      if (initFrameId) cancelAnimationFrame(initFrameId);
+      cleanup();
+    };
   }, [resetIdleTimer, setLastInteraction, setZoomLevelDebounced, stopAutoRotate]);
 
   useEffect(() => {
