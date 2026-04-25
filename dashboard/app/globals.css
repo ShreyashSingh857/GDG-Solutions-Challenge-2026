@@ -199,7 +199,6 @@ body {
     box-shadow: var(--glass-shadow), var(--glass-inset);
     border-radius: 16px;
     position: relative;
-    overflow: hidden;
   }
 
   /* Elevated modal / flyout */
@@ -211,10 +210,13 @@ body {
     box-shadow: var(--glass-shadow), var(--glass-inset);
     border-radius: 24px;
     position: relative;
-    overflow: hidden;
   }
 
-  /* Top-edge cyan highlight (add as pseudo or child div) */
+  /* Top-edge cyan highlight (add to containers with overflow-hidden) */
+  .glass-edge {
+    overflow: hidden;
+  }
+  
   .glass-edge::before {
     content: "";
     position: absolute;

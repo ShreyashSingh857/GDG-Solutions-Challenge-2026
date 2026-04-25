@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Globe, Shield, Zap, Search } from 'lucide-react';
 import { app, auth } from '../lib/firebase.js';
 
+// Login page is intentionally theme-independent (always dark, matching globe page).
 export default function LoginPage() {
   const router = useRouter();
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -74,7 +75,7 @@ export default function LoginPage() {
   }, [router]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white flex items-center justify-center">
+    <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white flex items-center justify-center font-sans">
       {/* Background Layer */}
       <div className="absolute inset-0">
         <canvas ref={starsRef} className="absolute inset-0 w-full h-full opacity-40" />
@@ -88,10 +89,7 @@ export default function LoginPage() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="relative z-10 w-full max-w-md px-6"
       >
-        <div className="rounded-[32px] border border-white/10 bg-[rgba(15,23,42,0.6)] p-10 shadow-2xl backdrop-blur-2xl overflow-hidden relative">
-          {/* Neon border decoration */}
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)]/40 to-transparent" />
-          
+        <div className="glass-modal glass-edge p-10 relative overflow-hidden">
           <div className="text-center space-y-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-2">
               <Globe className="w-8 h-8 text-[var(--accent-cyan)] shadow-[0_0_20px_var(--accent-cyan)]" />
@@ -108,13 +106,16 @@ export default function LoginPage() {
             <button
               onClick={handleSignIn}
               disabled={!isConfigured || isSigningIn}
-              className="group relative w-full overflow-hidden rounded-2xl bg-white text-[#020617] px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full overflow-hidden rounded-2xl bg-white text-[#020617] px-6 py-4 text-xs font-bold uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="relative z-10 flex items-center justify-center gap-3">
                 {isSigningIn ? (
-                  <div className="w-5 h-5 border-2 border-[#020617]/30 border-t-[#020617] rounded-full animate-spin" />
+                  <>
+                    <div className="w-4 h-4 border-2 border-[#020617]/30 border-t-[#020617] rounded-full animate-spin" />
+                    Signing in...
+                  </>
                 ) : (
-                  <>Continue with Security Insight</>
+                  <>Sign in with Google</>
                 )}
               </span>
             </button>
@@ -127,18 +128,18 @@ export default function LoginPage() {
             
             {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
 
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
-              <div className="flex flex-col items-center gap-1">
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/5">
+              <div className="flex flex-col items-center gap-1.5 text-center">
                 <Search className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Real-time</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Live feeds</span>
               </div>
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-1.5 text-center">
                 <Zap className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">AI Response</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">AI Agents</span>
               </div>
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-1.5 text-center">
                 <Shield className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Certified</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Certified</span>
               </div>
             </div>
           </div>

@@ -111,16 +111,20 @@ export default function ReplayPage() {
         className="flex-1 flex overflow-hidden lg:flex-row flex-col"
       >
         {/* Left: Timeline Panel */}
-        <div className="w-full lg:w-[450px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-[var(--border-subtle)] space-y-4">
+        <div className="w-full lg:w-[450px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 backdrop-blur-xl flex flex-col overflow-hidden">
+          <div className="p-6 border-b border-[var(--border-subtle)] space-y-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold font-display tracking-tight">Sequence Replay</h1>
-              <div className="flex bg-[var(--bg-elevated)] p-1 rounded-lg border border-[var(--border-subtle)]">
+              <h1 className="text-xl font-bold font-display tracking-tight text-[var(--text-primary)]">Sequence Replay</h1>
+              <div className="flex bg-[var(--bg-elevated)] p-1 rounded-xl border border-[var(--border-subtle)]">
                 {WINDOW_PRESETS.map((p) => (
                   <button
                     key={p.days}
                     onClick={() => setDaysBack(p.days)}
-                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${daysBack === p.days ? 'bg-[var(--bg-surface)] text-[var(--accent-cyan)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                      daysBack === p.days 
+                        ? 'bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 text-[var(--text-primary)] shadow-sm' 
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent'
+                    }`}
                   >
                     {p.label}
                   </button>
@@ -128,24 +132,49 @@ export default function ReplayPage() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${isPlaying ? 'bg-[var(--accent-amber)]/10 border-[var(--accent-amber)]/30 text-[var(--accent-amber)]' : 'bg-[var(--accent-cyan)]/10 border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)]'}`}
+                title={isPlaying ? 'Pause playback' : 'Start playback'}
+                className={`w-12 h-12 flex items-center justify-center rounded-full glass-panel transition-all active:scale-90 ${
+                  isPlaying 
+                    ? '!border-[var(--accent-amber)]/50 !bg-[var(--accent-amber)]/20 text-[var(--accent-amber)] shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
+                    : '!border-[var(--accent-cyan)]/50 !bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)]'
+                }`}
               >
-                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                <span className="text-xs font-bold uppercase tracking-widest">{isPlaying ? 'Pause' : 'Play Replay'}</span>
+                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
               </button>
-              <div className="flex items-center gap-1 bg-[var(--bg-elevated)] p-1 rounded-xl border border-[var(--border-subtle)]">
+
+              <div className="flex-1 flex items-center justify-between bg-[var(--bg-elevated)] p-1 rounded-2xl border border-[var(--border-subtle)]">
                 {PLAYBACK_SPEEDS.map(s => (
                   <button 
                     key={s} 
                     onClick={() => setPlaybackSpeed(s)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${playbackSpeed === s ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                    className={`flex-1 h-9 flex items-center justify-center rounded-xl text-[10px] font-bold transition-all ${
+                      playbackSpeed === s 
+                        ? 'bg-[var(--bg-surface)] text-[var(--accent-cyan)] shadow-sm border border-[var(--border-subtle)]' 
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent'
+                    }`}
                   >
                     {s}x
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Timeline Legend */}
+            <div className="flex items-center gap-4 pt-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[var(--accent-red)] shadow-[0_0_8px_var(--accent-red)]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Critical</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[var(--accent-amber)] shadow-[0_0_8px_var(--accent-amber)]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">High</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[var(--accent-cyan)] shadow-[0_0_8px_var(--accent-cyan)]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Moderate</span>
               </div>
             </div>
           </div>

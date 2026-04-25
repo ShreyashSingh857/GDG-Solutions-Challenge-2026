@@ -78,6 +78,9 @@ export default function SettingsPage() {
 
   const handleThemeToggle = (nextTheme) => {
     setThemePreference(nextTheme);
+    import('sonner').then(({ toast }) => {
+      toast.success(`Theme changed to ${nextTheme === 'dark' ? 'Dark' : 'Light'}`);
+    });
   };
 
   const handleSave = async () => {
@@ -94,6 +97,9 @@ export default function SettingsPage() {
           updatedAt: new Date().toISOString(),
         }, { merge: true });
       }
+      import('sonner').then(({ toast }) => {
+        toast.success('Preferences saved successfully');
+      });
     } finally {
       setSaving(false);
     }
@@ -105,7 +111,7 @@ export default function SettingsPage() {
       <main className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="mx-auto max-w-4xl space-y-8">
           <header className="space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-400 font-semibold font-display">Preferences</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Preferences</p>
             <h1 className="text-3xl font-bold tracking-tight font-display">Settings</h1>
             <p className="text-sm text-[var(--text-secondary)]">Control alerts, layout defaults, and the visual theme from one place.</p>
           </header>
@@ -133,7 +139,11 @@ export default function SettingsPage() {
                       key={option}
                       type="button"
                       onClick={() => handleThemeToggle(option)}
-                      className={`rounded-xl border px-4 py-2 text-sm capitalize transition-colors ${theme === option ? 'border-cyan-400/40 bg-cyan-400/10 text-[var(--text-primary)]' : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+                        theme === option 
+                          ? 'border-[var(--accent-cyan)]/40 bg-[var(--accent-cyan)]/10 text-[var(--text-primary)] shadow-sm' 
+                          : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-elevated)]'
+                      }`}
                     >
                       {option}
                     </button>
@@ -158,7 +168,7 @@ export default function SettingsPage() {
                       value={orgDisplayName}
                       onChange={(e) => setOrgDisplayName(e.target.value)}
                       placeholder="Northstar Logistics"
-                      className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-cyan-400/50"
+                      className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent-cyan)]/50 focus:ring-4 focus:ring-[var(--accent-cyan)]/5 transition-all"
                     />
                   </label>
                   <p className="text-[11px] text-[var(--text-muted)]">Saved for {user?.email || 'the current user'}.</p>
@@ -172,7 +182,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleSave}
                       disabled={saving}
-                      className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-110 disabled:opacity-60"
+                      className="w-full rounded-xl bg-[var(--accent-blue)] px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-all hover:brightness-110 disabled:opacity-60 active:scale-95 shadow-lg shadow-[var(--accent-blue)]/20"
                     >
                       {saving ? 'Saving...' : 'Save Preferences'}
                     </button>
@@ -189,10 +199,10 @@ export default function SettingsPage() {
 
 function SettingCard({ title, description, children }) {
   return (
-    <article className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-base)] p-5 shadow-[var(--shadow-card)] space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold font-display">{title}</h2>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">{description}</p>
+    <article className="glass-panel p-6 space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-lg font-bold tracking-tight font-display text-[var(--text-primary)]">{title}</h2>
+        <p className="text-[11px] font-medium text-[var(--text-secondary)]">{description}</p>
       </div>
       <div className="space-y-4">{children}</div>
     </article>
@@ -201,14 +211,17 @@ function SettingCard({ title, description, children }) {
 
 function ToggleRow({ label, checked, onChange }) {
   return (
-    <label className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3">
-      <span className="text-sm text-[var(--text-primary)]">{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-cyan-400"
-      />
+    <label className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 cursor-pointer group transition-colors hover:bg-[var(--bg-elevated)]/40">
+      <span className="text-sm font-medium text-[var(--text-primary)]">{label}</span>
+      <div className="relative inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-9 h-5 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-cyan)]/80"></div>
+      </div>
     </label>
   );
 }
@@ -216,18 +229,25 @@ function ToggleRow({ label, checked, onChange }) {
 function SelectRow({ label, value, onChange, options }) {
   return (
     <label className="space-y-2 block">
-      <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-cyan-400/50"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value} className="bg-[var(--bg-surface)] text-[var(--text-primary)]">
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">{label}</span>
+      <div className="relative group">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-cyan)]/50 focus:ring-4 focus:ring-[var(--accent-cyan)]/5 transition-all appearance-none cursor-pointer"
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value} className="bg-[var(--bg-surface)] text-[var(--text-primary)]">
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+          </svg>
+        </div>
+      </div>
     </label>
   );
 }

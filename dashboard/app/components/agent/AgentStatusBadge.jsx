@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { connectAgentStatusPolling } from '../../lib/agentPolling.js';
 
 const STATUS_CONFIG = {
-  idle: { label: 'Idle', color: 'bg-slate-400', textColor: 'text-slate-300' },
-  monitor: { label: 'Monitor', color: 'bg-yellow-400', textColor: 'text-yellow-300' },
-  impact: { label: 'Impact', color: 'bg-orange-400', textColor: 'text-orange-300' },
+  idle: { label: 'Idle', color: 'bg-[var(--text-muted)]/40', textColor: 'text-[var(--text-muted)]' },
+  monitor: { label: 'Monitor', color: 'bg-[var(--accent-amber)]', textColor: 'text-[var(--accent-amber)]' },
+  impact: { label: 'Impact', color: 'bg-[var(--accent-red)]', textColor: 'text-[var(--accent-red)]' },
   negotiator: { label: 'Negotiator', color: 'bg-purple-400', textColor: 'text-purple-300' },
-  resolved: { label: 'Resolved', color: 'bg-blue-400', textColor: 'text-blue-300' },
+  resolved: { label: 'Resolved', color: 'bg-[var(--accent-blue)]', textColor: 'text-[var(--accent-blue)]' },
 };
 
 /**
@@ -27,7 +27,7 @@ export default function AgentStatusBadge() {
   const isSurgical = status !== 'idle' && status !== 'resolved';
 
   return (
-    <div className="absolute top-18 right-6 z-40 flex items-center gap-3 bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl px-4 py-2 shadow-2xl transition-all duration-500">
+    <div className="absolute top-18 right-6 z-40 flex items-center gap-3 glass-panel px-4 py-2 shadow-2xl transition-all duration-500">
       <div className="relative flex items-center justify-center">
         {isSurgical && (
           <span className={`absolute inset-0 rounded-full animate-ping opacity-30 ${config.color}`} />

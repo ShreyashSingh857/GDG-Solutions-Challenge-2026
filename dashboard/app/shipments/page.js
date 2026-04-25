@@ -87,40 +87,40 @@ export default function DetailsPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={[
-                'px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+                'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2',
                 activeTab === tab.id
-                  ? 'bg-[var(--bg-base)] text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/60',
+                  ? 'bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 text-[var(--text-primary)] shadow-sm'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]/60 border border-transparent',
               ].join(' ')}
             >
-              <tab.icon className="w-4 h-4" aria-hidden="true" />
+              <tab.icon className="w-3.5 h-3.5" aria-hidden="true" />
               {tab.label}
             </button>
           ))}
         </div>
         
         {activeTab === 'shipments' && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors"
+              className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-default)] bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-all active:scale-95"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-3.5 h-3.5" />
               Import
             </button>
             <button
               onClick={handleExport}
               disabled={isExporting || isLoading || shipments.length === 0}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-colors disabled:opacity-50"
+              className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-default)] bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition-all active:scale-95 disabled:opacity-50"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               {isExporting ? 'Exporting...' : 'Export'}
             </button>
             <button
               onClick={openAdd}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:brightness-110 text-white transition-all shadow-lg shadow-blue-500/20"
+              className="h-9 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest bg-[var(--accent-blue)] hover:brightness-110 text-white transition-all active:scale-95 shadow-lg shadow-[var(--accent-blue)]/20"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               Add Shipment
             </button>
           </div>
@@ -133,15 +133,21 @@ export default function DetailsPage() {
         animate="visible"
         className="flex-1 overflow-y-auto custom-scrollbar"
       >
-        {activeTab === 'overview' && (
-          <ErrorBoundary fallback={<MinimalErrorFallback name="Overview Tab" />}>
-            <OverviewTab shipments={shipments} isLoading={isLoading} />
-          </ErrorBoundary>
-        )}
-        {activeTab === 'shipments' && (
-          <ErrorBoundary fallback={<MinimalErrorFallback name="Shipments Tab" />}>
-            <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
-          </ErrorBoundary>
+        {!isLoading && shipments.length === 0 ? (
+          <EmptyState onAdd={openAdd} />
+        ) : (
+          <>
+            {activeTab === 'overview' && (
+              <ErrorBoundary fallback={<MinimalErrorFallback name="Overview Tab" />}>
+                <OverviewTab shipments={shipments} isLoading={isLoading} />
+              </ErrorBoundary>
+            )}
+            {activeTab === 'shipments' && (
+              <ErrorBoundary fallback={<MinimalErrorFallback name="Shipments Tab" />}>
+                <ShipmentsTab shipments={shipments} isLoading={isLoading} onEdit={openEdit} />
+              </ErrorBoundary>
+            )}
+          </>
         )}
       </motion.div>
 
@@ -163,18 +169,40 @@ export default function DetailsPage() {
   );
 }
 
+function EmptyState({ onAdd }) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+      <div className="relative mb-6">
+        <div className="absolute inset-0 bg-[var(--accent-cyan)]/10 blur-3xl rounded-full" />
+        <ShipWheel className="w-24 h-24 text-[var(--text-muted)] opacity-20 relative animate-pulse-slow" />
+      </div>
+      <h3 className="text-xl font-bold tracking-tight mb-2">No shipments yet</h3>
+      <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-8">
+        Add your first shipment to start tracking cargo in real time across global trade corridors.
+      </p>
+      <button
+        onClick={onAdd}
+        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--accent-blue)] text-white text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 shadow-xl shadow-[var(--accent-blue)]/20"
+      >
+        <Plus className="w-4 h-4" />
+        Add your first shipment
+      </button>
+    </div>
+  );
+}
+
 function ShipmentsPageSkeleton() {
   return (
     <div className="flex-1 p-6 space-y-6">
-      <div className="h-10 w-72 rounded-xl bg-[var(--bg-surface)] animate-pulse" />
+      <div className="h-10 w-72 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-surface)] animate-pulse" />
+          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
         ))}
       </div>
-      <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-base)] p-4 space-y-3">
-        <div className="h-9 w-80 rounded-xl bg-[var(--bg-surface)] animate-pulse" />
-        <div className="h-105 rounded-2xl bg-[var(--bg-surface)] animate-pulse" />
+      <div className="glass-panel p-4 space-y-3">
+        <div className="h-9 w-80 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+        <div className="h-[400px] rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
       </div>
     </div>
   );

@@ -25,26 +25,26 @@ function KpiCard({ label, value, sub, trend, accentColor = 'var(--accent-cyan)' 
   return (
     <motion.article
       variants={CARD_ITEM}
-      className="relative overflow-hidden rounded-2xl border border-[var(--border-default)]
-                 bg-[var(--bg-surface)] shadow-[var(--shadow-card)] p-5 group"
+      className="glass-panel glass-edge relative overflow-hidden p-6 group"
     >
-      {/* Top accent bar */}
-      <div
-        className="absolute inset-x-0 top-0 h-px transition-opacity opacity-50 group-hover:opacity-100"
-        style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }}
-      />
-      <p className="text-[10px] uppercase tracking-[0.25em] text-[var(--text-muted)] font-semibold">{label}</p>
-      <p className="mt-3 font-mono text-4xl font-light text-[var(--text-primary)] leading-none">
+      <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-bold">{label}</p>
+      <p className="mt-4 font-mono text-4xl font-light text-[var(--text-primary)] leading-none">
         {value}
       </p>
-      <div className="mt-2 flex items-center justify-between">
-        <p className="text-xs text-[var(--text-secondary)]">{sub}</p>
-        {trend && (
-          <span className={`text-xs font-medium ${trend > 0 ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
-            {trend > 0 ? '▲' : '▼'} {Math.abs(trend)}%
-          </span>
+      <div className="mt-4 flex items-center justify-between">
+        <p className="text-[11px] text-[var(--text-secondary)] font-medium">{sub}</p>
+        {trend !== undefined && (
+          <div className={`flex items-center gap-1 text-xs font-bold ${trend > 0 ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
+            <span className="opacity-70">{trend > 0 ? '▲' : '▼'}</span>
+            <span>{Math.abs(trend)}%</span>
+          </div>
         )}
       </div>
+      {/* Decorative hover gradient */}
+      <div 
+        className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-[var(--glass-border)] opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"
+        style={{ color: accentColor }}
+      />
     </motion.article>
   );
 }
@@ -53,18 +53,19 @@ function ChartPanel({ title, subtitle, children }) {
   return (
     <motion.div 
       variants={CARD_ITEM}
-      className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]
-                 shadow-[var(--shadow-card)] p-5 space-y-4"
+      className="glass-panel p-6 space-y-6"
     >
-      <div>
-        <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-[0.18em] font-display">
+      <div className="flex flex-col gap-1">
+        <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] font-display">
           {title}
         </p>
         {subtitle && (
-          <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{subtitle}</p>
+          <p className="text-[11px] text-[var(--text-muted)] font-medium">{subtitle}</p>
         )}
       </div>
-      {children}
+      <div className="w-full">
+        {children}
+      </div>
     </motion.div>
   );
 }
@@ -112,7 +113,19 @@ export default function AnalyticsPage() {
     return (
       <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
         <NavBar />
-        <AnalyticsSkeleton />
+        <div className="flex-1 p-6 space-y-8">
+          <div className="h-10 w-64 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="glass-panel h-32 animate-pulse" />
+            ))}
+          </div>
+          <div className="glass-panel h-72 animate-pulse" />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="glass-panel h-64 animate-pulse" />
+            <div className="glass-panel h-64 animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -124,6 +137,16 @@ export default function AnalyticsPage() {
     { label: 'CO2 Impact', value: `${data.totalCO2t}t`, sub: 'Reroute emissions delta', trend: -2, accentColor: 'var(--accent-blue)' },
   ];
 
+  const tooltipStyle = {
+    background: 'var(--glass-bg-elevated)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid var(--glass-border)',
+    borderRadius: '12px',
+    fontSize: '11px',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    padding: '10px 14px',
+  };
+
   return (
     <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
       <NavBar />
@@ -131,10 +154,10 @@ export default function AnalyticsPage() {
         variants={PAGE_ENTER}
         initial="hidden"
         animate="visible"
-        className="flex-1 overflow-y-auto p-6 space-y-8"
+        className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar"
       >
         <header>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-semibold font-display">Operations Intelligence</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Operations Intelligence</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight font-display">30-Day Analytics</h1>
         </header>
 
@@ -144,23 +167,24 @@ export default function AnalyticsPage() {
           ))}
         </motion.section>
 
-        <motion.section variants={STAGGER_CHILDREN} className="space-y-6">
+        <motion.section variants={STAGGER_CHILDREN} className="space-y-6 pb-6">
           <ChartPanel title="Disruption Events" subtitle="Frequency of detected anomalies over the last 30 days">
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={data.disruptionsByDay} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="eventsFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-cyan)" stopOpacity={0.4} />
+                    <stop offset="5%" stopColor="var(--accent-cyan)" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="var(--accent-cyan)" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={{ fill: tickColor, fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={{ fill: tickColor, fontSize: 10 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="date" tick={{ fill: tickColor, fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
+                <YAxis tick={{ fill: tickColor, fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ background: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '11px' }} 
-                  itemStyle={{ color: 'var(--accent-cyan)' }}
+                  contentStyle={tooltipStyle} 
+                  itemStyle={{ color: 'var(--accent-cyan)', fontWeight: 700 }}
+                  labelStyle={{ color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 600 }}
                 />
-                <Area type="monotone" dataKey="count" stroke="var(--accent-cyan)" fill="url(#eventsFill)" strokeWidth={2.5} animationDuration={1500} />
+                <Area type="monotone" dataKey="count" stroke="var(--accent-cyan)" fill="url(#eventsFill)" strokeWidth={3} animationDuration={1500} />
               </AreaChart>
             </ResponsiveContainer>
           </ChartPanel>
@@ -169,12 +193,12 @@ export default function AnalyticsPage() {
             <ChartPanel title="Disruptions by Type" subtitle="Distribution of events by root cause category">
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={data.byType} dataKey="count" nameKey="type" innerRadius={55} outerRadius={85} paddingAngle={4}>
+                  <Pie data={data.byType} dataKey="count" nameKey="type" innerRadius={60} outerRadius={90} paddingAngle={4}>
                     {data.byType.map((entry, idx) => (
                       <Cell key={`${entry.type}-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} stroke="transparent" />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ background: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '11px' }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </ChartPanel>
@@ -182,10 +206,10 @@ export default function AnalyticsPage() {
             <ChartPanel title="Regional Urgency" subtitle="Average severity score across primary shipping corridors">
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={data.byCorridor} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="corridor" tick={{ fill: tickColor, fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis domain={[0, 10]} tick={{ fill: tickColor, fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '11px' }} />
-                  <Bar dataKey="avgSeverity" fill="var(--accent-amber)" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1200} />
+                  <XAxis dataKey="corridor" tick={{ fill: tickColor, fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis domain={[0, 10]} tick={{ fill: tickColor, fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Bar dataKey="avgSeverity" fill="var(--accent-amber)" radius={[6, 6, 0, 0]} barSize={28} animationDuration={1200} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartPanel>
@@ -193,23 +217,5 @@ export default function AnalyticsPage() {
         </motion.section>
       </motion.main>
     </div>
-  );
-}
-
-function AnalyticsSkeleton() {
-  return (
-    <main className="flex-1 p-6 space-y-6 overflow-hidden">
-      <div className="h-8 w-48 rounded-lg bg-[var(--bg-elevated)] animate-pulse" />
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
-        ))}
-      </div>
-      <div className="h-64 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="h-56 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
-        <div className="h-56 rounded-2xl bg-[var(--bg-elevated)] animate-pulse" />
-      </div>
-    </main>
   );
 }

@@ -39,7 +39,7 @@ function MetricChip({ label, value, tone = 'slate' }) {
 	);
 }
 
-export default function AgentHealthPanel() {
+export default function AgentHealthPanel({ floating = true }) {
 	const [metrics, setMetrics] = useState([]);
 	const [lastUpdated, setLastUpdated] = useState(null);
 	const [loadState, setLoadState] = useState('loading');
@@ -98,6 +98,10 @@ export default function AgentHealthPanel() {
 		? Math.round(metrics.reduce((sum, item) => sum + readMetric(item.payload, ['avgLatencyMs', 'averageLatencyMs', 'latencyMs'], item.ok ? 0 : 5000), 0) / metrics.length)
 		: 0;
 
+	const containerClasses = floating 
+		? "absolute top-5 left-5 right-5 z-20 pointer-events-none" 
+		: "relative w-full";
+
 	return (
 		<AnimatePresence>
 			<motion.section
@@ -105,28 +109,28 @@ export default function AgentHealthPanel() {
 				animate={{ opacity: 1, y: 0, scale: 1 }}
 				exit={{ opacity: 0, y: -10, scale: 0.98 }}
 				transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-				className="absolute top-5 left-5 right-5 z-20 pointer-events-none"
+				className={containerClasses}
 			>
-				<div className="mx-auto w-full max-w-6xl pointer-events-auto">
-					<div className="glass-panel glass-edge rounded-[30px] transition-all duration-500">
+				<div className={`mx-auto w-full max-w-6xl ${floating ? 'pointer-events-auto' : ''}`}>
+					<div className="glass-panel glass-edge rounded-[30px] transition-all duration-500 shadow-2xl">
 						<div className="relative px-5 py-4 sm:px-6 sm:py-5">
 							<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 								<div className="space-y-2">
-									<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--accent-cyan)]">
+									<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent-cyan)]">
 										<span className={`h-2 w-2 rounded-full ${loadState === 'ready' ? 'bg-[var(--accent-green)] shadow-[0_0_14px_rgba(34,197,94,0.6)]' : 'bg-[var(--accent-amber)] shadow-[0_0_14px_rgba(245,158,11,0.6)]'}`} />
 										Live telemetry
 									</div>
 									<div>
-										<h2 className="text-xl font-semibold tracking-[0.18em] text-[var(--text-primary)] sm:text-2xl">
+										<h2 className="text-xl font-bold tracking-[0.18em] text-[var(--text-primary)] sm:text-2xl font-display">
 											Mission Control
 										</h2>
-										<p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
+										<p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)] font-medium">
 											Rolling health from every service. Watch the stack breathe, degrade, and recover in real time.
 										</p>
 									</div>
 								</div>
 
-								<div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)]">
+								<div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)] font-bold">
 									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{onlineCount}/{metrics.length || AGENTS.length} online
 									</div>
@@ -159,27 +163,27 @@ export default function AgentHealthPanel() {
 											initial={{ opacity: 0, y: 8 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: index * 0.06, duration: 0.24 }}
-											className="group rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]/60 p-3 transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]"
+											className="group rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]/60 p-3 transition-all hover:border-[var(--accent-cyan)]/30 hover:bg-[var(--bg-elevated)] hover:shadow-lg"
 										>
 											<div className="flex items-start justify-between gap-3">
 												<div>
-													<div className="text-[10px] uppercase tracking-[0.28em] text-[var(--text-muted)]">Service</div>
-													<div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{agent.name}</div>
+													<div className="text-[10px] uppercase tracking-[0.28em] text-[var(--text-muted)] font-bold">Service</div>
+													<div className="mt-1 text-sm font-bold text-[var(--text-primary)]">{agent.name}</div>
 												</div>
-												<div className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${agent.ok ? 'border-[var(--accent-green)]/20 bg-[var(--accent-green)]/10 text-[var(--accent-green)]' : 'border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 text-[var(--accent-red)]'}`}>
+												<div className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] ${agent.ok ? 'border-[var(--accent-green)]/20 bg-[var(--accent-green)]/10 text-[var(--accent-green)]' : 'border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 text-[var(--accent-red)]'}`}>
 													{agent.ok ? (errorCount > 0 ? 'Degraded' : 'Live') : 'Down'}
 												</div>
 											</div>
 
 											<div className="mt-3 space-y-3">
-												<div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-													<span>{agent.url.replace(/^https?:\/\//, '')}</span>
-													<span className={`h-2 w-2 rounded-full ${agent.ok ? (errorCount > 0 ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-rose-400'}`} />
+												<div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] font-medium">
+													<span className="truncate max-w-[120px]">{agent.url.replace(/^https?:\/\//, '')}</span>
+													<span className={`h-2 w-2 rounded-full ${agent.ok ? (errorCount > 0 ? 'bg-[var(--accent-amber)] shadow-[0_0_8px_var(--accent-amber)]' : 'bg-[var(--accent-green)] shadow-[0_0_8px_var(--accent-green)]') : 'bg-[var(--accent-red)] shadow-[0_0_8px_var(--accent-red)]'}`} />
 												</div>
 
 												{waking[agent.name] ? (
-													<div className="rounded-lg border border-[var(--accent-amber)]/20 bg-[var(--accent-amber)]/10 px-3 py-2 text-[11px] text-[var(--accent-amber)]">
-														Waking agent... ETA ~30s
+													<div className="rounded-lg border border-[var(--accent-amber)]/20 bg-[var(--accent-amber)]/10 px-3 py-2 text-[10px] font-bold text-[var(--accent-amber)] uppercase tracking-wider animate-pulse">
+														Waking agent...
 													</div>
 												) : null}
 
@@ -192,12 +196,12 @@ export default function AgentHealthPanel() {
 
 												<div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
 													<div
-														className="h-full rounded-full"
+														className="h-full rounded-full transition-all duration-1000"
 														style={{
 															width: agent.ok ? '100%' : '28%',
 															background: agent.ok
-																? `linear-gradient(90deg, ${agent.accent}, rgba(255,255,255,0.88))`
-																: 'linear-gradient(90deg, rgba(244,63,94,0.9), rgba(244,63,94,0.28))',
+																? `linear-gradient(90deg, ${agent.accent}, var(--text-primary))`
+																: 'linear-gradient(90deg, var(--accent-red), rgba(244,63,94,0.28))',
 															boxShadow: agent.ok ? `0 0 18px ${agent.accent}66` : '0 0 18px rgba(244,63,94,0.45)',
 														}}
 													/>
