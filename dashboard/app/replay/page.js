@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Info, Play, Pause, FastForward, Map as MapIcon, Activity } from 'lucide-react';
+import { Calendar, Info, Play, Pause, FastForward, Map as MapIcon, Activity, RotateCcw } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { PAGE_ENTER, STAGGER_CHILDREN, CARD_ITEM, SLIDE_FROM_RIGHT } from '../lib/motion.js';

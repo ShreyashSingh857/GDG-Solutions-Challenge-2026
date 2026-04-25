@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Sun, Moon } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { auth, db, isFirebaseConfigured } from '../lib/firebase.js';

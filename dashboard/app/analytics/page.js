@@ -15,6 +15,7 @@ import {
   YAxis,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { BarChart3 } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { PAGE_ENTER, STAGGER_CHILDREN, CARD_ITEM } from '../lib/motion.js';

@@ -30,24 +30,14 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(getInitialTheme);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Sync initial state on mount
   useEffect(() => {
-    const stored = window.localStorage.getItem('gdg_theme');
-    const fromDoc = document.documentElement.getAttribute('data-theme');
-    const initialTheme = (stored === 'light' || stored === 'dark') ? stored : (fromDoc === 'light' || fromDoc === 'dark') ? fromDoc : 'dark';
-    
-    if (initialTheme !== theme) {
-      setTheme(initialTheme);
-    }
-    persistTheme(initialTheme);
     setIsMounted(true);
   }, []);
 
   // Persist theme whenever it changes
   useEffect(() => {
-    if (!isMounted) return;
     persistTheme(theme);
-  }, [theme, isMounted]);
+  }, [theme]);
 
   // Listen for storage changes and custom events
   useEffect(() => {
