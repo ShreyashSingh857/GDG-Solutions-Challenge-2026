@@ -6,6 +6,8 @@ import { createAgentPayload } from '../../shared/types/AgentPayload.js';
 import { publish } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
 import { generate } from '../../shared/lib/gemini.js';
+import { generateWithRetry } from '../../shared/lib/llmJson.js';
+import { NEWS_ALERT_RESULT_SCHEMA, validateAndRepair } from '../../shared/lib/validateSchema.js';
 import { fetchGdeltArticles } from '../tools/gdeltFetcher.js';
 import { fetchNewsApiArticles } from '../tools/newsApiFetcher.js';
 import { fetchGdacsAlerts } from '../tools/gdacsFetcher.js';
@@ -28,6 +30,21 @@ let lastGdeltFetch = new Date(Date.now() - 30 * 60 * 1000);
 
 function isFirebaseConfigError(err) {
   return String(err?.message || '').includes('Missing FIREBASE_* env vars');
+}
+
+function buildNewsFallback(article) {
+  return {
+    sourceUrl: article?.url || '',
+    headline: article?.headline || '',
+    summary: article?.headline || '',
+    relevanceScore: 0,
+    disruptionType: 'OTHER',
+    severity: 5,
+    location: 'Unknown',
+    epicenterLat: 0,
+    epicenterLng: 0,
+    affectedCorridors: [],
+  };
 }
 
 export async function injectToDisruptionAgent(description, traceId, maxAttempts = 3, retryDelayMs = 3000) {
@@ -135,13 +152,29 @@ export async function runPollCycle() {
 
     let results = [];
     try {
-      const raw = await generate(`${PROMPT}
+      const modelResult = await generateWithRetry(`${PROMPT}
 
 ## Articles to Classify
 
-${JSON.stringify(input, null, 2)}`);
-      const parsed = JSON.parse(raw);
-      results = Array.isArray(parsed) ? parsed : [];
+${JSON.stringify(input, null, 2)}`, PROMPT, {
+        maxRetries: 2,
+        invokeModel: (retryPrompt) => generate(retryPrompt),
+      });
+
+      const parsed = Array.isArray(modelResult.parsed) ? modelResult.parsed : [];
+      results = parsed.map((item, index) => {
+        const sourceArticle =
+          batch.find((article) => article.url === item?.sourceUrl)
+          || batch[index]
+          || batch[0]
+          || {};
+        const fallback = buildNewsFallback(sourceArticle);
+        const repaired = validateAndRepair(item, NEWS_ALERT_RESULT_SCHEMA, fallback);
+        if (repaired.errors.length) {
+          console.warn(`[NewsAgent] Repaired ${repaired.errors.length} fields for ${fallback.sourceUrl || 'unknown article'}`);
+        }
+        return repaired.data;
+      });
     } catch (err) {
       console.error('[NewsAgent] Gemini classify failed for batch:', err.message);
     }

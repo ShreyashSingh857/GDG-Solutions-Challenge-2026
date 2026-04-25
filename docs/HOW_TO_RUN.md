@@ -127,4 +127,5 @@ npm run inject:suez
 - Seed fails on capabilities: re-run Supabase schema SQL first.
 - Ports in use: free 3000, 3001, 3002, 3003, 3005, 4000 and restart services.
 - News service cold starts can take a short delay before the first poll cycle fires.
+- `ERR_MODULE_NOT_FOUND` for `@opentelemetry/sdk-node`: run `npm install` at repo root, then restart `npm run dev:all`.
 

@@ -10,13 +10,31 @@ import {
 test('maps STRIKE disruption type to port_strike scenario', () => {
   const report = {
     disruptionType: 'STRIKE',
-    disruptionLocation: 'Port of Los Angeles',
+    disruptionLocation: 'Port of Mumbai',
     affectedZones: [],
     affectedShipments: [],
   };
 
   const context = buildDisruptionContextFromImpactReport(report);
   assert.equal(detectScenario(context), 'port_strike');
+});
+
+test('maps european strike keywords to europe_port_strike scenario', () => {
+  const context = {
+    type: 'STRIKE',
+    location: 'Rotterdam Port',
+    affectedZones: ['Europe Corridor'],
+  };
+  assert.equal(detectScenario(context), 'europe_port_strike');
+});
+
+test('maps west coast strike keywords to us_west_port_strike scenario', () => {
+  const context = {
+    type: 'STRIKE',
+    location: 'Port of Los Angeles',
+    affectedZones: ['US West Coast'],
+  };
+  assert.equal(detectScenario(context), 'us_west_port_strike');
 });
 
 test('maps Suez zone to suez_closure scenario', () => {
@@ -29,6 +47,42 @@ test('maps Suez zone to suez_closure scenario', () => {
 
   const context = buildDisruptionContextFromImpactReport(report);
   assert.equal(detectScenario(context), 'suez_closure');
+});
+
+test('maps panama disruptions to panama_closure scenario', () => {
+  const context = {
+    type: 'INFRASTRUCTURE',
+    location: 'Panama Canal',
+    affectedZones: ['Panama'],
+  };
+  assert.equal(detectScenario(context), 'panama_closure');
+});
+
+test('maps malacca disruptions to malacca_disruption scenario', () => {
+  const context = {
+    type: 'INFRASTRUCTURE',
+    location: 'Strait of Malacca',
+    affectedZones: ['Singapore Strait'],
+  };
+  assert.equal(detectScenario(context), 'malacca_disruption');
+});
+
+test('maps atlantic storms to atlantic_storm scenario', () => {
+  const context = {
+    type: 'WEATHER',
+    location: 'Gulf of Mexico',
+    affectedZones: ['Atlantic', 'Caribbean'],
+  };
+  assert.equal(detectScenario(context), 'atlantic_storm');
+});
+
+test('maps sanctions events to geopolitical scenario', () => {
+  const context = {
+    type: 'GEOPOLITICAL',
+    location: 'Indian Ocean',
+    affectedZones: ['Trade embargo notice'],
+  };
+  assert.equal(detectScenario(context), 'geopolitical');
 });
 
 test('derives supplier region from affected zones first', () => {

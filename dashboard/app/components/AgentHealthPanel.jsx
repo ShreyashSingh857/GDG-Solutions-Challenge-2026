@@ -43,6 +43,13 @@ export default function AgentHealthPanel() {
 	const [metrics, setMetrics] = useState([]);
 	const [lastUpdated, setLastUpdated] = useState(null);
 	const [loadState, setLoadState] = useState('loading');
+	const [waking, setWaking] = useState({});
+
+	useEffect(() => {
+		AGENTS.forEach((agent) => {
+			fetch(`${agent.url}/health`, { signal: AbortSignal.timeout(2500) }).catch(() => {});
+		});
+	}, []);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -62,7 +69,11 @@ export default function AgentHealthPanel() {
 			if (cancelled) return;
 
 			const nextMetrics = settled.map((result, index) => {
-				if (result.status === 'fulfilled') return result.value;
+				if (result.status === 'fulfilled') {
+					setWaking((prev) => ({ ...prev, [AGENTS[index].name]: false }));
+					return result.value;
+				}
+				setWaking((prev) => ({ ...prev, [AGENTS[index].name]: true }));
 				return { ...AGENTS[index], ok: false, error: result.reason?.message || 'unreachable', payload: {} };
 			});
 
@@ -168,6 +179,12 @@ export default function AgentHealthPanel() {
 													<span>{agent.url.replace(/^https?:\/\//, '')}</span>
 													<span className={`h-2 w-2 rounded-full ${agent.ok ? (errorCount > 0 ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-rose-400'}`} />
 												</div>
+
+												{waking[agent.name] ? (
+													<div className="rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-100">
+														Waking agent... ETA ~30s
+													</div>
+												) : null}
 
 												<div className="grid grid-cols-2 gap-2">
 													<MetricChip label="Requests" value={formatNumber(requestCount)} tone={healthTone} />

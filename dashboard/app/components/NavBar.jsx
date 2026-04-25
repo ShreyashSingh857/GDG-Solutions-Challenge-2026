@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun } from 'lucide-react';
+import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow } from 'lucide-react';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Globe', icon: Globe },
   { href: '/shipments', label: 'Shipments', icon: Package },
   { href: '/replay', label: 'Replay', icon: RotateCcw },
+  { href: '/visualize', label: 'Visualize', icon: Workflow },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/health', label: 'System', icon: Activity },
 ];

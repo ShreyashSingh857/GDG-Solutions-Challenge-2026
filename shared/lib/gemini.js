@@ -103,34 +103,45 @@ export async function generate(prompt, tools = []) {
 }
 
 export async function generateWithTools(prompt, tools = [], toolHandlers = {}) {
-  try {
-    ensureNotRateLimited();
-    const genAI = await getGenAI();
+	const result = await generateWithToolsAndTrace(prompt, tools, toolHandlers);
+	return result.text;
+}
+
+export async function generateWithToolsAndTrace(prompt, tools = [], toolHandlers = {}) {
+	try {
+		ensureNotRateLimited();
+		const genAI = await getGenAI();
     const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
       tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
-    });
-    const chat = model.startChat();
-    let result = await chat.sendMessage(prompt);
-    for (let i = 0; i < 5; i++) {
-      const parts = result.response.candidates?.[0]?.content?.parts ?? [];
-      const toolCalls = parts.filter((p) => p.functionCall);
-      if (toolCalls.length === 0) break;
-      const toolResults = await Promise.all(toolCalls.map(async (p) => {
-        const fn = p.functionCall;
-        const handler = toolHandlers[fn.name];
-        const output = handler ? await handler(fn.args).catch((e) => ({ error: e.message })) : { error: 'no handler' };
-        return { functionResponse: { name: fn.name, response: output } };
-      }));
-      result = await chat.sendMessage(toolResults);
-    }
-    const text = extractSafeText(result.response);
-    clearRateLimitState();
-    return text;
-  } catch (err) {
-    handleRateLimit(err);
-    throw err;
-  }
+	});
+	const chat = model.startChat();
+	let result = await chat.sendMessage(prompt);
+	const toolTrace = [];
+	for (let i = 0; i < 5; i++) {
+		const parts = result.response.candidates?.[0]?.content?.parts ?? [];
+		const toolCalls = parts.filter((p) => p.functionCall);
+		if (toolCalls.length === 0) break;
+		const toolResults = await Promise.all(toolCalls.map(async (p) => {
+			const fn = p.functionCall;
+			const handler = toolHandlers[fn.name];
+			const output = handler ? await handler(fn.args).catch((e) => ({ error: e.message })) : { error: 'no handler' };
+			toolTrace.push({
+				name: fn.name,
+				args: fn.args || {},
+				response: output,
+			});
+			return { functionResponse: { name: fn.name, response: output } };
+		}));
+		result = await chat.sendMessage(toolResults);
+	}
+	const text = extractSafeText(result.response);
+	clearRateLimitState();
+	return { text, toolTrace };
+	} catch (err) {
+		handleRateLimit(err);
+		throw err;
+	}
 }
 
 /**

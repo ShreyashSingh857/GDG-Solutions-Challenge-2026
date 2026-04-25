@@ -1,5 +1,9 @@
 'use client';
 
+if (typeof window !== 'undefined') {
+  window.CESIUM_BASE_URL = '/_next/static/cesium';
+}
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { shallow } from 'zustand/shallow';
@@ -16,7 +20,7 @@ import {
   IonWorldImageryStyle,
   LabelStyle,
   NearFarScalar,
-  OpenStreetMapImageryProvider,
+  UrlTemplateImageryProvider,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Viewer,
@@ -39,6 +43,11 @@ function isValidCoord(lat, lon) {
   return !(lat === 0 && lon === 0) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 }
 
+function hasRenderableSize(element) {
+  const rect = element?.getBoundingClientRect?.();
+  return !!rect && rect.width > 0 && rect.height > 0;
+}
+
 function dominantStatus(statuses) {
   if (statuses.has('rerouted')) return 'rerouted';
   if (statuses.has('disrupted')) return 'disrupted';
@@ -46,8 +55,12 @@ function dominantStatus(statuses) {
   return 'active';
 }
 
-function getCoordValue(item, primary, fallback) {
-  return item?.[primary] ?? item?.[fallback];
+function getCoordValue(item, ...keys) {
+  for (const key of keys) {
+    const v = item?.[key];
+    if (v !== undefined && v !== null) return v;
+  }
+  return undefined;
 }
 
 function getEndpointLabel(item, codeKey, nameKey, fallback) {
@@ -63,11 +76,20 @@ function getEndpointKey(item, codeKey, nameKey, latKey, lonKey, prefix) {
 }
 
 function getRoutePoints(shipment, reroutedRoute) {
-  const source = reroutedRoute || shipment;
+  const waypointSource = reroutedRoute || shipment;
+  const originLat = getCoordValue(shipment, 'originLat', 'originLatitude')
+    ?? getCoordValue(reroutedRoute, 'originLat', 'originLatitude');
+  const originLon = getCoordValue(shipment, 'originLng', 'originLon')
+    ?? getCoordValue(reroutedRoute, 'originLng', 'originLon');
+  const destLat = getCoordValue(shipment, 'destLat', 'destLatitude')
+    ?? getCoordValue(reroutedRoute, 'destLat', 'destLatitude');
+  const destLon = getCoordValue(shipment, 'destLng', 'destLon')
+    ?? getCoordValue(reroutedRoute, 'destLng', 'destLon');
+
   const points = [
-    { lat: getCoordValue(source, 'originLat', 'originLatitude'), lon: getCoordValue(source, 'originLon', 'originLng') },
-    ...((source.waypoints || []).map((w) => ({ lat: getCoordValue(w, 'lat', 'latitude'), lon: getCoordValue(w, 'lon', 'lng') }))),
-    { lat: getCoordValue(source, 'destLat', 'destLatitude'), lon: getCoordValue(source, 'destLon', 'destLng') },
+    { lat: originLat, lon: originLon },
+    ...((waypointSource.waypoints || []).map((w) => ({ lat: getCoordValue(w, 'lat', 'latitude'), lon: getCoordValue(w, 'lon', 'lng') }))),
+    { lat: destLat, lon: destLon },
   ];
   return points.filter((point) => isValidCoord(point.lat, point.lon));
 }
@@ -92,6 +114,7 @@ export default function GlobeView() {
   const [f, setF] = useState('all');
   const [t, setT] = useState(null);
   const [zoomLevel, setZoomLevel] = useState('far');
+  const [viewerEpoch, setViewerEpoch] = useState(0);
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow);
   const disruptions = useAlertStore((x) => x.disruptions);
@@ -136,40 +159,90 @@ export default function GlobeView() {
 
   useEffect(() => {
     if (!cRef.current || vRef.current) return;
-    let v;
-    (async () => {
+    let cleanup = () => {};
+    let initFrameId = null;
+    let cancelled = false;
+
+    const tryInit = async () => {
+      if (cancelled || !cRef.current || vRef.current) return;
+      if (!hasRenderableSize(cRef.current)) {
+        initFrameId = requestAnimationFrame(tryInit);
+        return;
+      }
+
+      let v;
+      let events;
+      const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
+
       try {
-        const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
         if (ionToken) Ion.defaultAccessToken = ionToken;
-        
-        v = new Viewer(cRef.current, { 
+        v = new Viewer(cRef.current, {
           animation: false, timeline: false, sceneModePicker: false, geocoder: false, baseLayerPicker: false, navigationHelpButton: false, homeButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, shouldAnimate: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, msaaSamples: 1, shadows: false, scene3DOnly: true,
           terrainProvider: ionToken
             ? await createWorldTerrainAsync({ requestVertexNormals: true, requestWaterMask: true })
             : new EllipsoidTerrainProvider(),
           baseLayer: ionToken
             ? ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS })
-            : new ImageryLayer(new OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/', maximumLevel: 19, credit: 'OSM' }))
+            : new ImageryLayer(
+                new UrlTemplateImageryProvider({
+                  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: ['a', 'b', 'c'],
+                  credit: 'Map data © OpenStreetMap contributors',
+                  maximumLevel: 19,
+                })
+              )
         });
+        if (cancelled) {
+          v.destroy();
+          return;
+        }
       } catch (err) {
         console.error('[GlobeView] Failed to initialize Cesium Viewer:', err);
         return;
       }
-      const scene = v.scene; const globe = scene.globe; v.resolutionScale = Math.min(window.devicePixelRatio || 1, 2.0); scene.fxaa = true; scene.highDynamicRange = true; globe.enableLighting = true; globe.dynamicAtmosphereLighting = true; globe.dynamicAtmosphereLightingFromSun = true; globe.showGroundAtmosphere = true; globe.atmosphereLightIntensity = 2.0; globe.tileCacheSize = 1000; globe.maximumScreenSpaceError = 1.0; globe.preloadAncestors = true; globe.preloadSiblings = true; globe.loadingDescendantLimit = 20; globe.depthTestAgainstTerrain = true; globe.baseColor = Color.fromCssColorString('#030D1F'); scene.skyAtmosphere.show = true; scene.skyAtmosphere.perFragmentAtmosphere = true; scene.skyAtmosphere.atmosphereLightIntensity = 12.0; scene.skyBox.show = true; scene.sun.show = true; scene.moon.show = false; scene.fog.enabled = true; scene.fog.density = 0.0002; scene.fog.minimumBrightness = 0.03; v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
+
+      const scene = v.scene;
+      const globe = scene.globe;
+      v.resolutionScale = Math.min(window.devicePixelRatio || 1, 2.0);
+      scene.fxaa = true;
+      scene.highDynamicRange = true;
+      globe.enableLighting = true;
+      globe.dynamicAtmosphereLighting = true;
+      globe.dynamicAtmosphereLightingFromSun = true;
+      globe.showGroundAtmosphere = true;
+      globe.atmosphereLightIntensity = 2.0;
+      globe.tileCacheSize = 1000;
+      globe.maximumScreenSpaceError = 1.0;
+      globe.preloadAncestors = true;
+      globe.preloadSiblings = true;
+      globe.loadingDescendantLimit = 20;
+      globe.depthTestAgainstTerrain = !!ionToken;
+      globe.baseColor = Color.fromCssColorString('#030D1F');
+      scene.skyAtmosphere.show = true;
+      scene.skyAtmosphere.perFragmentAtmosphere = true;
+      scene.skyAtmosphere.atmosphereLightIntensity = 12.0;
+      scene.skyBox.show = true;
+      scene.sun.show = true;
+      scene.moon.show = false;
+      scene.fog.enabled = true;
+      scene.fog.density = 0.0002;
+      scene.fog.minimumBrightness = 0.03;
+      v.camera.setView({ destination: Cartesian3.fromDegrees(60, 20, 22000000) });
       scene.screenSpaceCameraController.enableCollisionDetection = false;
       scene.screenSpaceCameraController.inertiaSpin = 0.9;
       scene.screenSpaceCameraController.inertiaTranslate = 0.9;
       scene.screenSpaceCameraController.inertiaZoom = 0.8;
-      scene.screenSpaceCameraController.minimumZoomDistance = 500000;
+      scene.screenSpaceCameraController.minimumZoomDistance = 10000;
       scene.screenSpaceCameraController.maximumZoomDistance = 30000000;
-      // Bloom disabled: post-process blur degrades satellite tile clarity at zoom
       scene.postProcessStages.bloom.enabled = false;
-      // Visual cohesion: enhance contrast, brightness, saturation for deeper immersion
       scene.postProcessStages.fxaa.enabled = true;
       if (scene.postProcessStages.chromaticAberration) scene.postProcessStages.chromaticAberration.enabled = false;
+      scene.requestRender();
       vRef.current = v;
-      v.scene.canvas.addEventListener("mousedown", () => { resetIdleTimer(); setLastInteraction(); });
-      v.scene.canvas.addEventListener("touchstart", () => { resetIdleTimer(); setLastInteraction(); });
+      setViewerEpoch((prev) => prev + 1);
+      const handlePointerActivity = () => { resetIdleTimer(); setLastInteraction(); };
+      v.scene.canvas.addEventListener('mousedown', handlePointerActivity);
+      v.scene.canvas.addEventListener('touchstart', handlePointerActivity);
       resetIdleTimer();
       const onCam = () => {
         const altM = v.camera.positionCartographic.height;
@@ -180,8 +253,15 @@ export default function GlobeView() {
         }
       };
       v.camera.changed.addEventListener(onCam);
-      const events = new ScreenSpaceEventHandler(v.scene.canvas);
+      const handleResize = () => {
+        if (!vRef.current || !hasRenderableSize(cRef.current)) return;
+        vRef.current.resize();
+        vRef.current.scene.requestRender();
+      };
+      window.addEventListener('resize', handleResize);
+      events = new ScreenSpaceEventHandler(v.scene.canvas);
       events.setInputAction((m) => {
+        if (!v.scene.canvas || v.scene.canvas.width <= 0 || v.scene.canvas.height <= 0) return;
         if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
         hoverRafRef.current = requestAnimationFrame(() => {
           const p = v.scene.pick(m.endPosition);
@@ -197,17 +277,29 @@ export default function GlobeView() {
           setT({ label: pr.label?.getValue() || 'Item', kind: pr.kind?.getValue() || 'entity', status: pr.status?.getValue() || '' });
         });
       }, ScreenSpaceEventType.MOUSE_MOVE);
-      return () => {
+
+      cleanup = () => {
+        window.removeEventListener('resize', handleResize);
+        v.camera.changed.removeEventListener(onCam);
+        v.scene.canvas.removeEventListener('mousedown', handlePointerActivity);
+        v.scene.canvas.removeEventListener('touchstart', handlePointerActivity);
         if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
         if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current);
         stopAutoRotate();
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
         setZoomLevelDebounced.cancel();
-        events.destroy();
+        events?.destroy();
         v.destroy();
         vRef.current = null;
       };
-    })();
+    };
+
+    tryInit();
+    return () => {
+      cancelled = true;
+      if (initFrameId) cancelAnimationFrame(initFrameId);
+      cleanup();
+    };
   }, [resetIdleTimer, setLastInteraction, setZoomLevelDebounced, stopAutoRotate]);
 
   useEffect(() => {
@@ -246,9 +338,9 @@ export default function GlobeView() {
           originLabel: getEndpointLabel(shipment, 'originCode', 'origin', 'Origin'),
           destLabel: getEndpointLabel(shipment, 'destCode', 'destination', 'Destination'),
           originLat: getCoordValue(shipment, 'originLat', 'originLatitude'),
-          originLon: getCoordValue(shipment, 'originLon', 'originLng'),
+          originLon: getCoordValue(shipment, 'originLng', 'originLon'),
           destLat: getCoordValue(shipment, 'destLat', 'destLatitude'),
-          destLon: getCoordValue(shipment, 'destLon', 'destLng'),
+          destLon: getCoordValue(shipment, 'destLng', 'destLon'),
           waypoints: reroutedRoute?.waypoints || shipment.waypoints || [],
           statuses: new Set(),
           count: 0,
@@ -362,7 +454,7 @@ export default function GlobeView() {
     } finally {
       entities.resumeEvents();
     }
-  }, [groupedRoutes, reroutedRoutes]);
+  }, [groupedRoutes, reroutedRoutes, viewerEpoch]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -378,7 +470,7 @@ export default function GlobeView() {
     }
 
     vRef.current.scene.requestRender();
-  }, [f, groupedRoutes]);
+  }, [f, groupedRoutes, viewerEpoch]);
 
   useEffect(() => {
     const show = zoomLevel !== 'far';
@@ -386,7 +478,7 @@ export default function GlobeView() {
       entity.show = new ConstantProperty(show);
     }
     vRef.current?.scene.requestRender();
-  }, [zoomLevel]);
+  }, [zoomLevel, viewerEpoch]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -458,7 +550,7 @@ export default function GlobeView() {
     });
 
     viewer.scene.requestRender();
-  }, [ports, zoomLevel]);
+  }, [ports, zoomLevel, viewerEpoch]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -514,7 +606,7 @@ export default function GlobeView() {
     });
 
     viewer.scene.requestRender();
-  }, [corridors, zoomLevel]);
+  }, [corridors, zoomLevel, viewerEpoch]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -575,7 +667,7 @@ export default function GlobeView() {
         pulseRafRef.current = null;
       }
     };
-  }, [disruptions]);
+  }, [disruptions, viewerEpoch]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -646,7 +738,7 @@ export default function GlobeView() {
     });
 
     viewer.scene.requestRender();
-  }, [vessels]);
+  }, [vessels, viewerEpoch]);
 
   return (
     <div className="relative w-full h-full bg-[#020617]">
