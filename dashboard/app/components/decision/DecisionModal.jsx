@@ -102,14 +102,16 @@ export default function DecisionModal() {
 
   useEffect(() => {
     if (!activeDisruptionId) {
-      setAgentStage(0);
-      setIsExecuted(false);
-      setApprovedRank(null);
+      setTimeout(() => {
+        setAgentStage(0);
+        setIsExecuted(false);
+        setApprovedRank(null);
+      }, 0);
       return;
     }
-    setAgentStage(1);
+    setTimeout(() => setAgentStage(1), 0);
     if (!isFirebaseConfigured || !db) {
-      if (activeResolution?.options?.length > 0) setAgentStage(3);
+      if (activeResolution?.options?.length > 0) setTimeout(() => setAgentStage(3), 0);
       return;
     }
 
@@ -157,7 +159,9 @@ export default function DecisionModal() {
     }
   }
 
-  approveRef.current = handleApprove;
+  useEffect(() => {
+    approveRef.current = handleApprove;
+  });
 
   useEffect(() => {
     const onKeyDown = (event) => {

@@ -44,13 +44,15 @@ export default function SettingsPage() {
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    setAutoRotate(getLocalSetting('gdg_globe_auto_rotate', '10s'));
-    setDefaultFilter(getLocalSetting('gdg_default_filter', 'all'));
+    setTimeout(() => {
+      setAutoRotate(getLocalSetting('gdg_globe_auto_rotate', '10s'));
+      setDefaultFilter(getLocalSetting('gdg_default_filter', 'all'));
+    }, 0);
   }, []);
 
   useEffect(() => {
     if (!auth) {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 0);
       return;
     }
 

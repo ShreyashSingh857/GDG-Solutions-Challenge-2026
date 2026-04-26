@@ -251,7 +251,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
             <div className="space-y-2">
               <p className="text-[var(--text-primary)] font-bold text-lg tracking-tight">No Results Found</p>
               <p className="text-[var(--text-muted)] text-xs max-w-[280px] mx-auto leading-relaxed">
-                We couldn't find any shipments matching your current search or filter criteria.
+                We couldn&apos;t find any shipments matching your current search or filter criteria.
               </p>
             </div>
           </div>

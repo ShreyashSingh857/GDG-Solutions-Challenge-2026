@@ -325,14 +325,14 @@ export default function VisualizePage() {
 	}, [pollMetrics]);
 
 	useEffect(() => {
-		loadTimeline().catch(() => {});
+		const init = setTimeout(() => loadTimeline().catch(() => {}), 0);
 		const interval = setInterval(() => loadTimeline().catch(() => {}), 9000);
-		return () => clearInterval(interval);
+		return () => { clearTimeout(init); clearInterval(interval); };
 	}, [loadTimeline]);
 
 	useEffect(() => {
 		if (!selectedTraceId) {
-			setTraceDetails(null);
+			setTimeout(() => setTraceDetails(null), 0);
 			return;
 		}
 
@@ -419,30 +419,31 @@ export default function VisualizePage() {
 	useEffect(() => {
 		const heartbeatValue =
 			executeStatus === 'done' ? 96 : executeStatus === 'processing' ? 70 : executeStatus === 'error' ? 8 : 30;
-		pushHeartbeat('execute', heartbeatValue);
+		const timer = setTimeout(() => pushHeartbeat('execute', heartbeatValue), 0);
+		return () => clearTimeout(timer);
 	}, [executeStatus, pushHeartbeat]);
 
 	const activeTabPayload = traceDetails?.tabs?.[activeTab] || null;
 
 	useEffect(() => {
 		if (!activeTabPayload) {
-			setDisplayStreamText('');
+			setTimeout(() => setDisplayStreamText(''), 0);
 			return;
 		}
 
 		if (activeTab === 'resolution') {
-			setDisplayStreamText(resolutionStreamText);
+			setTimeout(() => setDisplayStreamText(resolutionStreamText), 0);
 			return;
 		}
 
 		const sourceText = activeTabPayload.streamOutput || '';
 		if (!sourceText) {
-			setDisplayStreamText('');
+			setTimeout(() => setDisplayStreamText(''), 0);
 			return;
 		}
 
 		let cursor = 0;
-		setDisplayStreamText('');
+		setTimeout(() => setDisplayStreamText(''), 0);
 		const interval = setInterval(() => {
 			cursor = Math.min(sourceText.length, cursor + 40);
 			setDisplayStreamText(sourceText.slice(0, cursor));
