@@ -19,6 +19,7 @@ const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8
 
 let _subscription = null;
 let _lastMessageAt = null;
+let _processing = false; // serialise AI work to cap peak RAM
 
 const HEALTH_CHECK_INTERVAL = 60000;
 const STALE_THRESHOLD = 300000;
@@ -59,7 +60,8 @@ export async function processDisruptionEvent(agentPayload) {
 	const traceId = agentPayload.traceId;
 
 	const nearbyShipments = await getShipmentsNearEpicenter(disruption.epicenterLat, disruption.epicenterLng);
-	const scoredShipments = await scoreShipmentsWithTradeWeight(disruption, nearbyShipments);
+	// Cap to 50 to avoid unbounded Firestore batch writes and large in-memory arrays
+	const scoredShipments = (await scoreShipmentsWithTradeWeight(disruption, nearbyShipments)).slice(0, 50);
 	const totalCargoAtRiskUSD = scoredShipments.reduce((sum, shipment) => sum + shipment.cargoValueUSD, 0);
 
 	const shipmentSummary = scoredShipments
@@ -204,9 +206,16 @@ export function startImpactSubscriber() {
 				if (!publishedAt || Date.now() - publishedAt > 600000) return;
 			}
 
-			processDisruptionEvent(message).catch((err) =>
-				console.error('[ImpactService] processDisruptionEvent error:', err.message)
-			);
+			// Serialise heavy AI + DB work: skip if already processing to prevent
+			// multiple large scoreShipments arrays living in RAM simultaneously.
+			if (_processing) {
+				console.warn('[ImpactService] Skipping event – processor busy, will catch next event');
+				return;
+			}
+			_processing = true;
+			processDisruptionEvent(message)
+				.catch((err) => console.error('[ImpactService] processDisruptionEvent error:', err.message))
+				.finally(() => { _processing = false; });
 		});
 		console.log('[ImpactService] SSE subscription established');
 	}

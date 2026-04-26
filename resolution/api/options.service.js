@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { generate, generateStream } from '../../shared/lib/gemini.js';
+import { generate } from '../../shared/lib/gemini.js';
 import { extractJSON, generateWithRetry } from '../../shared/lib/llmJson.js';
 import { RESOLUTION_OPTION_SCHEMA, validateAndRepair } from '../../shared/lib/validateSchema.js';
 import { db } from '../../shared/db/firebase.js';
@@ -27,10 +27,12 @@ const completedStreams = new Map();
 
 let _subscription = null;
 let _lastMessageAt = null;
+let _processing = false; // serialise heavy AI work to cap peak RAM
 
 const HEALTH_CHECK_INTERVAL = 60000;
 const STALE_THRESHOLD = 300000;
 const STREAM_TTL_MS = 300000;
+const STREAM_TEXT_CAP = 50_000; // max chars kept in activeStreams (≈50 KB)
 
 export function getStreamText(traceId) {
 	return activeStreams.get(traceId) ?? null;
@@ -365,38 +367,30 @@ async function processImpactReport(agentPayload) {
 		`SUPPLIERS: ${compactSuppliers || 'None'}`,
 	].join('\n');
 
+	// Single LLM call via generateWithRetry (removed redundant generateStream pass).
+	// activeStreams is updated with a capped snapshot so the stream SSE route stays
+	// functional without accumulating unbounded strings in RAM.
 	activeStreams.set(traceId, '');
 	completedStreams.set(traceId, false);
-
-	let fullResponse = '';
-	try {
-		for await (const chunk of generateStream(prompt)) {
-			fullResponse += chunk;
-			activeStreams.set(traceId, fullResponse);
-		}
-	} catch (err) {
-		console.warn('[ResolutionService] generateStream failed, using deterministic fallback options:', err.message);
-	}
 
 	let parseError = null;
 	let parseRetries = 0;
 	let parsedOptions = null;
-	let modelOutput = fullResponse;
+	let modelOutput = '';
 	try {
 		const modelResult = await generateWithRetry(prompt, SYSTEM_PROMPT, {
 			maxRetries: 2,
-			initialRawResponse: fullResponse,
 			invokeModel: (retryPrompt) => generate(retryPrompt),
 		});
 		parsedOptions = modelResult.parsed;
 		modelOutput = modelResult.raw;
 		parseRetries = Math.max(0, modelResult.attempts - 1);
-		if (parseRetries > 0) {
-			activeStreams.set(traceId, modelOutput);
-		}
+		// Cap text stored in the in-process Map to prevent memory bloat
+		activeStreams.set(traceId, modelOutput.slice(0, STREAM_TEXT_CAP));
 	} catch (err) {
 		parseError = err.message;
-		modelOutput = String(err.rawModelResponse || modelOutput || '');
+		modelOutput = String(err.rawModelResponse || '');
+		activeStreams.set(traceId, modelOutput.slice(0, STREAM_TEXT_CAP));
 	}
 
 	const { options: validatedOptions, repairErrors } = buildValidatedResolutionOptions({
@@ -549,9 +543,17 @@ export function startResolutionSubscriber() {
 				if (!publishedAt || Date.now() - publishedAt > 600000) return;
 			}
 
-			processImpactReport(message).catch((err) =>
-				console.error('[ResolutionService] processImpactReport error:', err.message)
-			);
+			// Serialise processing: skip if a heavy AI job is already running.
+			// This prevents stacking multiple large in-flight payloads that
+			// together exceed the Render instance's RAM limit.
+			if (_processing) {
+				console.warn('[ResolutionService] Skipping event – processor busy, will catch next event');
+				return;
+			}
+			_processing = true;
+			processImpactReport(message)
+				.catch((err) => console.error('[ResolutionService] processImpactReport error:', err.message))
+				.finally(() => { _processing = false; });
 		});
 
 		console.log('[ResolutionService] SSE subscription established');

@@ -30,6 +30,16 @@ const nextConfig = {
 		];
 	},
 	webpack: (config, { webpack }) => {
+		// Fix: @spz-loader/core (Cesium dependency) embeds its WASM binary as a
+		// template literal using legacy octal escape sequences (\0asm\1\0\0\0...).
+		// Browsers reject these in strict mode with:
+		//   "SyntaxError: Octal escape sequences are not allowed in template strings"
+		// Our custom loader converts those template literals to regular strings.
+		config.module.rules.unshift({
+			test: /node_modules[\\/]@spz-loader[\\/]core[\\/]dist[\\/]index\.js$/,
+			use: [{ loader: resolve(__dirname, 'spz-wasm-loader.cjs') }],
+		});
+
 		config.plugins.push(
 			new CopyWebpackPlugin({
 				patterns: [

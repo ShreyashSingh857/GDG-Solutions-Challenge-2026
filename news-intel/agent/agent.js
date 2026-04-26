@@ -24,9 +24,11 @@ const PROMPT = readFileSync(join(__dirname, 'prompt.md'), 'utf-8');
 const parsedRelevanceThreshold = Number.parseFloat(process.env.NEWS_RELEVANCE_THRESHOLD ?? '');
 const RELEVANCE_THRESHOLD = Number.isFinite(parsedRelevanceThreshold) ? parsedRelevanceThreshold : 0.65;
 const MAX_ARTICLES_PER_CALL = 20;
+const MAX_ARTICLES_PER_CYCLE = 100; // cap total in-memory article array per poll cycle
 const DISRUPTION_AGENT_URL = process.env.DISRUPTION_AGENT_URL ?? 'http://localhost:3001';
 
 let lastGdeltFetch = new Date(Date.now() - 30 * 60 * 1000);
+let _cycleRunning = false; // prevent overlapping cycles from doubling RAM usage
 
 function isFirebaseConfigError(err) {
   return String(err?.message || '').includes('Missing FIREBASE_* env vars');
@@ -71,6 +73,12 @@ export async function injectToDisruptionAgent(description, traceId, maxAttempts 
 }
 
 export async function runPollCycle() {
+  // Prevent overlapping cycles — two concurrent cycles would double RAM usage
+  if (_cycleRunning) {
+    console.warn('[NewsAgent] Poll cycle already running, skipping this trigger');
+    return { skipped: true };
+  }
+  _cycleRunning = true;
   const startedAt = Date.now();
   console.log('[NewsAgent] Poll cycle started');
 
@@ -91,6 +99,7 @@ export async function runPollCycle() {
   const sourceResults = [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult];
   const failureCount = sourceResults.filter((result) => result.status === 'rejected').length;
 
+  // Cap total articles per cycle to bound peak RAM usage
   const allArticles = [
     ...(gdeltResult.status === 'fulfilled' ? gdeltResult.value : []),
     ...(newsApiResult.status === 'fulfilled' ? newsApiResult.value : []),
@@ -99,7 +108,7 @@ export async function runPollCycle() {
     ...(maritimeResult.status === 'fulfilled' ? maritimeResult.value : []),
     ...(lloydsResult.status === 'fulfilled' ? lloydsResult.value : []),
     ...(strikeResult.status === 'fulfilled' ? strikeResult.value : []),
-  ];
+  ].slice(0, MAX_ARTICLES_PER_CYCLE);
 
   if (gdeltResult.status === 'rejected') {
     console.warn('[NewsAgent] GDELT fetch failed:', gdeltResult.reason?.message);
@@ -123,11 +132,13 @@ export async function runPollCycle() {
     console.warn('[NewsAgent] Strike alert fetch failed:', strikeResult.reason?.message);
   }
 
-  const noveltyChecks = await Promise.all(allArticles.map(async (article) => ({
-    article,
-    duplicate: await isDuplicate(article.url),
-  })));
-  const novel = noveltyChecks.filter(({ duplicate }) => !duplicate).map(({ article }) => article);
+  // Serial dedup check instead of Promise.all to avoid hundreds of
+  // simultaneous Supabase connections exhausting the DB connection pool
+  const novel = [];
+  for (const article of allArticles) {
+    const duplicate = await isDuplicate(article.url);
+    if (!duplicate) novel.push(article);
+  }
   console.log(`[NewsAgent] ${allArticles.length} fetched, ${novel.length} novel`);
 
   if (!novel.length) {
@@ -141,6 +152,7 @@ export async function runPollCycle() {
       sourceFailures: failureCount,
     };
     setLastCycleStats(stats);
+    _cycleRunning = false;
     return stats;
   }
 
@@ -213,6 +225,7 @@ ${JSON.stringify(input, null, 2)}`, PROMPT, {
     sourceFailures: failureCount,
   };
   setLastCycleStats(stats);
+  _cycleRunning = false;
   return stats;
 }
 
