@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.73.0",
+    "@opentelemetry/sdk-node": "^0.215.0",
     "cheerio": "^1.0.0",
     "csv-parse": "^5.5.5",
     "dotenv": "^16.4.5",
