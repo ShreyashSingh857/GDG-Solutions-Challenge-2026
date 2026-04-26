@@ -62,7 +62,7 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
             className={[
               'absolute bottom-24 right-6 z-30 pointer-events-auto',
               'w-100 max-h-[70vh] flex flex-col',
-              'glass-modal overflow-hidden',
+              'liquid-glass !rounded-3xl overflow-hidden shadow-2xl',
             ].join(' ')}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">

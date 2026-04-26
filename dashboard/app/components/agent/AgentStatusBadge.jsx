@@ -27,7 +27,7 @@ export default function AgentStatusBadge() {
   const isSurgical = status !== 'idle' && status !== 'resolved';
 
   return (
-    <div className="absolute top-18 right-6 z-40 flex items-center gap-3 glass-panel px-4 py-2 shadow-2xl transition-all duration-500">
+    <div className="flex items-center gap-3 glass-panel px-4 py-2 shadow-2xl transition-all duration-500 min-w-[160px]">
       <div className="relative flex items-center justify-center">
         {isSurgical && (
           <span className={`absolute inset-0 rounded-full animate-ping opacity-30 ${config.color}`} />

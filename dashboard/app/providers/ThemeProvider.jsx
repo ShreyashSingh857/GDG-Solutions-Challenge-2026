@@ -28,11 +28,6 @@ function persistTheme(theme) {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(getInitialTheme);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Persist theme whenever it changes
   useEffect(() => {

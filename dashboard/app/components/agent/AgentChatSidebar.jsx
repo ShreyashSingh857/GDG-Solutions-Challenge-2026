@@ -66,13 +66,38 @@ export default function AgentChatSidebar() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chains]);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-surface)] border-l border-[var(--border-subtle)]">
-      <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
-        <div><h2 className="text-sm font-semibold text-[var(--text-primary)]">AI Reasoning</h2>{traceId && <p className="text-xs text-[var(--text-muted)] font-mono">#{traceId.slice(-8)}</p>}</div>
-        {isStreaming ? <span className="text-xs text-purple-400">Thinking...</span> : current?.complete ? <span className="text-xs text-emerald-500">Complete ✓</span> : null}
+    <div className="flex flex-col h-full bg-transparent">
+      <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between glass-panel !rounded-none !border-t-0 !border-x-0 !border-b shadow-none">
+        <div>
+          <h2 className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--accent-cyan)] mb-1">AI Reasoning Engine</h2>
+          {traceId && <p className="text-[11px] text-[var(--text-primary)] font-bold tracking-tight">Active Trace #{traceId.slice(-8).toUpperCase()}</p>}
+        </div>
+        <div className="flex items-center gap-3">
+          {isStreaming ? (
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-[var(--accent-cyan)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent-cyan)]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-cyan)]">Synthesizing</span>
+            </div>
+          ) : current?.complete ? (
+            <div className="flex items-center gap-2 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Optimized</span>
+            </div>
+          ) : null}
+        </div>
       </div>
-      {activeDisruption && <div className="px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--accent-red)]/10"><p className="text-xs text-[var(--accent-red)]">{activeDisruption.type} — {activeDisruption.location}</p></div>}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 font-mono text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
+      
+      {activeDisruption && (
+        <div className="px-6 py-3 border-b border-[var(--border-subtle)] bg-[var(--accent-red)]/5">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-[var(--accent-red)] rounded-full" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-red)]">
+              Impact: {activeDisruption.type} — {activeDisruption.location}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 text-xs text-[var(--text-secondary)]">
         {current ? (
           <AnimatePresence mode="wait">
             <motion.div
@@ -82,16 +107,47 @@ export default function AgentChatSidebar() {
               exit={{ x: -8, opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="prose prose-sm max-w-none prose-headings:text-[var(--text-primary)] prose-p:text-[var(--text-secondary)] prose-code:bg-[var(--accent-blue)]/10 prose-code:text-[var(--accent-blue)] custom-scrollbar">
+              <div className="prose prose-sm max-w-none 
+                            prose-headings:text-[var(--text-primary)] prose-headings:font-bold prose-headings:tracking-tight
+                            prose-p:text-[var(--text-secondary)] prose-p:leading-relaxed prose-p:font-medium
+                            prose-code:bg-[var(--accent-blue)]/10 prose-code:text-[var(--accent-blue)] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
+                            prose-strong:text-[var(--text-primary)] prose-strong:font-bold
+                            custom-scrollbar">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{current?.text || ''}</ReactMarkdown>
               </div>
             </motion.div>
           </AnimatePresence>
-        ) : 'Inject a disruption scenario to see AI reasoning'}
-        {isStreaming && <span className="inline-block w-1.5 h-3 bg-purple-400 ml-1 animate-pulse" />}
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+            <div className="w-12 h-12 rounded-2xl border border-[var(--border-subtle)] mb-4 flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest">Awaiting Disruption Scenario</p>
+          </div>
+        )}
+        {isStreaming && <span className="inline-block w-2 h-4 bg-[var(--accent-cyan)] ml-1 animate-pulse rounded-sm align-middle" />}
         <div ref={bottomRef} />
       </div>
-      {chains.length > 1 && <div className="px-4 py-2 border-t border-[var(--border-subtle)] flex gap-2 overflow-x-auto">{chains.slice(1).map((c) => <button key={c.traceId} onClick={() => setChains((p) => [c, ...p.filter((x) => x.traceId !== c.traceId)])} className="text-xs bg-[var(--bg-surface)] border border-[var(--border-default)] rounded px-2 py-1 text-[var(--text-muted)] font-mono min-h-[36px]">#{c.traceId.slice(-6)} {String(c.text || '').slice(0, 20)}...{c.complete ? ' ✓' : ' ...'}</button>)}</div>}
+
+      {chains.length > 1 && (
+        <div className="px-4 py-3 border-t border-[var(--border-subtle)] glass-panel !rounded-none !border-b-0 !border-x-0 shadow-none">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 px-1">Previous Explorations</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            {chains.slice(1).map((c) => (
+              <button 
+                key={c.traceId} 
+                onClick={() => setChains((p) => [c, ...p.filter((x) => x.traceId !== c.traceId)])} 
+                className="text-[10px] font-bold tracking-tight bg-[var(--bg-elevated)]/50 border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 transition-all flex-shrink-0 min-w-[120px] text-left"
+              >
+                <div className="text-[var(--text-muted)] text-[8px] uppercase tracking-widest mb-1">#{c.traceId.slice(-6)}</div>
+                <div className="truncate">{String(c.text || '').split('\n')[0].replace(/[#*]/g, '') || 'Reasoning...'}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

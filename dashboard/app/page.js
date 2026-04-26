@@ -131,22 +131,22 @@ export default function Home() {
       <div className="relative flex-1 overflow-hidden">
         <Toaster position="bottom-right" theme="dark" />
         <div className="absolute left-4 top-4 z-20 pointer-events-none">
-          <div className="pointer-events-auto glass-panel glass-edge relative px-4 py-3">
+          <div className="pointer-events-auto liquid-glass relative px-5 py-4 min-w-[280px]">
             <div className="text-[10px] uppercase tracking-[0.24em] text-[var(--accent-cyan)] font-bold">Pipeline Impact</div>
-            <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+            <div className="mt-2 text-base font-semibold text-[var(--text-primary)] tracking-tight">
               Cargo under protection: ${(cargoUnderProtectionUSD / 1e6).toFixed(1)}M
             </div>
             <div className="mt-1 text-xs text-[var(--text-secondary)]">
               across {activeShipments.length} active shipments · {shipments.filter((s) => s.status !== 'delivered').length} monitored
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold">
-              <span className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2 py-1 text-[var(--text-secondary)]">
+            <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold">
+              <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
                 Sessions run: {globalStats?.totalResolutions ?? 0}
               </span>
-              <span className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2 py-1 text-[var(--text-secondary)]">
+              <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
                 Human hours saved: {globalStats?.humanHoursSaved ?? 0}
               </span>
-              <span className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2 py-1 text-[var(--text-secondary)]">
+              <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
                 Total analyzed: ${((globalStats?.totalCargoAnalyzedUSD ?? 0) / 1e6).toFixed(1)}M
               </span>
             </div>
@@ -193,20 +193,24 @@ export default function Home() {
 
               <button
                 onClick={() => setGlobeEnabled(true)}
-                className="glass-panel px-8 py-3 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)] transition-all active:scale-95"
+                className="liquid-glass px-10 py-4 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--text-primary)] hover:scale-105 transition-all active:scale-95 cursor-pointer shadow-2xl"
               >
                 Resume Live Environment
               </button>
             </div>
           </div>
         )}
-        <AgentStatusBadge />
-        <div className="absolute top-4 right-4 z-40">
-          <GlobeActivationToggle
-            isActive={globeEnabled}
-            isPageVisible={isPageVisible}
-            onToggle={() => setGlobeEnabled((prev) => !prev)}
-          />
+        <div className="absolute top-4 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
+          <div className="pointer-events-auto">
+            <GlobeActivationToggle
+              isActive={globeEnabled}
+              isPageVisible={isPageVisible}
+              onToggle={() => setGlobeEnabled((prev) => !prev)}
+            />
+          </div>
+          <div className="pointer-events-auto">
+            <AgentStatusBadge />
+          </div>
         </div>
         <AgentTrigger isOpen={panelOpen} onClick={() => setPanelOpen((v) => !v)} />
         {panelOpen ? (
@@ -226,9 +230,9 @@ export default function Home() {
 
 function PausedKpiCard({ label, value, color = 'text-white' }) {
   return (
-    <div className="min-w-36 glass-panel px-5 py-5 text-left">
-      <div className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-bold mb-3">{label}</div>
-      <div className={`text-3xl font-light font-mono ${color}`}>{value}</div>
+    <div className="min-w-44 liquid-glass px-6 py-6 text-left border-white/5">
+      <div className="text-[9px] uppercase tracking-[0.25em] text-[var(--text-muted)] font-bold mb-4">{label}</div>
+      <div className={`text-4xl font-light font-mono tracking-tighter ${color}`}>{value}</div>
     </div>
   );
 }

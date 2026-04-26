@@ -53,28 +53,28 @@ export default function NavBar() {
 
   return (
     <nav
-      className="h-14 shrink-0 flex items-center justify-between px-5
+      className="h-16 shrink-0 flex items-center justify-between px-6
                  glass-panel !rounded-none !border-t-0 !border-x-0 !border-b
-                 z-40 transition-colors duration-300"
+                 z-40 transition-all duration-500 shadow-lg"
     >
       {/* Brand */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/10
-                        border border-cyan-400/40 flex items-center justify-center shadow-lg shadow-cyan-500/5">
-          <Activity className="w-4 h-4 text-cyan-400" />
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/10
+                        border border-cyan-400/40 flex items-center justify-center shadow-lg shadow-cyan-500/10 hover:scale-110 transition-transform">
+          <Activity className="w-5 h-5 text-cyan-400" />
         </div>
         <div className="hidden sm:block">
-          <span className="text-[13px] font-bold text-[var(--text-primary)] tracking-tight font-display">
+          <div className="text-[14px] font-extrabold text-[var(--text-primary)] tracking-tight font-display">
             Anti-Fragile
-          </span>
-          <span className="ml-1.5 text-[11px] text-[var(--text-muted)] tracking-wide hidden md:inline font-medium">
+          </div>
+          <div className="text-[10px] text-[var(--text-muted)] tracking-[0.2em] uppercase font-bold">
             Command Center
-          </span>
+          </div>
         </div>
       </div>
 
       {/* Links */}
-      <div className="flex items-center glass-panel !bg-[var(--bg-elevated)]/40 p-1 gap-1">
+      <div className="flex items-center bg-[var(--bg-elevated)]/30 rounded-2xl p-1 gap-1 border border-[var(--border-subtle)] backdrop-blur-sm">
         {NAV_ITEMS.map(({ href, label, icon: Icon, section }, idx) => {
           const active = href === '/'
             ? pathname === '/'
@@ -85,32 +85,31 @@ export default function NavBar() {
           return (
             <div key={href} className="flex items-center gap-1">
               {showDivider && (
-                <div className="w-px h-4 bg-[var(--border-subtle)] mx-1 opacity-50" />
+                <div className="w-px h-5 bg-[var(--border-subtle)] mx-1 opacity-50" />
               )}
               <Link
                 href={href}
                 aria-label={label}
                 title={label}
                 className={[
-                  'relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider',
-                  'transition-all duration-200 outline-none',
-                  'focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/50 focus-visible:ring-offset-1 focus-visible:ring-offset-black',
+                  'relative flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-[0.1em]',
+                  'transition-all duration-300 outline-none',
                   active
-                    ? 'bg-[var(--bg-overlay)] text-[var(--text-primary)] shadow-sm'
+                    ? 'bg-[var(--glass-bg-elevated)] text-[var(--text-primary)] shadow-sm border border-[var(--glass-border)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
                 ].join(' ')}
               >
                 <div className="relative">
-                  <Icon className={`w-3.5 h-3.5 ${active ? 'text-[var(--accent-cyan)]' : 'opacity-70'}`} aria-hidden="true" />
+                  <Icon className={`w-4 h-4 ${active ? 'text-[var(--accent-cyan)]' : 'opacity-60'}`} aria-hidden="true" />
                   {href === '/' && hasActiveDisruption && (
-                    <span className="absolute -top-1.5 -right-1.5 w-2 h-2 bg-[var(--accent-red)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent-red)]" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[var(--accent-red)] rounded-full animate-pulse shadow-[0_0_10px_var(--accent-red)]" />
                   )}
                 </div>
-                <span className="hidden sm:inline">{label}</span>
+                <span className="hidden lg:inline">{label}</span>
                 {active && (
                   <motion.div 
-                    layoutId="nav-active-border"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-[var(--accent-cyan)] rounded-full shadow-[0_0_8px_var(--accent-cyan)]"
+                    layoutId="nav-active-indicator"
+                    className="absolute -bottom-1 left-4 right-4 h-[2px] bg-[var(--accent-cyan)] rounded-full shadow-[0_0_10px_var(--accent-cyan)]"
                   />
                 )}
               </Link>
@@ -120,7 +119,7 @@ export default function NavBar() {
       </div>
 
       {/* Right actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {!isGlobePage && (
           <ThemeToggleButton theme={theme} onToggle={toggleTheme} />
         )}
@@ -128,11 +127,11 @@ export default function NavBar() {
           href="/settings"
           aria-label="Settings"
           title="Settings (Cmd+,)"
-          className="p-1.5 rounded-lg border border-[var(--border-subtle)]
+          className="p-2 rounded-xl border border-[var(--border-subtle)]
                      text-[var(--text-secondary)] hover:text-[var(--text-primary)]
-                     hover:bg-[var(--bg-elevated)] transition-all active:scale-95 shadow-sm"
+                     hover:bg-[var(--bg-elevated)] transition-all active:scale-95 shadow-sm hover:border-[var(--accent-cyan)]/30"
         >
-          <Settings className="w-3.5 h-3.5" />
+          <Settings className="w-4 h-4" />
         </Link>
       </div>
     </nav>
