@@ -1,5 +1,4 @@
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { createRequire } from 'module';
 
 let sdk = null;
 
@@ -7,16 +6,25 @@ export function startTelemetry(serviceName) {
   if (process.env.OTEL_SDK_DISABLED === 'true') return null;
   if (sdk) return sdk;
 
-  sdk = new NodeSDK({
-    serviceName,
-    instrumentations: [getNodeAutoInstrumentations()],
-  });
+  try {
+    const require = createRequire(process.cwd() + '/package.json');
+    const { NodeSDK } = require('@opentelemetry/sdk-node');
+    const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
 
-  sdk.start();
+    sdk = new NodeSDK({
+      serviceName,
+      instrumentations: [getNodeAutoInstrumentations()],
+    });
 
-  const shutdown = () => sdk?.shutdown().catch(() => null);
-  process.once('SIGINT', shutdown);
-  process.once('SIGTERM', shutdown);
+    sdk.start();
 
-  return sdk;
+    const shutdown = () => sdk?.shutdown().catch(() => null);
+    process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
+
+    return sdk;
+  } catch (err) {
+    console.error('[Telemetry] Failed to initialize OpenTelemetry:', err.message);
+    return null;
+  }
 }
