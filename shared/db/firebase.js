@@ -7,7 +7,7 @@ try {
 	// no-op
 }
 
-const require = createRequire(import.meta.url);
+const require = createRequire(process.cwd() + '/package.json');
 const hasFirebaseCreds =
 	process.env.FIREBASE_PROJECT_ID &&
 	process.env.FIREBASE_CLIENT_EMAIL &&

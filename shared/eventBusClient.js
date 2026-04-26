@@ -7,7 +7,7 @@ try {
   // no-op
 }
 
-const require = createRequire(import.meta.url);
+const require = createRequire(process.cwd() + '/package.json');
 
 const EVENT_BUS_URL = process.env.EVENT_BUS_URL || 'http://localhost:4000';
 
