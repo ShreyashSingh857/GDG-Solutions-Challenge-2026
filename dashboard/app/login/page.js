@@ -96,7 +96,7 @@ export default function LoginPage() {
             </div>
             
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent-cyan)]">Anti-Fragile Protocol</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent-cyan)]">OpenTrade Protocol</p>
               <h1 className="text-3xl font-bold tracking-tight font-display">System Entry</h1>
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed px-4">
                 Global supply chain intelligence and multi-agent AI disruption resolution.

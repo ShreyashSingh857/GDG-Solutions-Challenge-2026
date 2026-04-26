@@ -37,7 +37,7 @@ export default function AgentStatusBadge() {
       <div>
         <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] leading-none mb-1">System Agency</div>
         <div className={`text-[11px] font-bold tracking-tight uppercase ${config.textColor}`}>
-          {config.label} <span className="opacity-50 text-[var(--text-muted)] ml-0.5">Active</span>
+          {config.label}
         </div>
       </div>
     </div>

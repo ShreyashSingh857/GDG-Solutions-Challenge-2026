@@ -208,9 +208,11 @@ export default function Home() {
               onToggle={() => setGlobeEnabled((prev) => !prev)}
             />
           </div>
-          <div className="pointer-events-auto">
-            <AgentStatusBadge />
-          </div>
+          {isGlobeActive && (
+            <div className="pointer-events-auto">
+              <AgentStatusBadge />
+            </div>
+          )}
         </div>
         <AgentTrigger isOpen={panelOpen} onClick={() => setPanelOpen((v) => !v)} />
         {panelOpen ? (

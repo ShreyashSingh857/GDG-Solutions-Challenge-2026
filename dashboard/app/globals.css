@@ -199,16 +199,20 @@ body {
 }
 
 @layer utilities {
-  /* Base glass panel */
+  /* Pure Glass Panel */
   .glass-panel {
     background: var(--glass-bg);
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow), var(--glass-inset);
+    box-shadow: 
+      var(--glass-shadow),
+      var(--glass-inset),
+      0 0 0 1px rgba(255, 255, 255, 0.03);
     border-radius: 16px;
     position: relative;
     overflow: hidden;
+    transition: all 0.3s ease;
   }
 
   .glass-panel::after {
@@ -217,29 +221,40 @@ body {
     inset: 0;
     background: var(--glass-reflection);
     pointer-events: none;
-    opacity: 0.5;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
   }
 
-  /* Elevated modal / flyout */
+  .glass-panel:hover::after {
+    opacity: 0.6;
+  }
+
+  /* Elevated Glass Modal */
   .glass-modal {
     background: var(--glass-bg-modal);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    backdrop-filter: blur(32px) saturate(210%);
+    -webkit-backdrop-filter: blur(32px) saturate(210%);
     border: 1px solid var(--glass-border-strong);
-    box-shadow: var(--glass-shadow), var(--glass-inset);
+    box-shadow: 
+      var(--glass-shadow),
+      var(--glass-inset),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
     border-radius: 24px;
     position: relative;
     overflow: hidden;
   }
 
-  /* Liquid Glass Effect */
+  /* Premium Liquid Glass */
   .liquid-glass {
     position: relative;
     background: var(--glass-bg);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(190%);
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
     border: 1px solid var(--glass-border-strong);
-    box-shadow: var(--glass-shadow), var(--glass-inset);
+    box-shadow: 
+      var(--glass-shadow),
+      var(--glass-inset),
+      0 0 0 1px rgba(255, 255, 255, 0.04);
     border-radius: 20px;
     overflow: hidden;
   }
@@ -249,9 +264,9 @@ body {
     position: absolute;
     inset: -50%;
     background: var(--liquid-gradient);
-    filter: blur(40px);
-    opacity: 0.6;
-    animation: liquid-flow 12s linear infinite;
+    filter: blur(50px);
+    opacity: 0.7;
+    animation: liquid-flow 15s linear infinite;
     pointer-events: none;
     z-index: -1;
   }
@@ -262,12 +277,29 @@ body {
     inset: 0;
     background: var(--glass-reflection);
     pointer-events: none;
-    opacity: 0.4;
+    opacity: 0.35;
+  }
+
+  /* Glass Card - for list items */
+  .glass-card {
+    background: rgba(var(--bg-elevated-rgb, 30, 41, 59), 0.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card:hover {
+    background: rgba(var(--bg-elevated-rgb, 30, 41, 59), 0.5);
+    border-color: var(--glass-border-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.3);
   }
 
   /* Top-edge highlight */
   .glass-edge {
-    overflow: hidden;
+    position: relative;
   }
   
   .glass-edge::before {

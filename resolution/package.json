@@ -1,5 +1,5 @@
 {
-  "name": "resolution-agent",
+  "name": "opentrade-resolution-agent",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",

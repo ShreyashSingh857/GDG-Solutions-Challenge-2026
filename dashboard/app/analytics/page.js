@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
         className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar"
       >
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-          <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">Anti-Fragile</span>
+          <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">OpenTrade</span>
           <span className="opacity-30">/</span>
           <span className="text-[var(--text-secondary)]">Analytics</span>
         </div>

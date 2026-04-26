@@ -115,7 +115,7 @@ export default function SettingsPage() {
       <main className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="mx-auto max-w-4xl space-y-8">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-            <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">Anti-Fragile</span>
+            <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">OpenTrade</span>
             <span className="opacity-30">/</span>
             <span className="text-[var(--text-secondary)]">Settings</span>
           </div>
@@ -125,7 +125,7 @@ export default function SettingsPage() {
               <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Operations Preferences</p>
               <h1 className="text-3xl font-bold tracking-tight font-display">System Settings</h1>
               <p className="text-sm text-[var(--text-secondary)] max-w-lg leading-relaxed">
-                Configure your global command center preferences, notification triggers, and visual identity.
+                Configure your global OpenTrade platform preferences, notification triggers, and visual identity.
               </p>
             </div>
             

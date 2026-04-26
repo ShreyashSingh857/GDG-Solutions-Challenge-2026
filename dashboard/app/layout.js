@@ -19,11 +19,11 @@ const firaCode = Fira_Code({
 });
 
 export const metadata = {
-  title: 'AI Supply Chain - Anti-Fragile Command Center',
+  title: 'OpenTrade - AI Supply Chain Command Center',
   description: 'Real-time multi-agent AI supply chain disruption detection and resolution.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
-    title: 'AI Supply Chain Command Center',
+    title: 'OpenTrade Command Center',
     description: 'Detect, score, and resolve shipping disruptions in under 60 seconds.',
     type: 'website',
   },

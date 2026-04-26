@@ -65,10 +65,10 @@ export default function NavBar() {
         </div>
         <div className="hidden sm:block">
           <div className="text-[14px] font-extrabold text-[var(--text-primary)] tracking-tight font-display">
-            Anti-Fragile
+            OpenTrade
           </div>
           <div className="text-[10px] text-[var(--text-muted)] tracking-[0.2em] uppercase font-bold">
-            Command Center
+            Intelligence
           </div>
         </div>
       </div>

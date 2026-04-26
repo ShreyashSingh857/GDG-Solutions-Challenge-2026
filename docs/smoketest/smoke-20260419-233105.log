@@ -17,7 +17,7 @@ Count delta: {"disruption-events":1,"impact-reports":1,"resolution-options":1,"n
 GET /options/smoke-20260419-233105 -> 200 (137ms)
 Running scraper smoke checks
 $ npm run smoke:scraper
-  > gdg-solutions-challenge-2026@1.0.0 smoke:scraper
+  > opentrade@1.0.0 smoke:scraper
   > node scripts/smoke-scraper.mjs
   [smoke-scraper] PASS: fetch/cache/rss helpers are working
   -> exit 0
