@@ -12,7 +12,7 @@ const cspHeader = `
 	script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cesium.com;
 	style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
 	img-src 'self' data: blob: https://*.tile.openstreetmap.org https://ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net;
-	connect-src 'self' https://*.supabase.co https://firestore.googleapis.com https://*.googleapis.com https://api.cesium.com https://ion.cesium.com https://assets.ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net wss: ws: http://localhost:* https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.onrender.com wss://*.onrender.com;
+	connect-src 'self' https://*.supabase.co https://firestore.googleapis.com https://*.googleapis.com https://api.cesium.com https://ion.cesium.com https://assets.ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://aisstream.io wss://stream.aisstream.io https://gdg-event-bus.onrender.com https://gdg-disruption.onrender.com https://gdg-impact.onrender.com https://gdg-resolution.onrender.com https://gdg-news-intel.onrender.com wss: ws: http://localhost:*;
 	font-src 'self' https://fonts.gstatic.com;
 	worker-src 'self' blob:;
 	frame-src 'none';
