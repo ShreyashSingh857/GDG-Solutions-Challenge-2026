@@ -56,23 +56,23 @@ const AGENT_TABS = [
 
 const STATUS_STYLE = {
 	idle: {
-		chip: 'border-white/15 bg-white/[0.05] text-white/70',
-		dot: 'bg-white/35',
+		chip: 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-muted)]',
+		dot: 'bg-[var(--text-muted)]/30',
 		label: 'Idle',
 	},
 	processing: {
-		chip: 'border-amber-300/35 bg-amber-400/10 text-amber-200',
-		dot: 'bg-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.9)]',
+		chip: 'border-[var(--accent-amber)]/35 bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]',
+		dot: 'bg-[var(--accent-amber)] shadow-[0_0_12px_rgba(251,191,36,0.5)]',
 		label: 'Processing',
 	},
 	done: {
-		chip: 'border-emerald-300/35 bg-emerald-400/10 text-emerald-200',
-		dot: 'bg-emerald-300 shadow-[0_0_12px_rgba(74,222,128,0.9)]',
+		chip: 'border-[var(--accent-green)]/35 bg-[var(--accent-green)]/10 text-[var(--accent-green)]',
+		dot: 'bg-[var(--accent-green)] shadow-[0_0_12px_rgba(74,222,128,0.5)]',
 		label: 'Done',
 	},
 	error: {
-		chip: 'border-rose-300/35 bg-rose-400/10 text-rose-200',
-		dot: 'bg-rose-300 shadow-[0_0_12px_rgba(251,113,133,0.9)]',
+		chip: 'border-[var(--accent-red)]/35 bg-[var(--accent-red)]/10 text-[var(--accent-red)]',
+		dot: 'bg-[var(--accent-red)] shadow-[0_0_12px_rgba(251,113,133,0.5)]',
 		label: 'Error',
 	},
 };
@@ -149,7 +149,7 @@ function computeHeartbeat(metric) {
 
 function HeartbeatLine({ points, color }) {
 	if (!points?.length) {
-		return <div className="h-8 rounded-lg border border-white/10 bg-white/[0.03]" />;
+		return <div className="h-8 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)]/10" />;
 	}
 
 	const width = 132;
@@ -168,7 +168,7 @@ function HeartbeatLine({ points, color }) {
 		.join(' ');
 
 	return (
-		<svg viewBox={`0 0 ${width} ${height}`} className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.03] px-1">
+		<svg viewBox={`0 0 ${width} ${height}`} className="h-8 w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)]/10 px-1">
 			<path d={path} stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
 		</svg>
 	);
@@ -178,32 +178,32 @@ function PipelineCard({ node, status, lastProcessed, eventsCount, heartbeat }) {
 	const style = STATUS_STYLE[status] || STATUS_STYLE.idle;
 
 	return (
-		<div className="min-w-[220px] rounded-2xl border border-white/12 bg-[#081224]/85 p-4 shadow-[0_12px_30px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+		<div className="min-w-[220px] glass-panel p-4 flex-1">
 			<div className="flex items-start justify-between gap-3">
 				<div>
-					<div className="text-[10px] uppercase tracking-[0.24em] text-white/45">Node</div>
-					<div className="mt-1 text-sm font-semibold text-white">{node.label}</div>
+					<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-muted)]">Node</div>
+					<div className="mt-1 text-sm font-bold text-[var(--text-primary)]">{node.label}</div>
 				</div>
-				<span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${style.chip}`}>
+				<span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${style.chip}`}>
 					<span className={`h-2 w-2 rounded-full ${style.dot}`} />
 					{style.label}
 				</span>
 			</div>
 
 			<div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-				<div className="rounded-xl border border-white/10 bg-white/[0.02] px-2.5 py-2">
-					<div className="text-[10px] uppercase tracking-[0.18em] text-white/40">Last</div>
-					<div className="mt-1 text-white/90">{formatTime(lastProcessed)}</div>
-					<div className="text-[10px] text-white/40">{formatAgo(lastProcessed)}</div>
+				<div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)]/20 px-2.5 py-2">
+					<div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Last</div>
+					<div className="mt-1 text-[var(--text-primary)] font-medium">{formatTime(lastProcessed)}</div>
+					<div className="text-[10px] text-[var(--text-muted)]">{formatAgo(lastProcessed)}</div>
 				</div>
-				<div className="rounded-xl border border-white/10 bg-white/[0.02] px-2.5 py-2">
-					<div className="text-[10px] uppercase tracking-[0.18em] text-white/40">Events</div>
-					<div className="mt-1 text-lg font-semibold text-cyan-200">{eventsCount}</div>
+				<div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)]/20 px-2.5 py-2">
+					<div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Events</div>
+					<div className="mt-1 text-lg font-bold text-[var(--accent-cyan)]">{eventsCount}</div>
 				</div>
 			</div>
 
 			<div className="mt-3">
-				<HeartbeatLine points={heartbeat} color={node.nodeColor || '#38bdf8'} />
+				<HeartbeatLine points={heartbeat} color={node.nodeColor || 'var(--accent-cyan)'} />
 			</div>
 		</div>
 	);
@@ -211,9 +211,9 @@ function PipelineCard({ node, status, lastProcessed, eventsCount, heartbeat }) {
 
 function Panel({ title, right, children }) {
 	return (
-		<div className="rounded-2xl border border-white/10 bg-[#07101e]/90 shadow-[0_12px_30px_rgba(2,6,23,0.4)]">
-			<div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-				<div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">{title}</div>
+		<div className="glass-panel overflow-hidden">
+			<div className="flex items-center justify-between border-b border-[var(--glass-border)] px-4 py-3 bg-[var(--glass-bg-elevated)]/30">
+				<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">{title}</div>
 				{right}
 			</div>
 			<div className="p-4">{children}</div>
@@ -488,48 +488,60 @@ export default function VisualizePage() {
 	const selectedTimelineItem = timeline.find((item) => item.traceId === selectedTraceId) || timeline[0] || null;
 
 	return (
-		<div className="flex h-screen flex-col bg-[#040812] text-white">
+		<div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
 			<NavBar />
-			<main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_42%),radial-gradient(circle_at_top_left,rgba(245,158,11,0.10),transparent_35%),#040812]">
-				<div className="mx-auto w-full max-w-[1480px] px-4 pb-8 pt-4 sm:px-6 lg:px-8">
-					<section className="sticky top-0 z-20 rounded-3xl border border-white/12 bg-[#060d1c]/90 p-4 shadow-[0_18px_40px_rgba(2,6,23,0.6)] backdrop-blur-xl">
-						<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+			<main className="flex-1 overflow-y-auto custom-scrollbar">
+				<div className="mx-auto w-full max-w-[1480px] px-6 py-8 space-y-8">
+					<header>
+						<p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">AI Agent Pipeline</p>
+						<h1 className="mt-2 text-3xl font-bold tracking-tight font-display text-[var(--text-primary)]">System Logic Visualization</h1>
+						<p className="mt-2 text-sm text-[var(--text-secondary)] max-w-2xl">
+							Real-time view of monitor → impact → resolution → execute stages. Monitor the live reasoning and automated decision flow across global shipping corridors.
+						</p>
+					</header>
+
+					<section className="glass-panel p-6">
+						<div className="mb-6 flex flex-wrap items-center justify-between gap-3">
 							<div>
-								<div className="text-[10px] uppercase tracking-[0.26em] text-cyan-200/80">Pipeline Flow</div>
-								<div className="mt-1 text-lg font-semibold text-white">News Intel to Execute</div>
+								<div className="text-[10px] uppercase tracking-[0.26em] text-[var(--text-muted)] font-bold">Pipeline Flow</div>
+								<div className="mt-1 text-lg font-bold text-[var(--text-primary)]">End-to-End Status</div>
 							</div>
-							<div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-cyan-100">
+							<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-cyan)]">
 								<Activity className="h-3.5 w-3.5" />
-								Live
+								Live Network
 							</div>
 						</div>
 
-						<div className="flex flex-col gap-3 xl:flex-row xl:items-stretch">
-							{pipelineCards.map((node, index) => (
-								<Fragment key={node.id}>
-									<PipelineCard
-										node={node}
-										status={node.status}
-										lastProcessed={node.lastProcessed}
-										eventsCount={node.eventsCount}
-										heartbeat={node.heartbeat}
-									/>
-									{index < pipelineCards.length - 1 ? (
-										<div className="flex items-center justify-center text-cyan-100/60 xl:px-1">
-											<ArrowDown className="h-4 w-4 xl:hidden" />
-											<ArrowRight className="hidden h-4 w-4 xl:block" />
+						<div className="overflow-x-auto custom-scrollbar pb-4">
+							<div className="flex flex-col gap-3 xl:flex-row xl:items-stretch min-w-max xl:min-w-0">
+								{pipelineCards.map((node, index) => (
+									<Fragment key={node.id}>
+										<div className="xl:flex-1 min-w-[260px]">
+											<PipelineCard
+												node={node}
+												status={node.status}
+												lastProcessed={node.lastProcessed}
+												eventsCount={node.eventsCount}
+												heartbeat={node.heartbeat}
+											/>
 										</div>
-									) : null}
-								</Fragment>
-							))}
+										{index < pipelineCards.length - 1 ? (
+											<div className="flex items-center justify-center text-[var(--accent-cyan)]/40 xl:px-2">
+												<ArrowDown className="h-5 w-5 xl:hidden" />
+												<ArrowRight className="hidden h-5 w-5 xl:block" />
+											</div>
+										) : null}
+									</Fragment>
+								))}
+							</div>
 						</div>
 					</section>
 
-					<section className="mt-4 rounded-3xl border border-white/12 bg-[#050c1b]/92 p-4 shadow-[0_18px_44px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-						<div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+					<section className="glass-panel p-6">
+						<div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--glass-border)] pb-4 mb-6">
 							<div>
-								<div className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/80">Live Reasoning</div>
-								<div className="mt-1 text-lg font-semibold text-white">Trace {selectedTraceId ? `#${selectedTraceId.slice(-8)}` : '--'}</div>
+								<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-muted)] font-bold">Live Reasoning</div>
+								<div className="mt-1 text-xl font-bold text-[var(--text-primary)]">Trace {selectedTraceId ? `#${selectedTraceId.slice(-8)}` : '--'}</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
 								{AGENT_TABS.map((tab) => (
@@ -537,10 +549,10 @@ export default function VisualizePage() {
 										key={tab.id}
 										onClick={() => setActiveTab(tab.id)}
 										className={[
-											'rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] transition-colors',
+											'rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all',
 											activeTab === tab.id
-												? 'border-cyan-300/40 bg-cyan-300/15 text-cyan-100'
-												: 'border-white/15 bg-white/[0.04] text-white/65 hover:text-white/85',
+												? 'border-[var(--accent-cyan)]/40 bg-[var(--accent-cyan)]/15 text-[var(--accent-cyan)]'
+												: 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
 										].join(' ')}
 									>
 										{tab.label}
@@ -550,20 +562,20 @@ export default function VisualizePage() {
 						</div>
 
 						{traceLoading && !traceDetails ? (
-							<div className="flex items-center justify-center py-14 text-sm text-white/60">
-								<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+							<div className="flex items-center justify-center py-14 text-sm text-[var(--text-secondary)]">
+								<LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[var(--accent-cyan)]" />
 								Loading trace...
 							</div>
 						) : traceDetails ? (
 							<div className="mt-4 grid gap-4 xl:grid-cols-2">
 								<Panel title="System Prompt">
-									<pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-[#040914] p-3 font-mono text-[11px] leading-relaxed text-cyan-50/85 custom-scrollbar">
+									<pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border border-[var(--glass-border)] bg-[var(--bg-base)]/50 p-3 font-mono text-[11px] leading-relaxed text-[var(--text-primary)]/80 custom-scrollbar">
 										{promptText || 'No prompt snapshot.'}
 									</pre>
 								</Panel>
 
 								<Panel title="Input Payload">
-									<pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-[#040914] p-3 font-mono text-[11px] leading-relaxed text-white/80 custom-scrollbar">
+									<pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl border border-[var(--glass-border)] bg-[var(--bg-base)]/50 p-3 font-mono text-[11px] leading-relaxed text-[var(--text-primary)]/80 custom-scrollbar">
 										{inputPayloadText}
 									</pre>
 								</Panel>
@@ -572,17 +584,17 @@ export default function VisualizePage() {
 									title="Live Stream Output"
 									right={
 										activeTab === 'resolution' && executeStatus === 'processing' ? (
-											<span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.18em] text-amber-200">
+											<span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-amber)] font-bold">
 												<LoaderCircle className="h-3.5 w-3.5 animate-spin" />
 												Streaming
 											</span>
 										) : null
 									}
 								>
-									<pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-[#040914] p-3 font-mono text-[11px] leading-relaxed text-emerald-100/90 custom-scrollbar">
+									<pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-[var(--glass-border)] bg-[var(--bg-base)]/50 p-3 font-mono text-[11px] leading-relaxed text-[var(--accent-green)]/90 custom-scrollbar font-medium">
 										{displayStreamText || 'No stream output.'}
 										{activeTab === 'resolution' && executeStatus === 'processing' ? (
-											<span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-emerald-300/90 align-middle" />
+											<span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-[var(--accent-green)]/90 align-middle" />
 										) : null}
 									</pre>
 								</Panel>
@@ -591,17 +603,17 @@ export default function VisualizePage() {
 									title="Final Parsed JSON"
 									right={
 										!validation.valid ? (
-											<span className="inline-flex items-center gap-1 rounded-full border border-rose-300/30 bg-rose-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-200">
+											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-red)]">
 												<ShieldAlert className="h-3.5 w-3.5" />
 												Fail
 											</span>
 										) : validation.repairedCount > 0 ? (
-											<span className="inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200">
+											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-amber)]">
 												<ShieldAlert className="h-3.5 w-3.5" />
 												{`Repaired ${validation.repairedCount}`}
 											</span>
 										) : (
-											<span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
+											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-green)]/30 bg-[var(--accent-green)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-green)]">
 												<ShieldCheck className="h-3.5 w-3.5" />
 												Pass
 											</span>
@@ -611,45 +623,45 @@ export default function VisualizePage() {
 									{(validation.errors.length > 0 || validation.parseRetries > 0) ? (
 										<div
 											className={[
-												'mb-2 rounded-xl px-3 py-2 text-xs',
+												'mb-2 rounded-xl px-3 py-2 text-xs font-medium',
 												validation.valid
-													? 'border border-amber-300/25 bg-amber-400/10 text-amber-100'
-													: 'border border-rose-300/25 bg-rose-400/10 text-rose-100',
+													? 'border border-[var(--accent-amber)]/25 bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]'
+													: 'border border-[var(--accent-red)]/25 bg-[var(--accent-red)]/10 text-[var(--accent-red)]',
 											].join(' ')}
 										>
 											{validationMessage}
 											{validation.parseRetries > 0 ? ` (retry attempts: ${validation.parseRetries})` : ''}
 										</div>
 									) : null}
-									<pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-[#040914] p-3 font-mono text-[11px] leading-relaxed text-blue-100/90 custom-scrollbar">
+									<pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-[var(--glass-border)] bg-[var(--bg-base)]/50 p-3 font-mono text-[11px] leading-relaxed text-[var(--accent-blue)]/90 custom-scrollbar font-medium">
 										{finalJsonText}
 									</pre>
 								</Panel>
 							</div>
 						) : (
-							<div className="flex items-center justify-center py-16 text-sm text-white/55">
+							<div className="flex items-center justify-center py-16 text-sm text-[var(--text-muted)]">
 								<TerminalSquare className="mr-2 h-4 w-4" />
 								Select a disruption from the timeline.
 							</div>
 						)}
 					</section>
 
-					<section className="mt-4 rounded-3xl border border-white/12 bg-[#050c1b]/92 p-4 shadow-[0_18px_44px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-						<div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+					<section className="glass-panel p-6">
+						<div className="mb-6 flex flex-wrap items-center justify-between gap-3">
 							<div>
-								<div className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/80">Disruption Timeline</div>
-								<div className="mt-1 text-lg font-semibold text-white">Last {timeline.length} traces</div>
+								<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-muted)] font-bold">Disruption Timeline</div>
+								<div className="mt-1 text-xl font-bold text-[var(--text-primary)]">Last {timeline.length} traces</div>
 							</div>
 							{selectedTimelineItem ? (
-								<div className="rounded-full border border-white/12 bg-white/[0.03] px-3 py-1 text-xs text-white/75">
+								<div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-1.5 text-xs font-medium text-[var(--text-secondary)]">
 									{selectedTimelineItem.disruption?.type || 'UNKNOWN'} - {selectedTimelineItem.disruption?.location || 'Unknown'}
 								</div>
 							) : null}
 						</div>
 
 						{timelineLoading ? (
-							<div className="flex items-center justify-center py-10 text-sm text-white/55">
-								<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+							<div className="flex items-center justify-center py-10 text-sm text-[var(--text-secondary)]">
+								<LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[var(--accent-cyan)]" />
 								Loading timeline...
 							</div>
 						) : timeline.length ? (
@@ -660,11 +672,11 @@ export default function VisualizePage() {
 										const severity = Number(item.disruption?.severity || 0);
 										const severityTone =
 											severity >= 8
-												? 'text-rose-200 border-rose-300/30 bg-rose-400/10'
+												? 'text-[var(--accent-red)] border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10'
 												: severity >= 5
-													? 'text-amber-200 border-amber-300/30 bg-amber-400/10'
-													: 'text-cyan-200 border-cyan-300/30 bg-cyan-400/10';
-										const statusTone = item.status === 'resolved' ? 'text-emerald-200' : 'text-amber-200';
+													? 'text-[var(--accent-amber)] border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/10'
+													: 'text-[var(--accent-cyan)] border-[var(--accent-cyan)]/30 bg-[var(--accent-cyan)]/10';
+										const statusTone = item.status === 'resolved' ? 'text-[var(--accent-green)]' : 'text-[var(--accent-amber)]';
 
 										return (
 											<button
@@ -673,23 +685,23 @@ export default function VisualizePage() {
 												className={[
 													'w-[260px] rounded-2xl border p-3 text-left transition-all',
 													isActive
-														? 'border-cyan-300/35 bg-cyan-300/[0.12] shadow-[0_0_0_1px_rgba(125,211,252,0.22)]'
-														: 'border-white/12 bg-white/[0.03] hover:border-white/22 hover:bg-white/[0.05]',
+														? 'border-[var(--accent-cyan)]/35 bg-[var(--accent-cyan)]/[0.12] shadow-[0_0_0_1px_rgba(125,211,252,0.22)]'
+														: 'border-[var(--glass-border)] bg-[var(--glass-bg)] hover:border-[var(--glass-border-hover)] hover:bg-[var(--glass-bg-elevated)]/40',
 												].join(' ')}
 											>
 												<div className="flex items-start justify-between gap-2">
-													<div className="text-xs font-semibold text-white">{item.disruption?.type || 'UNKNOWN'}</div>
-													<span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${severityTone}`}>
+													<div className="text-xs font-bold text-[var(--text-primary)]">{item.disruption?.type || 'UNKNOWN'}</div>
+													<span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${severityTone}`}>
 														S{severity || 0}
 													</span>
 												</div>
-												<div className="mt-2 line-clamp-2 text-sm text-white/80">{item.disruption?.location || 'Unknown location'}</div>
-												<div className="mt-3 flex items-center justify-between text-[11px] text-white/55">
-													<span>{formatTime(item.createdAt)}</span>
-													<span className={statusTone}>{item.status}</span>
+												<div className="mt-2 line-clamp-2 text-sm text-[var(--text-secondary)]">{item.disruption?.location || 'Unknown location'}</div>
+												<div className="mt-3 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+													<span className="font-medium">{formatTime(item.createdAt)}</span>
+													<span className={`font-bold ${statusTone}`}>{item.status}</span>
 												</div>
-												<div className="mt-2 text-[11px] text-white/45">
-													Cargo at risk: {formatMoney(item.impact?.totalCargoAtRiskUSD || 0)}
+												<div className="mt-2 text-[11px] text-[var(--text-muted)] font-medium">
+													Cargo at risk: <span className="text-[var(--text-secondary)]">{formatMoney(item.impact?.totalCargoAtRiskUSD || 0)}</span>
 												</div>
 											</button>
 										);
@@ -697,7 +709,7 @@ export default function VisualizePage() {
 								</div>
 							</div>
 						) : (
-							<div className="flex items-center justify-center py-12 text-sm text-white/55">
+							<div className="flex items-center justify-center py-12 text-sm text-[var(--text-muted)]">
 								<Clock3 className="mr-2 h-4 w-4" />
 								No disruptions processed yet.
 							</div>

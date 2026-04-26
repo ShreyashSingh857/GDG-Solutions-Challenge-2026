@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Sun, Moon } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { auth, db, isFirebaseConfigured } from '../lib/firebase.js';
@@ -40,6 +41,7 @@ export default function SettingsPage() {
   const [orgDisplayName, setOrgDisplayName] = useState('');
   const [autoRotate, setAutoRotate] = useState('10s');
   const [defaultFilter, setDefaultFilter] = useState('all');
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     setAutoRotate(getLocalSetting('gdg_globe_auto_rotate', '10s'));
@@ -78,9 +80,9 @@ export default function SettingsPage() {
 
   const handleThemeToggle = (nextTheme) => {
     setThemePreference(nextTheme);
-    setLocalSetting('gdg_theme', nextTheme);
-    document.cookie = `gdg_theme=${nextTheme}; path=/; max-age=31536000; samesite=lax`;
-    window.dispatchEvent(new CustomEvent('gdg-theme-change', { detail: nextTheme }));
+    import('sonner').then(({ toast }) => {
+      toast.success(`Theme changed to ${nextTheme === 'dark' ? 'Dark' : 'Light'}`);
+    });
   };
 
   const handleSave = async () => {
@@ -97,26 +99,65 @@ export default function SettingsPage() {
           updatedAt: new Date().toISOString(),
         }, { merge: true });
       }
+      import('sonner').then(({ toast }) => {
+        toast.success('Preferences saved successfully');
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 1500);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="flex h-screen flex-col bg-slate-950 text-slate-100">
+    <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
       <NavBar />
       <main className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="mx-auto max-w-4xl space-y-8">
-          <header className="space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-400 font-semibold font-display">Preferences</p>
-            <h1 className="text-3xl font-bold tracking-tight font-display">Settings</h1>
-            <p className="text-sm text-slate-400">Control alerts, layout defaults, and the visual theme from one place.</p>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+            <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">OpenTrade</span>
+            <span className="opacity-30">/</span>
+            <span className="text-[var(--text-secondary)]">Settings</span>
+          </div>
+
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Operations Preferences</p>
+              <h1 className="text-3xl font-bold tracking-tight font-display">System Settings</h1>
+              <p className="text-sm text-[var(--text-secondary)] max-w-lg leading-relaxed">
+                Configure your global OpenTrade platform preferences, notification triggers, and visual identity.
+              </p>
+            </div>
+            
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Environment Theme</p>
+              <div className="flex items-center gap-4 bg-[var(--bg-elevated)]/40 p-2 rounded-2xl border border-[var(--border-subtle)] glass-panel">
+                <span className="text-xs font-bold text-[var(--text-primary)] pl-2">
+                  {theme === 'dark' ? 'Dark Command Mode' : 'Light Operations Mode'}
+                </span>
+                <div className="flex gap-1">
+                  {['light', 'dark'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => handleThemeToggle(t)}
+                      className={`p-2 rounded-xl border transition-all active:scale-95 ${
+                        theme === t 
+                          ? 'bg-[var(--accent-cyan)]/10 border-[var(--accent-cyan)]/40 text-[var(--accent-cyan)] shadow-lg shadow-cyan-500/5' 
+                          : 'bg-transparent border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {t === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </header>
 
           {loading ? (
             <div className="grid gap-4 md:grid-cols-2">
               {[0, 1].map((idx) => (
-                <div key={idx} className="h-72 rounded-2xl bg-slate-900 animate-pulse" />
+                <div key={idx} className="h-72 rounded-2xl bg-[var(--bg-surface)] animate-pulse" />
               ))}
             </div>
           ) : (
@@ -129,20 +170,27 @@ export default function SettingsPage() {
 
             <SettingCard title="Appearance" description="Theme and globe behavior are stored locally for instant response.">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.2em] text-slate-500">Theme mode</label>
+                <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Theme mode</label>
                 <div className="flex gap-2">
                   {['dark', 'light'].map((option) => (
                     <button
                       key={option}
                       type="button"
                       onClick={() => handleThemeToggle(option)}
-                      className={`rounded-xl border px-4 py-2 text-sm capitalize transition-colors ${theme === option ? 'border-cyan-400/40 bg-cyan-400/10 text-slate-100' : 'border-slate-700 bg-slate-900 text-slate-400 hover:text-slate-100'}`}
+                      className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+                        theme === option 
+                          ? 'border-[var(--accent-cyan)]/40 bg-[var(--accent-cyan)]/10 text-[var(--text-primary)] shadow-sm' 
+                          : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-elevated)]'
+                      }`}
                     >
                       {option}
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-slate-500">Current theme: {themeLabel}</p>
+                <p className="text-[11px] text-[var(--text-muted)]">Current theme: {themeLabel}</p>
+                 <p className="text-[11px] text-[var(--text-muted)] bg-[var(--bg-elevated)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                   <span className="font-medium text-[var(--text-secondary)]">Note:</span> Theme changes apply across all pages except the Globe view, which remains fixed dark for 3D rendering accuracy.
+                 </p>
               </div>
 
               <SelectRow label="Globe auto-rotate" value={autoRotate} onChange={setAutoRotate} options={AUTO_ROTATE_OPTIONS} />
@@ -153,28 +201,44 @@ export default function SettingsPage() {
               <section className="grid gap-4 md:grid-cols-2">
                 <SettingCard title="Organisation" description="The org display name is stored in Firestore for shared workspace identity.">
                   <label className="space-y-2">
-                    <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Org display name</span>
+                    <span className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Org display name</span>
                     <input
                       value={orgDisplayName}
                       onChange={(e) => setOrgDisplayName(e.target.value)}
                       placeholder="Northstar Logistics"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-400/50"
+                      className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent-cyan)]/50 focus:ring-4 focus:ring-[var(--accent-cyan)]/5 transition-all"
                     />
                   </label>
-                  <p className="text-[11px] text-slate-500">Saved for {user?.email || 'the current user'}.</p>
+                  <p className="text-[11px] text-[var(--text-muted)]">Saved for {user?.email || 'the current user'}.</p>
                 </SettingCard>
 
                 <SettingCard title="Status" description="These preferences are a mix of local and Firestore-backed settings.">
-                  <div className="space-y-3 text-sm text-slate-400">
+                  <div className="space-y-3 text-sm text-[var(--text-secondary)]">
                     <p>Firebase configured: {isFirebaseConfigured ? 'Yes' : 'No'}</p>
                     <p>Signed in: {user?.email || 'No active session detected'}</p>
                     <button
                       type="button"
                       onClick={handleSave}
                       disabled={saving}
-                      className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-110 disabled:opacity-60"
+                      className={`w-full rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
+                        isSaved 
+                          ? 'bg-[var(--accent-green)] text-white shadow-[var(--accent-green)]/20' 
+                          : 'bg-[var(--accent-blue)] text-white hover:brightness-110 disabled:opacity-60 shadow-[var(--accent-blue)]/20'
+                      }`}
                     >
-                      {saving ? 'Saving...' : 'Save Preferences'}
+                      {saving ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Saving...
+                        </>
+                      ) : isSaved ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Preferences Saved
+                        </>
+                      ) : 'Save Preferences'}
                     </button>
                   </div>
                 </SettingCard>
@@ -189,10 +253,10 @@ export default function SettingsPage() {
 
 function SettingCard({ title, description, children }) {
   return (
-    <article className="rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-xl shadow-black/30 space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold font-display">{title}</h2>
-        <p className="mt-1 text-sm text-slate-400">{description}</p>
+    <article className="glass-panel p-6 space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-lg font-bold tracking-tight font-display text-[var(--text-primary)]">{title}</h2>
+        <p className="text-[11px] font-medium text-[var(--text-secondary)]">{description}</p>
       </div>
       <div className="space-y-4">{children}</div>
     </article>
@@ -201,14 +265,17 @@ function SettingCard({ title, description, children }) {
 
 function ToggleRow({ label, checked, onChange }) {
   return (
-    <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3">
-      <span className="text-sm text-slate-100">{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-cyan-400"
-      />
+    <label className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 cursor-pointer group transition-colors hover:bg-[var(--bg-elevated)]/40">
+      <span className="text-sm font-medium text-[var(--text-primary)]">{label}</span>
+      <div className="relative inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-9 h-5 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-cyan)]/80"></div>
+      </div>
     </label>
   );
 }
@@ -216,18 +283,25 @@ function ToggleRow({ label, checked, onChange }) {
 function SelectRow({ label, value, onChange, options }) {
   return (
     <label className="space-y-2 block">
-      <span className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value} className="bg-[#0f172a]">
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">{label}</span>
+      <div className="relative group">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-cyan)]/50 focus:ring-4 focus:ring-[var(--accent-cyan)]/5 transition-all appearance-none cursor-pointer"
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value} className="bg-[var(--bg-surface)] text-[var(--text-primary)]">
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+          </svg>
+        </div>
+      </div>
     </label>
   );
 }

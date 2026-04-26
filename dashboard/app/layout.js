@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono, Space_Grotesk, Fira_Code } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import DataProvider from './providers/DataProvider.jsx';
 import { ThemeProvider } from './providers/ThemeProvider.jsx';
@@ -18,11 +19,11 @@ const firaCode = Fira_Code({
 });
 
 export const metadata = {
-  title: 'AI Supply Chain - Anti-Fragile Command Center',
+  title: 'OpenTrade - AI Supply Chain Command Center',
   description: 'Real-time multi-agent AI supply chain disruption detection and resolution.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
-    title: 'AI Supply Chain Command Center',
+    title: 'OpenTrade Command Center',
     description: 'Detect, score, and resolve shipping disruptions in under 60 seconds.',
     type: 'website',
   },
@@ -36,7 +37,29 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${firaCode.variable} ${spaceGrotesk.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${firaCode.variable} ${spaceGrotesk.variable} h-full antialiased`}>
+      <head>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+  (function() {
+    try {
+      var t = localStorage.getItem('gdg_theme');
+      if (t === 'light' || t === 'dark') {
+        document.documentElement.setAttribute('data-theme', t);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch(e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <DataProvider>{children}</DataProvider>

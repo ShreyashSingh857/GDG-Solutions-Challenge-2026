@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Info, Play, Pause, FastForward, Map as MapIcon, Activity } from 'lucide-react';
+import { Calendar, Info, Play, Pause, FastForward, Map as MapIcon, Activity, RotateCcw } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { PAGE_ENTER, STAGGER_CHILDREN, CARD_ITEM, SLIDE_FROM_RIGHT } from '../lib/motion.js';
@@ -111,16 +111,20 @@ export default function ReplayPage() {
         className="flex-1 flex overflow-hidden lg:flex-row flex-col"
       >
         {/* Left: Timeline Panel */}
-        <div className="w-full lg:w-[450px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-[var(--border-subtle)] space-y-4">
+        <div className="w-full lg:w-[450px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 backdrop-blur-xl flex flex-col overflow-hidden">
+          <div className="p-6 border-b border-[var(--border-subtle)] space-y-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold font-display tracking-tight">Sequence Replay</h1>
-              <div className="flex bg-[var(--bg-elevated)] p-1 rounded-lg border border-[var(--border-subtle)]">
+              <h1 className="text-xl font-bold font-display tracking-tight text-[var(--text-primary)]">Sequence Replay</h1>
+              <div className="flex bg-[var(--bg-elevated)] p-1 rounded-xl border border-[var(--border-subtle)]">
                 {WINDOW_PRESETS.map((p) => (
                   <button
                     key={p.days}
                     onClick={() => setDaysBack(p.days)}
-                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${daysBack === p.days ? 'bg-[var(--bg-surface)] text-[var(--accent-cyan)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                      daysBack === p.days 
+                        ? 'bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 text-[var(--text-primary)] shadow-sm' 
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent'
+                    }`}
                   >
                     {p.label}
                   </button>
@@ -128,24 +132,49 @@ export default function ReplayPage() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl border transition-all ${isPlaying ? 'bg-[var(--accent-amber)]/10 border-[var(--accent-amber)]/30 text-[var(--accent-amber)]' : 'bg-[var(--accent-cyan)]/10 border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)]'}`}
+                title={isPlaying ? 'Pause playback' : 'Start playback'}
+                className={`w-12 h-12 flex items-center justify-center rounded-full glass-panel transition-all active:scale-90 ${
+                  isPlaying 
+                    ? '!border-[var(--accent-amber)]/50 !bg-[var(--accent-amber)]/20 text-[var(--accent-amber)] shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
+                    : '!border-[var(--accent-cyan)]/50 !bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)]'
+                }`}
               >
-                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                <span className="text-xs font-bold uppercase tracking-widest">{isPlaying ? 'Pause' : 'Play Replay'}</span>
+                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
               </button>
-              <div className="flex items-center gap-1 bg-[var(--bg-elevated)] p-1 rounded-xl border border-[var(--border-subtle)]">
+
+              <div className="flex-1 flex items-center justify-between bg-[var(--bg-elevated)] p-1 rounded-2xl border border-[var(--border-subtle)]">
                 {PLAYBACK_SPEEDS.map(s => (
                   <button 
                     key={s} 
                     onClick={() => setPlaybackSpeed(s)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${playbackSpeed === s ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                    className={`flex-1 h-9 flex items-center justify-center rounded-xl text-[10px] font-bold transition-all ${
+                      playbackSpeed === s 
+                        ? 'bg-[var(--bg-surface)] text-[var(--accent-cyan)] shadow-sm border border-[var(--border-subtle)]' 
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent'
+                    }`}
                   >
                     {s}x
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Timeline Legend */}
+            <div className="flex items-center gap-4 pt-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[var(--accent-red)] shadow-[0_0_8px_var(--accent-red)]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Critical</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[var(--accent-amber)] shadow-[0_0_8px_var(--accent-amber)]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">High</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[var(--accent-cyan)] shadow-[0_0_8px_var(--accent-cyan)]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Moderate</span>
               </div>
             </div>
           </div>
@@ -155,13 +184,31 @@ export default function ReplayPage() {
               <div className="space-y-6">
                 {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="animate-pulse flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)]" />
+                    <div className="glass-panel w-8 h-8 rounded-full !bg-[var(--bg-elevated)]" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-3 w-24 bg-[var(--bg-elevated)] rounded" />
-                      <div className="h-4 w-full bg-[var(--bg-elevated)] rounded" />
+                      <div className="h-3 w-24 bg-[var(--bg-elevated)] rounded-lg" />
+                      <div className="h-4 w-full bg-[var(--bg-elevated)] rounded-lg" />
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : events.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4 opacity-60">
+                <div className="w-16 h-16 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center border border-dashed border-[var(--border-subtle)]">
+                  <RotateCcw className="w-8 h-8 text-[var(--text-muted)]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">No Sequences Found</h3>
+                  <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                    There are no recorded disruptions for the selected {daysBack}-day window.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setDaysBack(daysBack)}
+                  className="px-6 py-2 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--bg-surface)] transition-all"
+                >
+                  Refresh Feed
+                </button>
               </div>
             ) : (
               <div className="relative">
@@ -173,7 +220,7 @@ export default function ReplayPage() {
                     <button
                       key={event.id}
                       onClick={() => { setSelectedIndex(idx); setIsPlaying(false); }}
-                      className={`w-full flex gap-4 p-3 rounded-2xl transition-all group relative ${selectedIndex === idx ? 'bg-[var(--bg-elevated)]' : 'hover:bg-[var(--bg-elevated)]/40'}`}
+                      className={`w-full flex gap-4 p-3 rounded-2xl transition-all group relative ${selectedIndex === idx ? 'bg-[var(--bg-elevated)] border border-[var(--border-subtle)]' : 'hover:bg-[var(--bg-elevated)]/40 border border-transparent'}`}
                     >
                       <TimelineDot severity={event.severity} active={selectedIndex === idx} />
                       <div className="flex-1 text-left">
@@ -275,11 +322,19 @@ export default function ReplayPage() {
                 </div>
               </motion.div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-4 text-[var(--text-muted)]">
-                <div className="w-16 h-16 rounded-full border border-dashed border-[var(--border-subtle)] flex items-center justify-center">
-                  <Activity className="w-8 h-8 opacity-20" />
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-6 opacity-60">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[var(--accent-cyan)]/5 blur-3xl rounded-full" />
+                  <div className="w-24 h-24 rounded-[40px] bg-[var(--bg-elevated)]/40 flex items-center justify-center relative border border-dashed border-[var(--border-subtle)]">
+                    <MapIcon className="w-10 h-10 text-[var(--text-muted)] opacity-30" />
+                  </div>
                 </div>
-                <p className="text-sm">Select an event from the timeline to view details</p>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--text-primary)]">No Target Selected</h3>
+                  <p className="text-[11px] text-[var(--text-secondary)] max-w-[240px] mx-auto leading-relaxed font-medium">
+                    Select a historical disruption from the timeline to initiate spatial analysis and impact replay.
+                  </p>
+                </div>
               </div>
             )}
           </AnimatePresence>

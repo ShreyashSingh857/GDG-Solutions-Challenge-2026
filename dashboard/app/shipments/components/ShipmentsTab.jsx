@@ -143,22 +143,22 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
   if (isLoading) return <ShipmentsSkeleton />;
 
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div className="relative max-w-md group">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-[var(--accent-cyan)] transition-colors" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-[var(--accent-cyan)] transition-colors" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Filter by origin, destination, or tracking..."
-          className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-cyan)]/50 focus:ring-4 focus:ring-[var(--accent-cyan)]/5 transition-all shadow-sm"
+          className="w-full bg-[var(--bg-elevated)]/20 border border-[var(--border-subtle)] rounded-2xl pl-12 pr-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-cyan)]/50 focus:ring-4 focus:ring-[var(--accent-cyan)]/10 transition-all backdrop-blur-md shadow-sm"
         />
       </div>
 
-      <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-[var(--shadow-card)] overflow-hidden">
+      <div className="glass-panel !border-[var(--border-subtle)] !shadow-2xl">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full min-w-[1000px] text-sm border-collapse">
             <thead>
-              <tr className="border-b border-[var(--border-subtle)]">
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]/10">
                 {renderHeader('importExport', 'Type')}
                 {renderHeader('origin', 'Route')}
                 {renderHeader('mode', 'Mode')}
@@ -167,7 +167,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                 {renderHeader('paymentStatus', 'Payment')}
                 {renderHeader('status', 'Status')}
                 {renderHeader('eta', 'ETA')}
-                <th className="sticky top-0 z-20 px-4 py-4 bg-[var(--bg-surface)] text-right"></th>
+                <th className="sticky top-0 z-20 px-6 py-5 bg-transparent text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -179,10 +179,10 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                     variants={CARD_ITEM}
                     onClick={() => { setSelectedIndex(idx); onEdit(s); }}
                     onMouseEnter={() => setSelectedIndex(idx)}
-                    className={`group hover:bg-[var(--bg-elevated)]/50 cursor-pointer transition-colors relative ${selectedIndex === idx ? 'bg-[var(--bg-elevated)]/40' : ''}`}
+                    className={`group hover:bg-[var(--accent-blue)]/5 cursor-pointer transition-all duration-300 relative ${selectedIndex === idx ? 'bg-[var(--accent-blue)]/10' : ''}`}
                   >
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${
                         s.importExport === 'export'
                           ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                           : 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/20'
@@ -190,50 +190,52 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                         {s.importExport ?? 'Ship'}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-[var(--text-primary)]">{s.origin}</span>
-                        <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
-                        <span className="text-[var(--text-secondary)]">{s.destination}</span>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-[var(--text-primary)] tracking-tight">{s.origin}</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-50" />
+                        <span className="font-medium text-[var(--text-secondary)]">{s.destination}</span>
                       </div>
-                      <div className="mt-1 font-mono text-[10px] text-[var(--text-muted)] tracking-tight">
-                        ID: {s.trackingNumber || s.id.slice(0, 8)}
+                      <div className="font-mono text-[9px] text-[var(--text-muted)] tracking-wider uppercase opacity-60">
+                        {s.trackingNumber || s.id.slice(0, 8)}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-6 py-5">
                       {(() => {
                         const ModeIcon = MODE_ICONS[s.mode] || Ship;
                         return (
-                          <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-                            <ModeIcon className="w-4 h-4 opacity-70" />
-                            <span className="capitalize">{s.mode?.replace('-', ' ')}</span>
+                          <div className="flex items-center gap-3 text-[var(--text-secondary)] font-medium">
+                            <div className="w-8 h-8 rounded-xl bg-[var(--bg-elevated)]/40 border border-[var(--border-subtle)] flex items-center justify-center">
+                              <ModeIcon className="w-4 h-4 opacity-80" />
+                            </div>
+                            <span className="capitalize text-[13px]">{s.mode?.replace('-', ' ')}</span>
                           </div>
                         );
                       })()}
                     </td>
-                    <td className="px-4 py-4 text-[var(--text-secondary)] font-medium">
+                    <td className="px-6 py-5 text-[var(--text-secondary)] font-bold text-[13px] tracking-tight">
                       {s.carrier}
                     </td>
-                    <td className="px-4 py-4 font-mono text-[var(--text-primary)] font-medium">
+                    <td className="px-6 py-5 font-mono text-[var(--text-primary)] font-extrabold text-[13px]">
                       {formatCargo(s.cargoValueUSD)}
                     </td>
-                    <td className="px-4 py-4">
-                      <span className={`text-[11px] font-semibold flex items-center gap-1.5 capitalize ${PAY_COLORS[s.paymentStatus] || 'text-[var(--text-muted)]'}`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
+                    <td className="px-6 py-5">
+                      <span className={`text-[11px] font-bold flex items-center gap-2 capitalize ${PAY_COLORS[s.paymentStatus] || 'text-[var(--text-muted)]'}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" />
                         {s.paymentStatus || 'pending'}
                       </span>
                     </td>
-                    <td className="px-4 py-4"><StatusPill status={s.status} /></td>
-                    <td className="px-4 py-4 text-[var(--text-secondary)] font-medium">{fmtDate(s.eta)}</td>
-                    <td className="px-4 py-4 text-right">
+                    <td className="px-6 py-5"><StatusPill status={s.status} /></td>
+                    <td className="px-6 py-5 text-[var(--text-secondary)] font-bold text-[13px]">{fmtDate(s.eta)}</td>
+                    <td className="px-6 py-5 text-right">
                       <div className="flex justify-end">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all opacity-0 group-hover:opacity-100">
-                          <ChevronRight className="w-4 h-4" />
+                        <div className="w-9 h-9 rounded-2xl flex items-center justify-center border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/40 text-[var(--text-muted)] group-hover:text-[var(--accent-cyan)] group-hover:border-[var(--accent-cyan)]/30 group-hover:bg-[var(--accent-cyan)]/5 transition-all shadow-sm">
+                          <ChevronRight className="w-5 h-5" />
                         </div>
                       </div>
                     </td>
-                    {/* Hover indicator */}
-                    <td className="absolute left-0 inset-y-0 w-1 bg-[var(--accent-blue)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* Active highlight */}
+                    <td className={`absolute left-0 inset-y-0 w-1 bg-[var(--accent-cyan)] transition-all duration-300 ${selectedIndex === idx ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0'}`} />
                   </motion.tr>
                 ))}
               </AnimatePresence>
@@ -242,15 +244,24 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
         </div>
 
         {displayed.length === 0 && (
-          <div className="py-20 text-center space-y-3 bg-[var(--bg-elevated)]/20">
-            <Search className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-20" />
-            <p className="text-[var(--text-muted)] text-sm">No shipments found matching your search</p>
+          <div className="py-24 text-center space-y-6 bg-black/5">
+            <div className="w-20 h-20 rounded-[24px] bg-[var(--bg-elevated)]/40 border border-[var(--border-subtle)] flex items-center justify-center mx-auto shadow-xl glass-panel !rounded-[24px]">
+              <Ship className="w-10 h-10 text-[var(--accent-cyan)] opacity-40" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-[var(--text-primary)] font-bold text-lg tracking-tight">No Results Found</p>
+              <p className="text-[var(--text-muted)] text-xs max-w-[280px] mx-auto leading-relaxed">
+                We couldn't find any shipments matching your current search or filter criteria.
+              </p>
+            </div>
           </div>
         )}
       </div>
+
       <div className="flex items-center justify-between px-2">
-        <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">
-          Showing {displayed.length} of {shipments.length} global shipments
+        <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-extrabold flex items-center gap-2">
+          <span className="w-1 h-1 rounded-full bg-[var(--accent-cyan)]" />
+          Synchronized: {displayed.length} / {shipments.length} Global Nodes Active
         </p>
       </div>
     </div>

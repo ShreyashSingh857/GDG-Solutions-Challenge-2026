@@ -1,5 +1,5 @@
 {
-  "name": "impact-agent",
+  "name": "opentrade-impact-agent",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",

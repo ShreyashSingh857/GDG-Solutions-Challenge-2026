@@ -22,15 +22,15 @@ export default function AgentTrigger({ isOpen, onClick }) {
 
       <button
         onClick={onClick}
-        title={isOpen ? 'Close AI Panel' : 'Open AI Panel'}
+        title={isOpen ? 'Close AI Agent Panel' : 'Open AI Agent Panel'}
         style={{ clipPath: HEX_CLIP, width: 52, height: 52 }}
         className={[
           'flex flex-col items-center justify-center gap-0.5',
-          'backdrop-blur-md border transition-all duration-200',
+          'glass-panel !rounded-none transition-all duration-300',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
           isOpen
-            ? 'bg-blue-600/40 border-blue-400/60'
-            : 'bg-black/70 border-white/20 hover:border-blue-400/40 hover:bg-blue-900/30',
+            ? '!bg-[var(--accent-blue)]/30 !border-[var(--accent-blue)]/50'
+            : 'hover:!border-[var(--accent-blue)]/40 hover:!bg-[var(--glass-bg-elevated)]',
         ].join(' ')}
       >
         <svg viewBox="0 0 20 20" className="w-5 h-5 text-blue-300" fill="currentColor" aria-hidden="true">

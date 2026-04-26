@@ -42,36 +42,39 @@ export default function AlertToastController() {
 
       const icon = TYPE_ICONS[newest.type] || '📡';
       const zones = (newest.affectedZones || []).slice(0, 3).join(', ') || 'Multiple zones';
-      const borderColor = newest.severity >= 8 ? '#dc2626' : newest.severity >= 6 ? '#ea580c' : '#ca8a04';
+      const borderColor = newest.severity >= 8 ? 'var(--accent-red)' : newest.severity >= 6 ? 'var(--accent-amber)' : 'var(--accent-cyan)';
 
       toast(
         <div className="flex flex-col gap-1 min-w-[260px]">
           <div className="flex items-center gap-2">
             <span className="text-lg">{icon}</span>
             <div>
-              <p className="font-semibold text-white text-sm">
-                {newest.type} — Severity {newest.severity}/10
+              <p className="font-bold text-[var(--text-primary)] text-sm uppercase tracking-tight">
+                {newest.type} — {newest.severity}/10
               </p>
-              <p className="text-white/70 text-xs">{newest.location}</p>
+              <p className="text-[var(--text-secondary)] text-[11px] font-medium">{newest.location}</p>
             </div>
           </div>
-          <p className="text-white/50 text-xs">{zones} affected</p>
+          <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">{zones} affected</p>
           <button
-            className="mt-1 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition-colors text-left"
+            className="mt-2 text-[10px] font-bold uppercase tracking-widest bg-[var(--bg-elevated)] hover:bg-[var(--bg-overlay)] text-[var(--text-primary)] px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] transition-all text-center active:scale-95"
             onClick={() => {
               useAlertStore.getState().setActiveDisruptionId(id);
             }}
           >
-            View Options →
+            Protocol Analysis →
           </button>
         </div>,
         {
           duration: 15000,
           style: {
-            background: '#111827',
-            border: `1px solid ${borderColor}40`,
-            borderLeft: `4px solid ${borderColor}`,
-            color: '#f9fafb',
+            background: 'var(--glass-bg-elevated)',
+            backdropFilter: 'blur(16px)',
+            border: `1px solid ${borderColor}`,
+            borderLeft: `6px solid ${borderColor}`,
+            borderRadius: '16px',
+            color: 'var(--text-primary)',
+            boxShadow: '0 20px 40px -12px rgba(0,0,0,0.5)',
           },
         }
       );

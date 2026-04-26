@@ -131,23 +131,23 @@ export default function Home() {
       <div className="relative flex-1 overflow-hidden">
         <Toaster position="bottom-right" theme="dark" />
         <div className="absolute left-4 top-4 z-20 pointer-events-none">
-          <div className="pointer-events-auto rounded-3xl border border-cyan-300/20 bg-[#06111f]/92 px-4 py-3 shadow-[0_18px_48px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-            <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-100/70">Pipeline Impact</div>
-            <div className="mt-1 text-sm font-semibold text-white">
+          <div className="pointer-events-auto liquid-glass relative px-5 py-4 min-w-[280px]">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-[var(--accent-cyan)] font-bold">Pipeline Impact</div>
+            <div className="mt-2 text-base font-semibold text-[var(--text-primary)] tracking-tight">
               Cargo under protection: ${(cargoUnderProtectionUSD / 1e6).toFixed(1)}M
             </div>
-            <div className="mt-1 text-xs text-white/60">
+            <div className="mt-1 text-xs text-[var(--text-secondary)]">
               across {activeShipments.length} active shipments · {shipments.filter((s) => s.status !== 'delivered').length} monitored
             </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/70">
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+            <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold">
+              <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
                 Sessions run: {globalStats?.totalResolutions ?? 0}
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+              <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
                 Human hours saved: {globalStats?.humanHoursSaved ?? 0}
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                Total cargo analyzed: ${((globalStats?.totalCargoAnalyzedUSD ?? 0) / 1e6).toFixed(1)}M
+              <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
+                Total analyzed: ${((globalStats?.totalCargoAnalyzedUSD ?? 0) / 1e6).toFixed(1)}M
               </span>
             </div>
           </div>
@@ -173,27 +173,47 @@ export default function Home() {
             </div>
           </ErrorBoundary>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#020617] gap-8 px-6 text-center">
-            <p className="text-white/30 text-sm">Globe paused · Tab inactive</p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <PausedKpiCard label="Active Shipments" value={shipments.filter((s) => s.status === 'active').length} />
-              <PausedKpiCard label="Disruptions" value={disruptions.length} color="text-red-400" />
-              <PausedKpiCard label="News Alerts" value={newsAlerts.length} color="text-cyan-400" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#020617] overflow-hidden">
+            {/* Ambient Background for Paused State */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(34,211,238,0.1)_0%,transparent_70%)] animate-pulse" />
             </div>
-            <button
-              onClick={() => setGlobeEnabled(true)}
-              className="text-xs text-white/40 hover:text-white/70 border border-white/10 rounded-full px-4 py-1.5 transition-colors"
-            >
-              Resume Globe
-            </button>
+
+            <div className="relative z-10 flex flex-col items-center gap-10 px-6 text-center">
+              <div className="space-y-2">
+                <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-[0.4em]">Standby Mode</p>
+                <h2 className="text-white/40 text-sm font-medium tracking-tight">Globe paused · Tab inactive</h2>
+              </div>
+
+              <div className="flex flex-wrap gap-4 justify-center">
+                <PausedKpiCard label="Active Shipments" value={shipments.filter((s) => s.status === 'active').length} />
+                <PausedKpiCard label="Disruptions" value={disruptions.length} color="text-[var(--accent-red)]" />
+                <PausedKpiCard label="News Alerts" value={newsAlerts.length} color="text-[var(--accent-cyan)]" />
+              </div>
+
+              <button
+                onClick={() => setGlobeEnabled(true)}
+                className="liquid-glass px-10 py-4 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--text-primary)] hover:scale-105 transition-all active:scale-95 cursor-pointer shadow-2xl"
+              >
+                Resume Live Environment
+              </button>
+            </div>
           </div>
         )}
-        <AgentStatusBadge />
-        <GlobeActivationToggle
-          isActive={globeEnabled}
-          isPageVisible={isPageVisible}
-          onToggle={() => setGlobeEnabled((prev) => !prev)}
-        />
+        <div className="absolute top-4 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
+          <div className="pointer-events-auto">
+            <GlobeActivationToggle
+              isActive={globeEnabled}
+              isPageVisible={isPageVisible}
+              onToggle={() => setGlobeEnabled((prev) => !prev)}
+            />
+          </div>
+          {isGlobeActive && (
+            <div className="pointer-events-auto">
+              <AgentStatusBadge />
+            </div>
+          )}
+        </div>
         <AgentTrigger isOpen={panelOpen} onClick={() => setPanelOpen((v) => !v)} />
         {panelOpen ? (
           <ErrorBoundary fallback={<MinimalErrorFallback name="Agent Panel" />}>
@@ -212,9 +232,9 @@ export default function Home() {
 
 function PausedKpiCard({ label, value, color = 'text-white' }) {
   return (
-    <div className="min-w-36 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-sm">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-white/35">{label}</div>
-      <div className={`mt-2 text-3xl font-light font-mono ${color}`}>{value}</div>
+    <div className="min-w-44 liquid-glass px-6 py-6 text-left border-white/5">
+      <div className="text-[9px] uppercase tracking-[0.25em] text-[var(--text-muted)] font-bold mb-4">{label}</div>
+      <div className={`text-4xl font-light font-mono tracking-tighter ${color}`}>{value}</div>
     </div>
   );
 }

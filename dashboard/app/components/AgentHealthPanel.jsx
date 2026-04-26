@@ -25,21 +25,21 @@ function formatNumber(value) {
 
 function MetricChip({ label, value, tone = 'slate' }) {
 	const colorClasses = {
-		cyan: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
-		amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-		rose: 'border-rose-400/20 bg-rose-400/10 text-rose-100',
-		slate: 'border-white/10 bg-white/5 text-white/80',
+		cyan: 'border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)]',
+		amber: 'border-[var(--accent-amber)]/20 bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]',
+		rose: 'border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 text-[var(--accent-red)]',
+		slate: 'border-[var(--border-default)] bg-[var(--bg-elevated)]/40 text-[var(--text-primary)]',
 	};
 
 	return (
 		<div className={`rounded-xl border px-3 py-2 backdrop-blur ${colorClasses[tone] || colorClasses.slate}`}>
-			<div className="text-[10px] uppercase tracking-[0.24em] opacity-70">{label}</div>
-			<div className="mt-1 text-lg font-semibold leading-none">{value}</div>
+			<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-secondary)] font-bold">{label}</div>
+			<div className="mt-1 text-lg font-semibold leading-none text-[var(--text-primary)]">{value}</div>
 		</div>
 	);
 }
 
-export default function AgentHealthPanel() {
+export default function AgentHealthPanel({ floating = true }) {
 	const [metrics, setMetrics] = useState([]);
 	const [lastUpdated, setLastUpdated] = useState(null);
 	const [loadState, setLoadState] = useState('loading');
@@ -98,6 +98,10 @@ export default function AgentHealthPanel() {
 		? Math.round(metrics.reduce((sum, item) => sum + readMetric(item.payload, ['avgLatencyMs', 'averageLatencyMs', 'latencyMs'], item.ok ? 0 : 5000), 0) / metrics.length)
 		: 0;
 
+	const containerClasses = floating 
+		? "absolute top-5 left-5 right-5 z-20 pointer-events-none" 
+		: "relative w-full";
+
 	return (
 		<AnimatePresence>
 			<motion.section
@@ -105,44 +109,41 @@ export default function AgentHealthPanel() {
 				animate={{ opacity: 1, y: 0, scale: 1 }}
 				exit={{ opacity: 0, y: -10, scale: 0.98 }}
 				transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-				className="absolute top-5 left-5 right-5 z-20 pointer-events-none"
+				className={containerClasses}
 			>
-				<div className="mx-auto w-full max-w-6xl pointer-events-auto">
-					<div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-slate-950/88 shadow-[0_24px_90px_rgba(2,6,23,0.6)] backdrop-blur-2xl">
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_25%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_40%)]" />
-						<div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-cyan-300/70 to-transparent" />
-						<div className="absolute inset-y-0 left-0 w-px bg-linear-to-b from-cyan-300/0 via-cyan-300/45 to-cyan-300/0" />
+				<div className={`mx-auto w-full max-w-6xl ${floating ? 'pointer-events-auto' : ''}`}>
+					<div className="glass-panel glass-edge rounded-[30px] transition-all duration-500 shadow-2xl">
 						<div className="relative px-5 py-4 sm:px-6 sm:py-5">
 							<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 								<div className="space-y-2">
-									<div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-100">
-										<span className={`h-2 w-2 rounded-full ${loadState === 'ready' ? 'bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]' : 'bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.75)]'}`} />
+									<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent-cyan)]">
+										<span className={`h-2 w-2 rounded-full ${loadState === 'ready' ? 'bg-[var(--accent-green)] shadow-[0_0_14px_rgba(34,197,94,0.6)]' : 'bg-[var(--accent-amber)] shadow-[0_0_14px_rgba(245,158,11,0.6)]'}`} />
 										Live telemetry
 									</div>
 									<div>
-										<h2 className="text-xl font-semibold tracking-[0.18em] text-white sm:text-2xl">
+										<h2 className="text-xl font-bold tracking-[0.18em] text-[var(--text-primary)] sm:text-2xl font-display">
 											Mission Control
 										</h2>
-										<p className="mt-1 max-w-2xl text-sm text-white/58">
+										<p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)] font-medium">
 											Rolling health from every service. Watch the stack breathe, degrade, and recover in real time.
 										</p>
 									</div>
 								</div>
 
-								<div className="flex flex-wrap items-center gap-2 text-[11px] text-white/55">
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+								<div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)] font-bold">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{onlineCount}/{metrics.length || AGENTS.length} online
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{degradedCount} degraded
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{formatNumber(totalErrors)} errors
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{formatNumber(meanLatency)}ms avg latency
 									</div>
-									<div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 uppercase tracking-[0.22em]">
+									<div className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 uppercase tracking-[0.22em]">
 										{lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'waiting...'}
 									</div>
 								</div>
@@ -162,27 +163,27 @@ export default function AgentHealthPanel() {
 											initial={{ opacity: 0, y: 8 }}
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: index * 0.06, duration: 0.24 }}
-											className="group rounded-2xl border border-white/10 bg-white/[0.035] p-3 transition-colors hover:border-white/18 hover:bg-white/5.5"
+											className="group rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]/60 p-3 transition-all hover:border-[var(--accent-cyan)]/30 hover:bg-[var(--bg-elevated)] hover:shadow-lg"
 										>
 											<div className="flex items-start justify-between gap-3">
 												<div>
-													<div className="text-[10px] uppercase tracking-[0.28em] text-white/38">Service</div>
-													<div className="mt-1 text-sm font-medium text-white">{agent.name}</div>
+													<div className="text-[10px] uppercase tracking-[0.28em] text-[var(--text-muted)] font-bold">Service</div>
+													<div className="mt-1 text-sm font-bold text-[var(--text-primary)]">{agent.name}</div>
 												</div>
-												<div className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] ${agent.ok ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100' : 'border-rose-400/20 bg-rose-400/10 text-rose-100'}`}>
+												<div className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] ${agent.ok ? 'border-[var(--accent-green)]/20 bg-[var(--accent-green)]/10 text-[var(--accent-green)]' : 'border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 text-[var(--accent-red)]'}`}>
 													{agent.ok ? (errorCount > 0 ? 'Degraded' : 'Live') : 'Down'}
 												</div>
 											</div>
 
 											<div className="mt-3 space-y-3">
-												<div className="flex items-center justify-between text-[11px] text-white/50">
-													<span>{agent.url.replace(/^https?:\/\//, '')}</span>
-													<span className={`h-2 w-2 rounded-full ${agent.ok ? (errorCount > 0 ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-rose-400'}`} />
+												<div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] font-medium">
+													<span className="truncate max-w-[120px]">{agent.url.replace(/^https?:\/\//, '')}</span>
+													<span className={`h-2 w-2 rounded-full ${agent.ok ? (errorCount > 0 ? 'bg-[var(--accent-amber)] shadow-[0_0_8px_var(--accent-amber)]' : 'bg-[var(--accent-green)] shadow-[0_0_8px_var(--accent-green)]') : 'bg-[var(--accent-red)] shadow-[0_0_8px_var(--accent-red)]'}`} />
 												</div>
 
 												{waking[agent.name] ? (
-													<div className="rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-100">
-														Waking agent... ETA ~30s
+													<div className="rounded-lg border border-[var(--accent-amber)]/20 bg-[var(--accent-amber)]/10 px-3 py-2 text-[10px] font-bold text-[var(--accent-amber)] uppercase tracking-wider animate-pulse">
+														Waking agent...
 													</div>
 												) : null}
 
@@ -193,14 +194,14 @@ export default function AgentHealthPanel() {
 													<MetricChip label="Uptime" value={`${formatNumber(uptime)}s`} tone={healthTone} />
 												</div>
 
-												<div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+												<div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
 													<div
-														className="h-full rounded-full"
+														className="h-full rounded-full transition-all duration-1000"
 														style={{
 															width: agent.ok ? '100%' : '28%',
 															background: agent.ok
-																? `linear-gradient(90deg, ${agent.accent}, rgba(255,255,255,0.88))`
-																: 'linear-gradient(90deg, rgba(244,63,94,0.9), rgba(244,63,94,0.28))',
+																? `linear-gradient(90deg, ${agent.accent}, var(--text-primary))`
+																: 'linear-gradient(90deg, var(--accent-red), rgba(244,63,94,0.28))',
 															boxShadow: agent.ok ? `0 0 18px ${agent.accent}66` : '0 0 18px rgba(244,63,94,0.45)',
 														}}
 													/>

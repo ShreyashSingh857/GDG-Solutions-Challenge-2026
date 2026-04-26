@@ -1,284 +1,143 @@
-# AI-Driven Anti-Fragile Supply Chain
-### Google Hackathon 2026 - Free-Tier Multi-Agent System
+# OpenTrade - AI-Driven Supply Chain Intelligence
+### Autonomous Multi-Agent Logistics Resolution System
 
 ---
 
 ## Overview
 
-Real-time autonomous supply chain disruption detection and resolution using Gemini AI Studio, Firestore, and a custom Node.js event bus. No billing account required.
+**OpenTrade** is a complete, production-ready system providing real-time autonomous supply chain disruption detection and resolution. Powered by Gemini AI, Firestore, and a custom high-throughput Node.js event bus, OpenTrade serves as an automated command center that protects global trade pipelines from unforeseen events.
 
-**Agent pipeline:** Monitor Agent → Impact Agent → Negotiator Agent → Dashboard → Execution
+By replacing hours of manual analysis with instantaneous AI-driven reasoning, OpenTrade identifies disruptions, evaluates their financial and logistical impact, and negotiates the most optimal rerouting solutions—all in under 60 seconds.
+
+The system relies on a seamless multi-agent pipeline:
+**News Intel Agent** → **Monitor Agent** → **Impact Agent** → **Resolution Agent** → **Dashboard & Execution**
+
+---
+
+## Architecture & Flow
+
+OpenTrade operates on a resilient, event-driven microservices architecture:
+
+1. **News Intel Agent**
+   - **Role:** Continuously polls global news sources (GDELT, NewsAPI) and assesses breaking events using a Gemini classifier.
+   - **Flow:** Upon detecting a high-severity incident, it broadcasts a `news-alerts` event to the central Event Bus.
+2. **Monitor (Disruption) Agent**
+   - **Role:** Listens to incoming `news-alerts`. Cross-references events with live weather telemetry (Open-Meteo) and AIS maritime tracking data.
+   - **Flow:** Identifies actionable disruptions and publishes a precise `disruption-events` payload to the Event Bus.
+3. **Impact Agent**
+   - **Role:** Listens to `disruption-events`. Instantly queries the global shipping database (Firestore) to pinpoint shipments intersecting the disruption zone using advanced haversine geospatial scoring.
+   - **Flow:** Computes the total cargo value at risk and emits comprehensive `impact-reports` to the Event Bus.
+4. **Resolution (Negotiator) Agent**
+   - **Role:** Listens to `impact-reports`. Utilizes Gemini's advanced reasoning to generate viable, cost-effective resolution options (e.g., rerouting, alternative transport). It calculates the deltas for cost, time, and carbon emissions.
+   - **Flow:** Safely persists options to Firestore and dispatches a `resolution-options` payload via external webhooks.
+5. **Dashboard & Execution Engine**
+   - **Role:** A premium Next.js frontend featuring real-time 3D globe visualizations of active shipments and anomalies.
+   - **Flow:** Displays the generated options in an interactive command center interface. Authorized personnel can execute the chosen resolution with a single click, immediately updating active shipment trajectories across the database.
 
 ---
 
 ## Tech Stack
 
-- **AI:** Gemini 1.5 Flash via Google AI Studio (free API key)
-- **Event Bus:** Custom Node.js EventEmitter (replaces GCP Pub/Sub)
-- **Database:** Firebase Firestore (free tier)
-- **Auth:** Firebase Auth (Google OAuth)
-- **Backend:** Fastify microservices on Render.com (free tier)
-- **Frontend:** Next.js 15 on Vercel (free hobby tier)
+- **Core AI:** Gemini 1.5 Flash (via Google AI Studio)
+- **Event Bus:** Custom Node.js EventEmitter / SSE Server
+- **Database:** Firebase Firestore
+- **Authentication:** Firebase Auth (Google OAuth)
+- **Backend Services:** Fastify Microservices
+- **Frontend Command Center:** Next.js 15 (React 19)
+- **Data Visualization:** Cesium (3D Globe), Recharts, Framer Motion
 - **CI/CD:** GitHub Actions
+
+---
+
+## Endpoints
+
+### 1. Dashboard (Next.js - API v1)
+Provides the public REST API and frontend integration.
+- `GET /api/v1/shipments`: List shipments (paginated)
+- `POST /api/v1/shipments`: Create a new shipment
+- `GET /api/v1/shipments/:id`: Get a single shipment
+- `PATCH /api/v1/shipments/:id/status`: Update shipment status
+- `GET /api/v1/disruptions`: List disruptions
+- `GET /api/v1/disruptions/:id`: Get disruption details + resolution options
+- `POST /api/v1/webhooks`: Register an outbound webhook
+- `DELETE /api/v1/webhooks/:id`: Delete a webhook
+- `GET /api/visualize/timeline`: Get event timeline for visualization
+- `GET /api/visualize/trace/:id`: Get detailed execution trace
+- `GET /api/stream/:traceId`: SSE stream for live agent reasoning
+
+### 2. Event Bus
+Central pub/sub message broker.
+- `GET /health`: Health check
+- `GET /metrics`: Service metrics
+- `POST /publish`: Publish an event to a topic (`{ topic, payload }`)
+- `GET /subscribe/:topic`: SSE endpoint for subscribing to a topic
+- `GET /replay/:topic`: Retrieve historical events for a topic
+- `GET /dead-letters`: Retrieve failed events
+
+### 3. News Intel Agent
+- `GET /health` / `GET /metrics`: Health and metrics
+- `GET /news`: List recent news alerts
+- `GET /news/:id`: Get specific news alert
+- `POST /news/poll`: Manually trigger a polling cycle
+
+### 4. Monitor (Disruption) Agent
+- `GET /health` / `GET /metrics`: Health and metrics
+- `GET /events`: List detected disruption events
+- `GET /events/:id`: Get specific disruption event
+- `POST /events`: Manually ingest an event
+
+### 5. Impact Agent
+- `GET /health` / `GET /metrics`: Health and metrics
+- `GET /impact/:id`: Get impact report by disruption ID
+- `POST /impact/run`: Manually trigger an impact analysis run for a given disruption ID
+
+### 6. Resolution Agent
+- `GET /health` / `GET /metrics`: Health and metrics
+- `GET /options/:traceId`: Get resolution options for a specific trace
+- `GET /options/stream/:traceId`: Stream resolution options generation
+- `GET /stream/:traceId`: Raw SSE stream of Gemini reasoning
+- `POST /execute`: Execute a chosen resolution option
 
 ---
 
 ## Local Setup
 
-### 1. Clone and install
-
+### 1. Clone and Install
 ```bash
-git clone <repo-url>
-cd GDG-Solutions-Challenge-2026-main
+git clone https://github.com/ShreyashSingh857/GDG-Solutions-Challenge-2026.git
+cd GDG-Solutions-Challenge-2026
+
+# Install dependencies across all packages
+npm run setup
 ```
 
+### 2. Environment Variables
+Copy `.env.example` to `.env` in the root directory and populate keys (Gemini, Firebase, etc.). The microservices will automatically inherit from the root `.env` file.
+
+### 3. Seed Database
+Initialize the Firestore database with baseline shipping data:
 ```bash
-cd event-bus && npm install && cd ..
-cd disruption && npm install && cd ..
-cd impact && npm install && cd ..
-cd resolution && npm install && cd ..
-cd news-intel && npm install && cd ..
-cd dashboard && npm install && cd ..
+npm run seed
 ```
 
-### 2. Environment variables
-
-Copy `.env.example` to `.env` in the repo root and fill in all values. Each agent service also needs a `.env` file - symlink or copy the root one.
-
-### 3. Seed Firestore
-
+### 4. Start the Cluster
+Use the provided concurrent runner to seamlessly boot all 6 microservices at once:
 ```bash
-node shared/db/seed/seed.js
+npm run dev
 ```
 
-### 4. Start services (6 terminals)
-
+### 5. Run a Disruption Simulation
+Trigger a simulated global event (e.g., a Suez Canal closure) to watch the AI agents perform:
 ```bash
-# Terminal 1
-cd event-bus && npm run dev
-
-# Terminal 2
-cd disruption && npm run dev
-
-# Terminal 3
-cd impact && npm run dev
-
-# Terminal 4
-cd resolution && npm run dev
-
-# Terminal 5
-cd news-intel && npm run dev
-
-# Terminal 6
-cd dashboard && npm run dev
+npm run inject:suez
 ```
-
-### 5. Run a demo scenario
-
-```bash
-node resolution/simulation/inject.js pacific_storm
-```
+Open the Dashboard at `http://localhost:3000` to monitor the multi-agent pipeline resolving the crisis in real-time.
 
 ---
 
-## Service Ports
+## Deployment Configuration
 
-| Service | Port |
-|---|---|
-| Event Bus | 4000 |
-| Disruption Agent | 3001 |
-| Impact Agent | 3002 |
-| Resolution Agent | 3003 |
-| News Intel Agent | 3005 |
-| Dashboard | 3000 |
-
----
-
-## API v1 Usage
-
-All API v1 routes are token-protected. Pass your key in either `X-Api-Key` or `Authorization: Bearer`.
-
-### Base URL
-
-- Local: `http://localhost:3000/api/v1`
-
-### Example requests
-
-```bash
-# Set once per terminal
-export API_KEY="your-api-key"
-```
-
-```bash
-# Create a shipment
-curl -X POST http://localhost:3000/api/v1/shipments \
-  -H "X-Api-Key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "origin":"Shanghai",
-    "destination":"Los Angeles",
-    "originLat":31.2304,
-    "originLng":121.4737,
-    "destLat":34.0522,
-    "destLng":-118.2437,
-    "carrier":"Maersk",
-    "cargoValueUSD":150000,
-    "corridor":"Pacific"
-  }'
-```
-
-```bash
-# List shipments (paginated)
-curl "http://localhost:3000/api/v1/shipments?pageSize=25" \
-  -H "Authorization: Bearer $API_KEY"
-```
-
-```bash
-# Get a single shipment
-curl http://localhost:3000/api/v1/shipments/ship-123 \
-  -H "X-Api-Key: $API_KEY"
-```
-
-```bash
-# Update shipment status
-curl -X PATCH http://localhost:3000/api/v1/shipments/ship-123/status \
-  -H "X-Api-Key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"status":"rerouted"}'
-```
-
-```bash
-# List disruptions
-curl "http://localhost:3000/api/v1/disruptions?limit=50" \
-  -H "X-Api-Key: $API_KEY"
-```
-
-```bash
-# Get disruption + latest resolution/options
-curl http://localhost:3000/api/v1/disruptions/disruption-id \
-  -H "X-Api-Key: $API_KEY"
-```
-
-```bash
-# Register outbound webhook for resolution.ready
-curl -X POST http://localhost:3000/api/v1/webhooks \
-  -H "X-Api-Key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event":"resolution.ready",
-    "url":"https://example.com/hooks/resolution-ready"
-  }'
-```
-
-```bash
-# Delete webhook
-curl -X DELETE http://localhost:3000/api/v1/webhooks/webhook-id \
-  -H "X-Api-Key: $API_KEY"
-```
-
----
-
-## Deployment Notes
-
-If you deploy with `render.yaml`, add the news service alongside the other web services:
-
-```yaml
-- type: web
-  name: news-intel
-  env: node
-  plan: free
-  buildCommand: cd news-intel && npm install
-  startCommand: cd news-intel && npm start
-  envVars:
-    - key: NEWSAPI_KEY
-      sync: false
-    - key: DISRUPTION_AGENT_URL
-      value: https://disruption.onrender.com
-    - key: EVENT_BUS_URL
-      value: https://event-bus.onrender.com
-    - key: GEMINI_API_KEY
-      sync: false
-    - key: INTERNAL_TOKEN
-      sync: false
-```
-
-Render free tier sleeps after 15 minutes of inactivity. The internal cron scheduler fires every 15 minutes, which helps wake the service automatically. The first poll after a cold start can take 30-60 seconds while Node boots.
-
-If you use the GitHub Actions workflow in `.github/workflows/deploy.yml`, add these repository secrets:
-
-- `RENDER_DEPLOY_HOOK_EVENT_BUS`
-- `VERCEL_DEPLOY_HOOK_DASHBOARD`
-- `RENDER_DEPLOY_HOOK_IMPACT`
-- `RENDER_DEPLOY_HOOK_DISRUPTION`
-- `RENDER_DEPLOY_HOOK_RESOLUTION`
-- `RENDER_DEPLOY_HOOK_NEWS_INTEL`
-
-Each backend service package now has its own lint script, and the GitHub Actions workflow runs them individually; the dashboard keeps its own Next.js lint job.
-
----
-
-## Architecture
-
-```
-Browser (Next.js → Vercel)
-  |-- Firestore real-time listeners
-  |-- SSE ← Resolution Agent (Gemini reasoning tokens)
-  |-- WebSocket ← Event Bus (agent heartbeats)
-
-Event Bus (Node.js EventEmitter → Render.com :4000)
-  |-- disruption-events → Impact Agent
-  |-- impact-reports → Resolution Agent
-  |-- resolution-options → Dashboard webhook
-  |-- news-alerts → Dashboard feed + Disruption Agent injection
-
-Agents (Fastify → Render.com)
-  |-- Monitor Agent :3001 → Gemini AI Studio + Open-Meteo
-  |-- Impact Agent :3002 → Gemini AI Studio + haversine scorer + Firestore
-  |-- Resolution Agent :3003 → Gemini AI Studio + static routes + Firestore
-  |-- News Intel Agent :3005 → GDELT / NewsAPI + Gemini classifier + Firestore
-```
-
----
-
-## THINGS TO LEAVE ALONE (Phase 2+)
-
-Do not implement the following files during Phase 1. Leave their existing stubs as-is:
-
-- `disruption/agent/agent.js` - Phase 2
-- `disruption/api/events.service.js` - Phase 2
-- `disruption/api/events.route.js` - Phase 2
-- `disruption/tools/searchTool.js` - Phase 2
-- `disruption/tools/weatherTool.js` - Phase 2
-- `disruption/agent/prompt.md` - Phase 2
-- `impact/agent/agent.js` - Phase 2
-- `impact/api/impact.service.js` - Phase 2
-- `impact/api/impact.route.js` - Phase 2
-- `impact/tools/shipmentLookup.js` - Phase 2
-- `impact/tools/severityScorer.js` - Phase 2 (create this file in Phase 2)
-- `impact/agent/prompt.md` - Phase 2
-- `resolution/agent/agent.js` - Phase 2
-- `resolution/api/options.service.js` - Phase 2
-- `resolution/api/options.route.js` - Phase 2
-- `resolution/api/execute.route.js` - Phase 2
-- `resolution/tools/routingTool.js` - Phase 2
-- `resolution/tools/supplierLookup.js` - Phase 2
-- `resolution/tools/costCalculator.js` - Phase 2
-- `resolution/simulation/pacific_storm.js` - Phase 2
-- `resolution/simulation/port_strike.js` - Phase 2
-- `resolution/simulation/suez_closure.js` - Phase 2
-- `resolution/simulation/inject.js` - Phase 2
-- `dashboard/app/components/` (all component files) - Phase 3
-
----
-
-## Phase 1 Exit Criteria
-
-When Phase 1 is complete, verify all of the following:
-
-1. `curl http://localhost:4000/health` returns JSON with `status: "ok"` and the three topic names
-2. Publishing to the event bus (`POST /publish`) and subscribing (`GET /subscribe/disruption-events`) works end-to-end - the subscriber receives the message
-3. `curl http://localhost:3001/health`, `curl http://localhost:3002/health`, `curl http://localhost:3003/health` all return `status: "ok"`
-4. `node shared/db/seed/seed.js` runs without error and 50 documents appear in the Firebase console under `shipments`
-5. Opening the dashboard at `http://localhost:3000` shows "✅ Firestore connected - 50 shipments loaded"
-6. Calling `generate('say hello')` from `shared/lib/gemini.js` returns a non-empty string (smoke test in a scratch file)
-
+OpenTrade is optimized for seamless deployment across standard cloud providers:
+- **Backend Microservices:** Deployable directly to Render, Heroku, or Google Cloud Run as separate web services.
+- **Frontend Dashboard:** Optimized for Vercel deployment with serverless functions handling the API v1 layer.
+- **Monitoring:** OpenTelemetry instrumentation is supported out-of-the-box for enterprise observability.

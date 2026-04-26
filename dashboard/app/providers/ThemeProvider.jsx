@@ -11,6 +11,11 @@ const ThemeContext = createContext({
 function getInitialTheme() {
   if (typeof window === 'undefined') return 'dark';
   const stored = window.localStorage.getItem('gdg_theme');
+  // Also check what's already on the document
+  const current = document.documentElement.getAttribute('data-theme');
+  if (current && (current === 'light' || current === 'dark')) {
+    return current;
+  }
   return stored === 'light' || stored === 'dark' ? stored : 'dark';
 }
 
@@ -24,10 +29,12 @@ function persistTheme(theme) {
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(getInitialTheme);
 
+  // Persist theme whenever it changes
   useEffect(() => {
     persistTheme(theme);
   }, [theme]);
 
+  // Listen for storage changes and custom events
   useEffect(() => {
     const onStorage = (event) => {
       if (event.key === 'gdg_theme' && (event.newValue === 'light' || event.newValue === 'dark')) {
