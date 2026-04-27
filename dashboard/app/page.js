@@ -38,6 +38,75 @@ const MobileView = dynamic(() => import('./components/globe/MobileView.jsx'), {
   loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading mobile view...</div>,
 });
 
+const STATUS_FILTERS = [
+  { id: 'all', label: 'All', key: 'A', color: 'var(--text-secondary)' },
+  { id: 'active', label: 'Active', key: 'V', color: 'var(--accent-green)' },
+  { id: 'delayed', label: 'Delayed', key: 'D', color: 'var(--accent-red)' },
+  { id: 'rerouted', label: 'Rerouted', key: 'R', color: 'var(--accent-blue)' },
+  { id: 'disrupted', label: 'Disrupted', key: 'X', color: 'var(--accent-amber)' },
+];
+
+function MiniSparkline({ status, shipments }) {
+  const last20 = shipments.slice(-20);
+  return (
+    <div className="flex gap-[1px] h-2 px-1">
+      {last20.map((s, i) => (
+        <div
+          key={i}
+          className="w-[3px] rounded-t-[1px]"
+          style={{
+            height: '7px',
+            backgroundColor: s.status === status ? 'currentColor' : 'rgba(255,255,255,0.05)'
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ShipmentFilters({ onFilterChange }) {
+  const [activeFilter, setActiveFilter] = useState('all');
+  const shipments = useShipmentStore((s) => s.shipments);
+
+  const handleFilter = (filter) => {
+    setActiveFilter(filter);
+    onFilterChange(filter);
+  };
+
+  return (
+    <div className="space-y-1">
+      {STATUS_FILTERS.map((f) => {
+        const active = activeFilter === f.id;
+        const count = f.id === 'all'
+          ? shipments.length
+          : shipments.filter(s => s.status === f.id).length;
+
+        return (
+          <button
+            key={f.id}
+            onClick={() => handleFilter(f.id)}
+            style={{ color: f.color }}
+            className={`w-full group flex flex-col items-start gap-1 p-2 rounded-lg transition-all relative ${active ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
+          >
+            <div className="w-full flex items-center justify-between">
+              <span className={`text-[11px] font-bold tracking-tight uppercase ${active ? '' : 'text-[var(--text-muted)]'}`}>
+                {f.label} <span className="text-[9px] opacity-40 ml-1 font-mono">[{f.key}]</span>
+              </span>
+              <span className="text-[11px] font-mono opacity-50">{count}</span>
+            </div>
+            {f.id !== 'all' && (
+              <MiniSparkline status={f.id} shipments={shipments} />
+            )}
+            {active && (
+              <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full shadow-[0_-2px_6px_currentColor]" style={{ backgroundColor: 'currentColor' }} />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Home() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [simulationControlsOpen, setSimulationControlsOpen] = useState(false);
@@ -46,6 +115,8 @@ export default function Home() {
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [globalStats, setGlobalStats] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
   const isGlobeActive = globeEnabled && isPageVisible;
   const shouldLoadGlobe = globeEnabled;
   const shipments = useShipmentStore((s) => s.shipments);
@@ -127,30 +198,59 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadAnalytics = async () => {
+      try {
+        const response = await fetch('/api/analytics', { cache: 'no-store' });
+        const payload = await response.json();
+        if (!cancelled) {
+          setAnalyticsData(payload?.data || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setAnalyticsData(null);
+        }
+      }
+    };
+    loadAnalytics();
+    const interval = setInterval(() => loadAnalytics().catch(() => {}), 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div data-globe="true" className="flex flex-col h-screen w-screen overflow-hidden bg-[#020617]">
       <NavBar />
       <div className="relative flex-1 overflow-hidden">
         <Toaster position="bottom-right" theme="dark" />
-        <div className="absolute left-4 top-4 z-20 pointer-events-none">
-          <div className="pointer-events-auto liquid-glass relative px-5 py-4 min-w-[280px]">
+        <div className="absolute left-4 top-4 z-20 pointer-events-none flex flex-col gap-4">
+          <div className="pointer-events-auto liquid-glass relative px-5 py-4 min-w-[280px] space-y-3">
             <div className="text-[10px] uppercase tracking-[0.24em] text-[var(--accent-cyan)] font-bold">Pipeline Impact</div>
             <div className="mt-2 text-base font-semibold text-[var(--text-primary)] tracking-tight">
               Cargo under protection: ${(cargoUnderProtectionUSD / 1e6).toFixed(1)}M
             </div>
-            <div className="mt-1 text-xs text-[var(--text-secondary)]">
+            <div className="text-xs text-[var(--text-secondary)]">
               across {activeShipments.length} active shipments · {shipments.filter((s) => s.status !== 'delivered').length} monitored
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold">
+            <div className="flex flex-wrap gap-2 text-[10px] font-bold">
               <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
-                Sessions run: {globalStats?.totalResolutions ?? 0}
+                MTTD: {analyticsData?.mttdMinutes ?? '--'}m
               </span>
               <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
-                Human hours saved: {globalStats?.humanHoursSaved ?? 0}
+                MTTR: {analyticsData?.mttrMinutes ?? '--'}m
               </span>
               <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)] px-2.5 py-1.5 text-[var(--text-secondary)] shadow-sm">
-                Total analyzed: ${((globalStats?.totalCargoAnalyzedUSD ?? 0) / 1e6).toFixed(1)}M
+                Saved: ${((analyticsData?.cargoSavedUSD ?? 0) / 1e6).toFixed(1)}M
               </span>
+            </div>
+          </div>
+          <div className="pointer-events-auto bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[180px] space-y-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 pl-1">Operational Filter</p>
+              <ShipmentFilters onFilterChange={setActiveFilter} />
             </div>
           </div>
         </div>
@@ -168,7 +268,7 @@ export default function Home() {
           <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable - WebGL may not be supported</div>}>
             <div className="absolute inset-0">
               {shouldLoadGlobe ? (
-                <GlobeView simulationControlsOpen={simulationControlsOpen} />
+                <GlobeView simulationControlsOpen={simulationControlsOpen} filter={activeFilter} />
               ) : (
                 <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>
               )}

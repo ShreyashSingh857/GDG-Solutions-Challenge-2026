@@ -94,7 +94,7 @@ function getRoutePoints(shipment, reroutedRoute) {
   return points.filter((point) => isValidCoord(point.lat, point.lon));
 }
 
-export default function GlobeView({ simulationControlsOpen = false }) {
+export default function GlobeView({ simulationControlsOpen = false, filter: externalFilter }) {
   const cRef = useRef(null);
   const vRef = useRef(null);
   const hoverRafRef = useRef(null);
@@ -111,7 +111,9 @@ export default function GlobeView({ simulationControlsOpen = false }) {
   const idleTimerRef = useRef(null);
   const isRotatingRef = useRef(false);
   const resetIdleTimerRef = useRef(null);
-  const [f, setF] = useState('all');
+  const [internalFilter, setInternalFilter] = useState('all');
+  const f = externalFilter ?? internalFilter;
+  const setF = externalFilter ? () => {} : setInternalFilter;
   const [t, setT] = useState(null);
   const [zoomLevel, setZoomLevel] = useState('far');
   const [viewerEpoch, setViewerEpoch] = useState(0);
