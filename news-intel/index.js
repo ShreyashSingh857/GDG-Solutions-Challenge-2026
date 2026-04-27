@@ -57,17 +57,18 @@ try {
   const schedule = process.env.NEWS_CRON_SCHEDULE ?? '*/15 * * * *';
   const pollIntervalMs = Number.parseInt(process.env.NEWS_POLL_INTERVAL_MS ?? '', 10);
 
-  setTimeout(() => {
+  const jitterTimer = setTimeout(() => {
     runPollCycle().catch((err) => {
       console.error('[NewsIntel] Initial poll failed:', err.message);
     });
 
     if (Number.isFinite(pollIntervalMs) && pollIntervalMs > 0) {
-      setInterval(() => {
+      const interval = setInterval(() => {
         runPollCycle().catch((err) => {
           console.error('[NewsIntel] Scheduled poll failed:', err.message);
         });
       }, pollIntervalMs);
+      interval.unref?.();
       logger.info('Scheduler active', { mode: 'interval', pollIntervalMs });
       return;
     }
@@ -80,6 +81,7 @@ try {
 
     logger.info('Scheduler active', { mode: 'cron', schedule });
   }, jitterMs);
+  jitterTimer.unref?.();
 } catch (err) {
   app.log.error(err);
   process.exit(1);

@@ -83,88 +83,87 @@ export async function runPollCycle() {
   console.log('[NewsAgent] Poll cycle started');
 
   setLastCycleStats({ isRunning: true });
+  try {
+    const [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult] = await Promise.allSettled([
+      fetchGdeltArticles(lastGdeltFetch),
+      fetchNewsApiArticles(),
+      fetchGdacsAlerts(),
+      fetchReutersShippingNews(),
+      fetchMaritimeNews(),
+      fetchLloydsListHeadlines(),
+      fetchStrikeAlerts(),
+    ]);
 
-  const [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult] = await Promise.allSettled([
-    fetchGdeltArticles(lastGdeltFetch),
-    fetchNewsApiArticles(),
-    fetchGdacsAlerts(),
-    fetchReutersShippingNews(),
-    fetchMaritimeNews(),
-    fetchLloydsListHeadlines(),
-    fetchStrikeAlerts(),
-  ]);
+    lastGdeltFetch = new Date();
 
-  lastGdeltFetch = new Date();
-
-  const sourceResults = [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult];
-  const failureCount = sourceResults.filter((result) => result.status === 'rejected').length;
+    const sourceResults = [gdeltResult, newsApiResult, gdacsResult, reutersResult, maritimeResult, lloydsResult, strikeResult];
+    const failureCount = sourceResults.filter((result) => result.status === 'rejected').length;
 
   // Cap total articles per cycle to bound peak RAM usage
-  const allArticles = [
-    ...(gdeltResult.status === 'fulfilled' ? gdeltResult.value : []),
-    ...(newsApiResult.status === 'fulfilled' ? newsApiResult.value : []),
-    ...(gdacsResult.status === 'fulfilled' ? gdacsResult.value : []),
-    ...(reutersResult.status === 'fulfilled' ? reutersResult.value : []),
-    ...(maritimeResult.status === 'fulfilled' ? maritimeResult.value : []),
-    ...(lloydsResult.status === 'fulfilled' ? lloydsResult.value : []),
-    ...(strikeResult.status === 'fulfilled' ? strikeResult.value : []),
-  ].slice(0, MAX_ARTICLES_PER_CYCLE);
+    const allArticles = [
+      ...(gdeltResult.status === 'fulfilled' ? gdeltResult.value : []),
+      ...(newsApiResult.status === 'fulfilled' ? newsApiResult.value : []),
+      ...(gdacsResult.status === 'fulfilled' ? gdacsResult.value : []),
+      ...(reutersResult.status === 'fulfilled' ? reutersResult.value : []),
+      ...(maritimeResult.status === 'fulfilled' ? maritimeResult.value : []),
+      ...(lloydsResult.status === 'fulfilled' ? lloydsResult.value : []),
+      ...(strikeResult.status === 'fulfilled' ? strikeResult.value : []),
+    ].slice(0, MAX_ARTICLES_PER_CYCLE);
 
-  if (gdeltResult.status === 'rejected') {
-    console.warn('[NewsAgent] GDELT fetch failed:', gdeltResult.reason?.message);
-  }
-  if (newsApiResult.status === 'rejected') {
-    console.warn('[NewsAgent] NewsAPI fetch failed:', newsApiResult.reason?.message);
-  }
-  if (gdacsResult.status === 'rejected') {
-    console.warn('[NewsAgent] GDACS fetch failed:', gdacsResult.reason?.message);
-  }
-  if (reutersResult.status === 'rejected') {
-    console.warn('[NewsAgent] Reuters RSS fetch failed:', reutersResult.reason?.message);
-  }
-  if (maritimeResult.status === 'rejected') {
-    console.warn('[NewsAgent] Maritime RSS fetch failed:', maritimeResult.reason?.message);
-  }
-  if (lloydsResult.status === 'rejected') {
-    console.warn('[NewsAgent] Lloyds headline fetch failed:', lloydsResult.reason?.message);
-  }
-  if (strikeResult.status === 'rejected') {
-    console.warn('[NewsAgent] Strike alert fetch failed:', strikeResult.reason?.message);
-  }
+    if (gdeltResult.status === 'rejected') {
+      console.warn('[NewsAgent] GDELT fetch failed:', gdeltResult.reason?.message);
+    }
+    if (newsApiResult.status === 'rejected') {
+      console.warn('[NewsAgent] NewsAPI fetch failed:', newsApiResult.reason?.message);
+    }
+    if (gdacsResult.status === 'rejected') {
+      console.warn('[NewsAgent] GDACS fetch failed:', gdacsResult.reason?.message);
+    }
+    if (reutersResult.status === 'rejected') {
+      console.warn('[NewsAgent] Reuters RSS fetch failed:', reutersResult.reason?.message);
+    }
+    if (maritimeResult.status === 'rejected') {
+      console.warn('[NewsAgent] Maritime RSS fetch failed:', maritimeResult.reason?.message);
+    }
+    if (lloydsResult.status === 'rejected') {
+      console.warn('[NewsAgent] Lloyds headline fetch failed:', lloydsResult.reason?.message);
+    }
+    if (strikeResult.status === 'rejected') {
+      console.warn('[NewsAgent] Strike alert fetch failed:', strikeResult.reason?.message);
+    }
 
   // Serial dedup check instead of Promise.all to avoid hundreds of
   // simultaneous Supabase connections exhausting the DB connection pool
-  const novel = [];
-  for (const article of allArticles) {
-    const duplicate = await isDuplicate(article.url);
-    if (!duplicate) novel.push(article);
-  }
-  console.log(`[NewsAgent] ${allArticles.length} fetched, ${novel.length} novel`);
+    const novel = [];
+    for (const article of allArticles) {
+      const duplicate = await isDuplicate(article.url);
+      if (!duplicate) novel.push(article);
+    }
+    console.log(`[NewsAgent] ${allArticles.length} fetched, ${novel.length} novel`);
 
-  if (!novel.length) {
-    const stats = {
-      fetched: allArticles.length,
-      classified: 0,
-      published: 0,
-      runAt: new Date().toISOString(),
-      isRunning: false,
-      sourcesPolled: sourceResults.length,
-      sourceFailures: failureCount,
-    };
-    setLastCycleStats(stats);
-    _cycleRunning = false;
-    return stats;
-  }
+    if (!novel.length) {
+      const stats = {
+        fetched: allArticles.length,
+        classified: 0,
+        published: 0,
+        runAt: new Date().toISOString(),
+        isRunning: false,
+        sourcesPolled: sourceResults.length,
+        sourceFailures: failureCount,
+      };
+      setLastCycleStats(stats);
+      return stats;
+    }
 
-  const batches = chunk(novel, MAX_ARTICLES_PER_CALL);
-  const classified = [];
+    const batches = chunk(novel, MAX_ARTICLES_PER_CALL);
+    const classified = [];
 
-  for (const batch of batches) {
-    const input = batch.map(({ url, headline, source, publishedAt }) => ({ url, headline, source, publishedAt }));
+    for (const batch of batches) {
+      const input = batch.map(({ url, headline, source, publishedAt }) => ({ url, headline, source, publishedAt }));
 
-    let results = [];
-    try {
-      const modelResult = await generateWithRetry(`${PROMPT}
+      let results = [];
+      try {
+        const modelResult = await generateWithRetry(`${PROMPT}
 
 ## Articles to Classify
 
@@ -173,60 +172,63 @@ ${JSON.stringify(input, null, 2)}`, PROMPT, {
         invokeModel: (retryPrompt) => generate(retryPrompt),
       });
 
-      const parsed = Array.isArray(modelResult.parsed) ? modelResult.parsed : [];
-      results = parsed.map((item, index) => {
-        const sourceArticle =
-          batch.find((article) => article.url === item?.sourceUrl)
-          || batch[index]
-          || batch[0]
-          || {};
-        const fallback = buildNewsFallback(sourceArticle);
-        const repaired = validateAndRepair(item, NEWS_ALERT_RESULT_SCHEMA, fallback);
-        if (repaired.errors.length) {
-          console.warn(`[NewsAgent] Repaired ${repaired.errors.length} fields for ${fallback.sourceUrl || 'unknown article'}`);
+        const parsed = Array.isArray(modelResult.parsed) ? modelResult.parsed : [];
+        results = parsed.map((item, index) => {
+          const sourceArticle =
+            batch.find((article) => article.url === item?.sourceUrl)
+            || batch[index]
+            || batch[0]
+            || {};
+          const fallback = buildNewsFallback(sourceArticle);
+          const repaired = validateAndRepair(item, NEWS_ALERT_RESULT_SCHEMA, fallback);
+          if (repaired.errors.length) {
+            console.warn(`[NewsAgent] Repaired ${repaired.errors.length} fields for ${fallback.sourceUrl || 'unknown article'}`);
+          }
+          return repaired.data;
+        });
+      } catch (err) {
+        console.error('[NewsAgent] Gemini classify failed for batch:', err.message);
+      }
+
+      await Promise.all(batch.map((article) => markProcessed(article.url)));
+
+      for (const result of results) {
+        const original = batch.find((article) => article.url === result.sourceUrl);
+        if (original) {
+          classified.push({ ...original, ...result });
         }
-        return repaired.data;
-      });
-    } catch (err) {
-      console.error('[NewsAgent] Gemini classify failed for batch:', err.message);
-    }
-
-    await Promise.all(batch.map((article) => markProcessed(article.url)));
-
-    for (const result of results) {
-      const original = batch.find((article) => article.url === result.sourceUrl);
-      if (original) {
-        classified.push({ ...original, ...result });
       }
     }
-  }
 
-  const actionable = classified.filter((item) => Number(item.relevanceScore) >= RELEVANCE_THRESHOLD);
-  console.log(`[NewsAgent] ${classified.length} classified, ${actionable.length} actionable`);
+    const actionable = classified.filter((item) => Number(item.relevanceScore) >= RELEVANCE_THRESHOLD);
+    console.log(`[NewsAgent] ${classified.length} classified, ${actionable.length} actionable`);
 
-  let published = 0;
-  for (const item of actionable) {
-    try {
-      await publishNewsAlert(item);
-      published += 1;
-    } catch (err) {
-      console.error(`[NewsAgent] Alert publish failed for ${item.sourceUrl}:`, err.message);
+    let published = 0;
+    for (const item of actionable) {
+      try {
+        await publishNewsAlert(item);
+        published += 1;
+      } catch (err) {
+        console.error(`[NewsAgent] Alert publish failed for ${item.sourceUrl}:`, err.message);
+      }
     }
-  }
 
-  console.log(`[NewsAgent] Cycle complete in ${Date.now() - startedAt}ms | published: ${published}`);
-  const stats = {
-    fetched: allArticles.length,
-    classified: classified.length,
-    published,
-    runAt: new Date().toISOString(),
-    isRunning: false,
-    sourcesPolled: sourceResults.length,
-    sourceFailures: failureCount,
-  };
-  setLastCycleStats(stats);
-  _cycleRunning = false;
-  return stats;
+    console.log(`[NewsAgent] Cycle complete in ${Date.now() - startedAt}ms | published: ${published}`);
+    const stats = {
+      fetched: allArticles.length,
+      classified: classified.length,
+      published,
+      runAt: new Date().toISOString(),
+      isRunning: false,
+      sourcesPolled: sourceResults.length,
+      sourceFailures: failureCount,
+    };
+    setLastCycleStats(stats);
+    return stats;
+  } finally {
+    _cycleRunning = false;
+    setLastCycleStats({ isRunning: false });
+  }
 }
 
 async function publishNewsAlert(item) {

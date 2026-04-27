@@ -24,6 +24,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8');
 const activeStreams = new Map();
 const completedStreams = new Map();
+const streamTouchedAt = new Map();
 
 let _subscription = null;
 let _lastMessageAt = null;
@@ -33,12 +34,35 @@ const HEALTH_CHECK_INTERVAL = 60000;
 const STALE_THRESHOLD = 300000;
 const STREAM_TTL_MS = 300000;
 const STREAM_TEXT_CAP = 50_000; // max chars kept in activeStreams (≈50 KB)
+const MAX_STREAM_ENTRIES = Number.parseInt(process.env.RESOLUTION_STREAM_MAX_ENTRIES ?? '200', 10);
+
+function touchStream(traceId) {
+	if (!activeStreams.has(traceId) && !completedStreams.has(traceId)) return;
+	streamTouchedAt.set(traceId, Date.now());
+}
+
+function removeStream(traceId) {
+	activeStreams.delete(traceId);
+	completedStreams.delete(traceId);
+	streamTouchedAt.delete(traceId);
+}
+
+function pruneStreams() {
+	if (streamTouchedAt.size <= MAX_STREAM_ENTRIES) return;
+	const oldest = [...streamTouchedAt.entries()].sort((a, b) => a[1] - b[1]);
+	const removeCount = streamTouchedAt.size - MAX_STREAM_ENTRIES;
+	for (let i = 0; i < removeCount; i += 1) {
+		removeStream(oldest[i][0]);
+	}
+}
 
 export function getStreamText(traceId) {
+	touchStream(traceId);
 	return activeStreams.get(traceId) ?? null;
 }
 
 export function isStreamComplete(traceId) {
+	touchStream(traceId);
 	return Boolean(completedStreams.get(traceId));
 }
 
@@ -372,6 +396,8 @@ async function processImpactReport(agentPayload) {
 	// functional without accumulating unbounded strings in RAM.
 	activeStreams.set(traceId, '');
 	completedStreams.set(traceId, false);
+	touchStream(traceId);
+	pruneStreams();
 
 	let parseError = null;
 	let parseRetries = 0;
@@ -387,10 +413,12 @@ async function processImpactReport(agentPayload) {
 		parseRetries = Math.max(0, modelResult.attempts - 1);
 		// Cap text stored in the in-process Map to prevent memory bloat
 		activeStreams.set(traceId, modelOutput.slice(0, STREAM_TEXT_CAP));
+		touchStream(traceId);
 	} catch (err) {
 		parseError = err.message;
 		modelOutput = String(err.rawModelResponse || '');
 		activeStreams.set(traceId, modelOutput.slice(0, STREAM_TEXT_CAP));
+		touchStream(traceId);
 	}
 
 	const { options: validatedOptions, repairErrors } = buildValidatedResolutionOptions({
@@ -519,10 +547,10 @@ async function processImpactReport(agentPayload) {
 
 	setLastEventAt(nowIso);
 	completedStreams.set(traceId, true);
+	touchStream(traceId);
 
 	setTimeout(() => {
-		activeStreams.delete(traceId);
-		completedStreams.delete(traceId);
+		removeStream(traceId);
 	}, STREAM_TTL_MS);
 }
 
@@ -561,11 +589,12 @@ export function startResolutionSubscriber() {
 
 	connect();
 
-	setInterval(() => {
+	const healthCheckTimer = setInterval(() => {
 		const stale = _lastMessageAt && Date.now() - _lastMessageAt > STALE_THRESHOLD;
 		if (stale || !_subscription || _subscription.readyState === 2) {
 			console.warn('[ResolutionService] SSE connection stale, reconnecting...');
 			connect();
 		}
 	}, HEALTH_CHECK_INTERVAL);
+	healthCheckTimer.unref?.();
 }

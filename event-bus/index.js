@@ -16,6 +16,32 @@ startTelemetry('event-bus');
 const startTime = Date.now();
 const deadLetterLog = [];
 let lastEventAt = null;
+const MAX_SSE_CLIENTS_TOTAL = Number.parseInt(process.env.EVENT_BUS_MAX_SSE_CLIENTS ?? '250', 10);
+const MAX_SSE_CLIENTS_PER_TOPIC = Number.parseInt(process.env.EVENT_BUS_MAX_SSE_CLIENTS_PER_TOPIC ?? '100', 10);
+const sseClientsByTopic = new Map();
+
+function getSseClientCount(topic) {
+  return (sseClientsByTopic.get(topic) || 0);
+}
+
+function addSseClient(topic) {
+  const next = getSseClientCount(topic) + 1;
+  sseClientsByTopic.set(topic, next);
+}
+
+function removeSseClient(topic) {
+  const current = getSseClientCount(topic);
+  const next = Math.max(0, current - 1);
+  if (next === 0) {
+    sseClientsByTopic.delete(topic);
+  } else {
+    sseClientsByTopic.set(topic, next);
+  }
+}
+
+function getTotalSseClients() {
+  return [...sseClientsByTopic.values()].reduce((sum, count) => sum + count, 0);
+}
 
 app.addHook('onRequest', async (req) => {
   req._startAt = Date.now();
@@ -86,6 +112,13 @@ app.get('/subscribe/:topic', async (req, reply) => {
     return reply.status(400).send({ error: `Unknown topic: ${topic}` });
   }
 
+  if (getTotalSseClients() >= MAX_SSE_CLIENTS_TOTAL) {
+    return reply.status(503).send({ error: 'SSE capacity reached. Retry later.' });
+  }
+  if (getSseClientCount(topic) >= MAX_SSE_CLIENTS_PER_TOPIC) {
+    return reply.status(503).send({ error: `SSE capacity reached for topic: ${topic}` });
+  }
+
   // Set SSE headers
   reply.raw.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -105,19 +138,27 @@ app.get('/subscribe/:topic', async (req, reply) => {
   // Subscribe to live events
   const onMessage = (message) => send({ type: 'event', ...message });
   broker.on(topic, onMessage);
+  addSseClient(topic);
 
-  // Clean up on disconnect
-  req.raw.on('close', () => {
-    broker.off(topic, onMessage);
-    console.log(`[EventBus] SSE client disconnected from topic: ${topic}`);
-  });
-
-  // Keep-alive ping every 30 seconds
+  let closed = false;
   const keepAlive = setInterval(() => {
-    reply.raw.write(': ping\n\n');
+    if (!closed) {
+      reply.raw.write(': ping\n\n');
+    }
   }, 30000);
 
-  req.raw.on('close', () => clearInterval(keepAlive));
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    broker.off(topic, onMessage);
+    clearInterval(keepAlive);
+    removeSseClient(topic);
+    console.log(`[EventBus] SSE client disconnected from topic: ${topic}`);
+  };
+
+  req.raw.on('close', cleanup);
+  req.raw.on('error', cleanup);
+  reply.raw.on('error', cleanup);
 });
 
 app.get('/replay/:topic', async (req, reply) => {
@@ -146,6 +187,10 @@ app.get('/metrics', async (req, reply) => {
       Object.values(TOPICS).map((t) => [t, broker.getReplay(t).length])
     ),
     deadLetters: deadLetterLog.length,
+    sseClientsTotal: getTotalSseClients(),
+    sseClientsByTopic: Object.fromEntries(
+      Object.values(TOPICS).map((t) => [t, getSseClientCount(t)])
+    ),
   }));
 });
 
