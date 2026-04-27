@@ -31,6 +31,20 @@ function setLocalSetting(key, value) {
   window.localStorage.setItem(key, value);
 }
 
+function getStoredApiKeySecrets() {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(window.localStorage.getItem('gdg_api_key_secrets') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function setStoredApiKeySecrets(secrets) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem('gdg_api_key_secrets', JSON.stringify(secrets));
+}
+
 function ApiKeysSection() {
   const [keys, setKeys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +52,7 @@ function ApiKeysSection() {
   const [newLabel, setNewLabel] = useState('');
   const [newKey, setNewKey] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [revealedKeys, setRevealedKeys] = useState({});
 
   const getHeaders = async (includeContentType = false) => {
     const orgId = typeof window !== 'undefined'
@@ -60,6 +75,8 @@ function ApiKeysSection() {
 
   useEffect(() => {
     let cancelled = false;
+
+    setRevealedKeys(getStoredApiKeySecrets());
 
     async function loadInitialKeys() {
       setLoading(true);
@@ -98,6 +115,11 @@ function ApiKeysSection() {
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || 'Failed to create key');
       setNewKey(payload.data.key);
+      setRevealedKeys((prev) => {
+        const next = { ...prev, [payload.data.id]: payload.data.key };
+        setStoredApiKeySecrets(next);
+        return next;
+      });
       setKeys((prev) => [payload.data, ...prev]);
       setNewLabel('');
     } catch (error) {
@@ -203,8 +225,26 @@ function ApiKeysSection() {
                 </p>
               </div>
               <code className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-elevated)] px-2 py-1 rounded-lg">
-                ot-••••••••
+                {revealedKeys[k.id] ? revealedKeys[k.id] : 'ot-••••••••'}
               </code>
+              <button
+                onClick={() => {
+                  const secret = revealedKeys[k.id];
+                  if (secret) {
+                    copyKey(secret);
+                  } else {
+                    import('sonner').then(({ toast }) => {
+                      toast.info('This key can only be copied when it is first generated.');
+                    });
+                  }
+                }}
+                className={`p-1.5 rounded-lg border transition-all ${revealedKeys[k.id] ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 border-[var(--border-subtle)] bg-[var(--bg-elevated)]' : 'text-[var(--text-muted)] border-transparent bg-transparent opacity-50 cursor-not-allowed'}`}
+                title={revealedKeys[k.id] ? 'Copy generated key' : 'Key can only be copied when first generated'}
+                disabled={!revealedKeys[k.id]}
+                aria-label={`Copy key for ${k.label}`}
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={() => revoke(k.id)}
                 className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red)]/10 transition-all"
