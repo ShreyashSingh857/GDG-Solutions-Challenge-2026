@@ -94,7 +94,7 @@ function getRoutePoints(shipment, reroutedRoute) {
   return points.filter((point) => isValidCoord(point.lat, point.lon));
 }
 
-export default function GlobeView() {
+export default function GlobeView({ simulationControlsOpen = false }) {
   const cRef = useRef(null);
   const vRef = useRef(null);
   const hoverRafRef = useRef(null);
@@ -832,6 +832,7 @@ export default function GlobeView() {
         onFilterChange={setF}
         globeSettings={globeSettings}
         onGlobeSettingsChange={setGlobeSettings}
+        showSimulationControls={simulationControlsOpen}
       />
       <div ref={cRef} className="h-full w-full" />
       <div 

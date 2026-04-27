@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Toaster } from 'sonner';
+import { Play } from 'lucide-react';
 import { useAlertStore } from './store/alertStore.js';
 import AgentStatusBadge from './components/agent/AgentStatusBadge.jsx';
 import AgentTrigger from './components/AgentTrigger.jsx';
@@ -39,6 +40,7 @@ const MobileView = dynamic(() => import('./components/globe/MobileView.jsx'), {
 
 export default function Home() {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [simulationControlsOpen, setSimulationControlsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('agent');
   const [globeEnabled, setGlobeEnabled] = useState(true);
   const [isPageVisible, setIsPageVisible] = useState(true);
@@ -166,7 +168,7 @@ export default function Home() {
           <ErrorBoundary fallback={<div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40 text-sm">Globe unavailable - WebGL may not be supported</div>}>
             <div className="absolute inset-0">
               {shouldLoadGlobe ? (
-                <GlobeView />
+                <GlobeView simulationControlsOpen={simulationControlsOpen} />
               ) : (
                 <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>
               )}
@@ -201,6 +203,15 @@ export default function Home() {
           </div>
         )}
         <div className="absolute top-4 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
+          <button
+            onClick={() => setSimulationControlsOpen((prev) => !prev)}
+            className={`pointer-events-auto liquid-glass px-4 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 transition-all ${simulationControlsOpen ? 'border-[var(--accent-cyan)]/40 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            title={simulationControlsOpen ? 'Hide simulation controls' : 'Show simulation controls'}
+            aria-label="Toggle simulation controls"
+          >
+            <Play className="w-3.5 h-3.5" />
+            Simulation
+          </button>
           <div className="pointer-events-auto">
             <GlobeActivationToggle
               isActive={globeEnabled}

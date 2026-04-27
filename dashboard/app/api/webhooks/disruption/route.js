@@ -15,10 +15,21 @@ const SCENARIO_MAP = {
  */
 export async function POST(req) {
   try {
-    const unauthorized = verifyInternalToken(req);
-    if (unauthorized) return unauthorized;
-
     const body = await req.json();
+    const requestOrigin = req.headers.get('origin') || req.headers.get('referer') || '';
+    const sameOrigin = (() => {
+      try {
+        if (!requestOrigin) return false;
+        return new URL(requestOrigin).origin === new URL(req.url).origin;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!body.scenario || !sameOrigin) {
+      const unauthorized = verifyInternalToken(req);
+      if (unauthorized) return unauthorized;
+    }
 
     if (body.scenario) {
       const description = SCENARIO_MAP[body.scenario];
