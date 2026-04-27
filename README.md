@@ -51,6 +51,8 @@ OpenTrade operates on a resilient, event-driven microservices architecture:
 
 ## Endpoints
 
+Developer onboarding and API call examples are documented in **DEVELOPERS_GUIDE.md**.
+
 ### 1. Dashboard (Next.js - API v1)
 Provides the public REST API and frontend integration.
 - `GET /api/v1/shipments`: List shipments (paginated)

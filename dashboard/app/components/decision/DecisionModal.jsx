@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { collection, limit, onSnapshot, query, where } from 'firebase/firestore';
-import { X, ShieldAlert, Cpu, ShieldCheck } from 'lucide-react';
+import { X, ShieldAlert, Cpu, ShieldCheck, FileText } from 'lucide-react';
 import { useAlertStore } from '../../store/alertStore.js';
 import { db, isFirebaseConfigured } from '../../lib/firebase.js';
 import OptionCard from './OptionCard.jsx';
@@ -54,6 +54,50 @@ function LoadingSkeleton({ stage, onDismiss }) {
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+function ReportButton({ disruption, resolution, options, impactReport, traceId }) {
+  const [loading, setLoading] = useState(false);
+
+  const generate = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disruption, resolution, options, impactReport }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok || payload.error || !payload.report) {
+        toast.error(payload.error || 'Report generation failed');
+        return;
+      }
+
+      const { generateReportPdf } = await import('../../lib/generateReportPdf.js');
+      const doc = generateReportPdf({ reportText: payload.report, disruption, traceId });
+      const filename = `opentrade-report-${traceId || Date.now()}.pdf`;
+      doc.save(filename);
+      toast.success('Report downloaded');
+    } catch {
+      toast.error('Failed to generate report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={generate}
+      disabled={loading}
+      className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 transition-all text-[10px] font-bold uppercase tracking-widest disabled:opacity-40"
+    >
+      {loading
+        ? <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--accent-cyan)] border-t-transparent animate-spin" />
+        : <FileText className="w-3.5 h-3.5" />}
+      {loading ? 'Generating...' : 'Export Report'}
+    </button>
   );
 }
 
@@ -235,6 +279,13 @@ export default function DecisionModal() {
                     </p>
                   </div>
                   <div className="pt-4 flex gap-4">
+                    <ReportButton
+                      disruption={disruption}
+                      resolution={activeResolution?.options?.[approvedRank - 1] || activeResolution?.options?.[0]}
+                      options={activeResolution?.options || []}
+                      impactReport={activeResolution?.impactReport}
+                      traceId={activeResolution?.traceId}
+                    />
                     <button 
                       onClick={clearActiveDisruption}
                       className="px-8 py-3 rounded-xl bg-[var(--accent-cyan)] text-[#020617] text-xs font-bold uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-cyan-500/10"
@@ -305,6 +356,14 @@ export default function DecisionModal() {
                         Strategy synthesis derived from real-time maritime tracking and predictive weather modeling. Trace: <span className="font-mono opacity-60">{traceId}</span>
                       </p>
                     </div>
+
+                    <ReportButton
+                      disruption={disruption}
+                      resolution={activeResolution?.options?.[0]}
+                      options={activeResolution?.options || []}
+                      impactReport={activeResolution?.impactReport}
+                      traceId={activeResolution?.traceId}
+                    />
                   </div>
                 </>
               )}

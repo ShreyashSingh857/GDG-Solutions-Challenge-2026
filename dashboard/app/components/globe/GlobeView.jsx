@@ -115,6 +115,12 @@ export default function GlobeView() {
   const [t, setT] = useState(null);
   const [zoomLevel, setZoomLevel] = useState('far');
   const [viewerEpoch, setViewerEpoch] = useState(0);
+  const [globeSettings, setGlobeSettings] = useState({
+    terrain: 'terrain',
+    imagery: 'satellite',
+    arcSpeed: 1,
+    labels: true,
+  });
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow);
   const disruptions = useAlertStore((x) => x.disruptions);
@@ -303,6 +309,56 @@ export default function GlobeView() {
   }, [resetIdleTimer, setLastInteraction, setZoomLevelDebounced, stopAutoRotate]);
 
   useEffect(() => {
+    const viewer = vRef.current;
+    if (!viewer) return;
+
+    const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
+    viewer.imageryLayers.removeAll();
+
+    if (globeSettings.imagery === 'satellite' && ionToken) {
+      viewer.imageryLayers.add(ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS }));
+    } else {
+      viewer.imageryLayers.addImageryProvider(
+        new UrlTemplateImageryProvider({
+          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: ['a', 'b', 'c'],
+          maximumLevel: 19,
+          credit: 'Map data © OpenStreetMap contributors',
+        })
+      );
+    }
+
+    viewer.scene.requestRender();
+  }, [globeSettings.imagery, viewerEpoch]);
+
+  useEffect(() => {
+    const viewer = vRef.current;
+    if (!viewer) return;
+
+    const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
+    if (globeSettings.terrain === 'flat' || !ionToken) {
+      viewer.terrainProvider = new EllipsoidTerrainProvider();
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+      viewer.scene.requestRender();
+      return;
+    }
+
+    let cancelled = false;
+    createWorldTerrainAsync({ requestVertexNormals: true, requestWaterMask: true })
+      .then((terrainProvider) => {
+        if (cancelled || !vRef.current) return;
+        vRef.current.terrainProvider = terrainProvider;
+        vRef.current.scene.globe.depthTestAgainstTerrain = true;
+        vRef.current.scene.requestRender();
+      })
+      .catch(() => null);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [globeSettings.terrain, viewerEpoch]);
+
+  useEffect(() => {
     const onVisibility = () => {
       if (!vRef.current) return;
       if (document.hidden) {
@@ -473,12 +529,42 @@ export default function GlobeView() {
   }, [f, groupedRoutes, viewerEpoch]);
 
   useEffect(() => {
-    const show = zoomLevel !== 'far';
+    if (!vRef.current) return;
+    const viewer = vRef.current;
+    const routeEntities = entityMapRef.current;
+    const colorMap = { active: C.active, delayed: C.delayed, rerouted: C.rerouted, disrupted: C.disrupted };
+    const statusByRoute = new Map(groupedRoutes.map((route) => [route.routeKey, route.status]));
+    let frameId = null;
+
+    const animate = (timestamp) => {
+      let index = 0;
+      for (const [routeKey, refs] of routeEntities) {
+        if (!refs.arc?.polyline) continue;
+        const status = statusByRoute.get(routeKey) || 'active';
+        const isVisible = f === 'all' || status === f;
+        if (!isVisible) continue;
+
+        const wave = 0.62 + 0.22 * Math.sin((timestamp / 1000) * globeSettings.arcSpeed + index * 0.6);
+        refs.arc.polyline.material = Color.fromCssColorString(colorMap[status] || C.active).withAlpha(wave);
+        index += 1;
+      }
+      viewer.scene.requestRender();
+      frameId = requestAnimationFrame(animate);
+    };
+
+    frameId = requestAnimationFrame(animate);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+    };
+  }, [f, groupedRoutes, globeSettings.arcSpeed, viewerEpoch]);
+
+  useEffect(() => {
+    const show = globeSettings.labels && zoomLevel !== 'far';
     for (const entity of portLabelEntitiesRef.current.values()) {
       entity.show = new ConstantProperty(show);
     }
     vRef.current?.scene.requestRender();
-  }, [zoomLevel, viewerEpoch]);
+  }, [zoomLevel, globeSettings.labels, viewerEpoch]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -742,7 +828,11 @@ export default function GlobeView() {
 
   return (
     <div className="relative w-full h-full bg-[#020617]">
-      <GlobeControls onFilterChange={setF} />
+      <GlobeControls
+        onFilterChange={setF}
+        globeSettings={globeSettings}
+        onGlobeSettingsChange={setGlobeSettings}
+      />
       <div ref={cRef} className="h-full w-full" />
       <div 
         ref={tooltipRef} 

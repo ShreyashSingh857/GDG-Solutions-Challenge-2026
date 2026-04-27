@@ -31,7 +31,11 @@ function MiniSparkline({ status, shipments }) {
   );
 }
 
-export default function GlobeControls({ onFilterChange }) {
+export default function GlobeControls({
+  onFilterChange,
+  globeSettings = { terrain: 'terrain', imagery: 'satellite', arcSpeed: 1, labels: true },
+  onGlobeSettingsChange = () => {},
+}) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [injecting, setInjecting] = useState(null);
   const shipments = useShipmentStore((s) => s.shipments);
@@ -129,6 +133,69 @@ export default function GlobeControls({ onFilterChange }) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl space-y-4 min-w-[180px]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] pl-1">Globe Quality</p>
+
+        <div className="space-y-1.5">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] pl-1">Terrain</p>
+          {[
+            { id: 'flat', label: 'Flat', sub: 'Fastest' },
+            { id: 'terrain', label: '3D Terrain', sub: 'Recommended' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => onGlobeSettingsChange({ ...globeSettings, terrain: opt.id })}
+              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all ${globeSettings.terrain === opt.id ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/20' : 'text-[var(--text-muted)] hover:bg-white/5 border border-transparent'}`}
+            >
+              <span>{opt.label}</span>
+              <span className="text-[9px] opacity-50 font-normal">{opt.sub}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] pl-1">Imagery</p>
+          {[
+            { id: 'satellite', label: 'Satellite' },
+            { id: 'street', label: 'Street Map' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => onGlobeSettingsChange({ ...globeSettings, imagery: opt.id })}
+              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all ${globeSettings.imagery === opt.id ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/20' : 'text-[var(--text-muted)] hover:bg-white/5 border border-transparent'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between pl-1">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Arc Speed</p>
+            <span className="text-[9px] font-mono text-[var(--text-muted)]">{globeSettings.arcSpeed}x</span>
+          </div>
+          <input
+            type="range"
+            min="0.5"
+            max="3"
+            step="0.5"
+            value={globeSettings.arcSpeed}
+            onChange={(e) => onGlobeSettingsChange({ ...globeSettings, arcSpeed: Number(e.target.value) })}
+            className="w-full h-1 appearance-none bg-[var(--bg-elevated)] rounded-full cursor-pointer accent-[var(--accent-cyan)]"
+          />
+        </div>
+
+        <button
+          onClick={() => onGlobeSettingsChange({ ...globeSettings, labels: !globeSettings.labels })}
+          className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] font-bold text-[var(--text-muted)] hover:bg-white/5 transition-all"
+        >
+          <span>Port Labels</span>
+          <div className={`w-8 h-4 rounded-full transition-colors relative ${globeSettings.labels ? 'bg-[var(--accent-cyan)]' : 'bg-[var(--bg-elevated)] border border-[var(--border-subtle)]'}`}>
+            <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${globeSettings.labels ? 'left-4' : 'left-0.5'}`} />
+          </div>
+        </button>
       </div>
     </div>
   );

@@ -1,0 +1,120 @@
+{
+  "timestamp": "2026-04-27T13:24:16.707Z",
+  "traceId": "smoke-20260427-185416",
+  "files": {
+    "logPath": "docs/smoketest/smoke-20260427-185416.log",
+    "jsonPath": "docs/smoketest/smoke-20260427-185416.json"
+  },
+  "serviceChecks": [
+    {
+      "service": "event-bus",
+      "health": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 117,
+        "error": "fetch failed"
+      },
+      "metrics": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 5,
+        "error": "fetch failed"
+      }
+    },
+    {
+      "service": "disruption",
+      "health": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 3,
+        "error": "fetch failed"
+      },
+      "metrics": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 3,
+        "error": "fetch failed"
+      }
+    },
+    {
+      "service": "impact",
+      "health": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 6,
+        "error": "fetch failed"
+      },
+      "metrics": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 4,
+        "error": "fetch failed"
+      }
+    },
+    {
+      "service": "resolution",
+      "health": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 4,
+        "error": "fetch failed"
+      },
+      "metrics": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 6,
+        "error": "fetch failed"
+      }
+    },
+    {
+      "service": "news-intel",
+      "health": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 4,
+        "error": "fetch failed"
+      },
+      "metrics": {
+        "ok": false,
+        "status": 0,
+        "elapsedMs": 4,
+        "error": "fetch failed"
+      }
+    }
+  ],
+  "baselineMessageCounts": {},
+  "postDisruption": {
+    "ok": false,
+    "status": 0,
+    "elapsedMs": 11,
+    "error": "fetch failed"
+  },
+  "pollAttempts": 30,
+  "chainComplete": false,
+  "postMessageCounts": {},
+  "messageCountDelta": {
+    "disruption-events": 0,
+    "impact-reports": 0,
+    "resolution-options": 0,
+    "news-alerts": 0
+  },
+  "resolutionProbe": {
+    "ok": false,
+    "status": 0,
+    "elapsedMs": 16,
+    "optionCount": 0,
+    "firstTitle": null,
+    "error": "fetch failed"
+  },
+  "scraperChecks": {
+    "smokeScraper": {
+      "passed": true,
+      "exitCode": 0
+    },
+    "disruptionSmokes": {
+      "passed": true,
+      "exitCode": 0
+    }
+  },
+  "overallPass": false
+}

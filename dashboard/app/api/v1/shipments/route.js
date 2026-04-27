@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { adminDb } from '../../../../lib/firebase-admin.js';
 import { verifyApiKey } from '../_auth.js';
+import { handleOptions, withCors } from '../_cors.js';
 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
@@ -29,9 +30,13 @@ function toResponseShipment(id, data) {
   };
 }
 
+export async function OPTIONS(req) {
+  return handleOptions(req);
+}
+
 export async function GET(req) {
   const auth = await verifyApiKey(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  if (!auth.ok) return withCors(NextResponse.json({ error: auth.error }, { status: auth.status }), req);
 
   const { searchParams } = new URL(req.url);
   const pageSize = Math.min(Number(searchParams.get('pageSize') || DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
@@ -51,18 +56,18 @@ export async function GET(req) {
   const shipments = snap.docs.map((doc) => toResponseShipment(doc.id, doc.data()));
   const nextCursor = snap.docs.length ? snap.docs[snap.docs.length - 1].data().createdAt || null : null;
 
-  return NextResponse.json({ data: shipments, pagination: { pageSize, nextCursor } });
+  return withCors(NextResponse.json({ data: shipments, pagination: { pageSize, nextCursor } }), req);
 }
 
 export async function POST(req) {
   const auth = await verifyApiKey(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  if (!auth.ok) return withCors(NextResponse.json({ error: auth.error }, { status: auth.status }), req);
 
   const body = await req.json();
   const required = ['origin', 'destination', 'originLat', 'originLng', 'destLat', 'destLng', 'carrier', 'cargoValueUSD'];
   for (const field of required) {
     if (body[field] === undefined || body[field] === null || body[field] === '') {
-      return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
+      return withCors(NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 }), req);
     }
   }
 
@@ -114,5 +119,5 @@ export async function POST(req) {
     updated_at: shipment.updatedAt,
   }, { onConflict: 'id' }).then(() => null).catch(() => null);
 
-  return NextResponse.json({ data: toResponseShipment(id, shipment) }, { status: 201 });
+  return withCors(NextResponse.json({ data: toResponseShipment(id, shipment) }, { status: 201 }), req);
 }

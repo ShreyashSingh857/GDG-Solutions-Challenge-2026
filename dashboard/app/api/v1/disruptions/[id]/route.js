@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '../../../../../lib/firebase-admin.js';
 import { verifyApiKey } from '../../_auth.js';
+import { handleOptions, withCors } from '../../_cors.js';
+
+export async function OPTIONS(req) {
+  return handleOptions(req);
+}
 
 export async function GET(req, context) {
   const auth = await verifyApiKey(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  if (!auth.ok) return withCors(NextResponse.json({ error: auth.error }, { status: auth.status }), req);
 
   const { id } = await context.params;
   const disruptionDoc = await adminDb.collection('disruptions').doc(id).get();
   if (!disruptionDoc.exists) {
-    return NextResponse.json({ error: 'Disruption not found' }, { status: 404 });
+    return withCors(NextResponse.json({ error: 'Disruption not found' }, { status: 404 }), req);
   }
 
   const disruption = { id: disruptionDoc.id, ...disruptionDoc.data() };
@@ -32,5 +37,5 @@ export async function GET(req, context) {
     };
   }
 
-  return NextResponse.json({ data: { disruption, resolution } });
+  return withCors(NextResponse.json({ data: { disruption, resolution } }), req);
 }
