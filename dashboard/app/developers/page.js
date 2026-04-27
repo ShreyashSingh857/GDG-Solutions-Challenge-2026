@@ -209,9 +209,9 @@ export default function DevelopersPage() {
   ]), [baseUrl]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col">
+    <div className="h-screen bg-[var(--bg-base)] flex flex-col overflow-hidden">
       <NavBar />
-      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 space-y-16">
+      <main className="flex-1 min-h-0 overflow-y-auto custom-scrollbar max-w-4xl mx-auto w-full px-6 py-12 pb-16 space-y-16">
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--accent-cyan)]/30 bg-[var(--accent-cyan)]/5">
             <Zap className="w-3 h-3 text-[var(--accent-cyan)]" />
