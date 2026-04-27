@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle } from 'lucide-react';
+import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle, Code2 } from 'lucide-react';
 import { useAlertStore } from '../store/alertStore.js';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { motion } from 'framer-motion';
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/replay', label: 'Replay', icon: RotateCcw, section: 'analysis' },
   { href: '/visualize', label: 'Visualize', icon: Workflow, section: 'analysis' },
   { href: '/analytics', label: 'Analytics', icon: BarChart3, section: 'analysis' },
+  { href: '/developers', label: 'API', icon: Code2, section: 'analysis' },
   { href: '/health', label: 'System', icon: Activity, section: 'analysis' },
 ];
 

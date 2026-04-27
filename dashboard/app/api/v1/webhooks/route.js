@@ -1,19 +1,24 @@
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { verifyApiKey } from '../_auth.js';
+import { handleOptions, withCors } from '../_cors.js';
+
+export async function OPTIONS(req) {
+  return handleOptions(req);
+}
 
 export async function POST(req) {
   const auth = await verifyApiKey(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  if (!auth.ok) return withCors(NextResponse.json({ error: auth.error }, { status: auth.status }), req);
 
   const body = await req.json();
   if (!body?.url) {
-    return NextResponse.json({ error: 'url is required' }, { status: 400 });
+    return withCors(NextResponse.json({ error: 'url is required' }, { status: 400 }), req);
   }
 
   const event = body.event || 'resolution.ready';
   if (event !== 'resolution.ready') {
-    return NextResponse.json({ error: 'Unsupported event type' }, { status: 400 });
+    return withCors(NextResponse.json({ error: 'Unsupported event type' }, { status: 400 }), req);
   }
 
   const secret = body.secret || crypto.randomBytes(24).toString('hex');
@@ -31,8 +36,8 @@ export async function POST(req) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return withCors(NextResponse.json({ error: error.message }, { status: 500 }), req);
   }
 
-  return NextResponse.json({ data: { ...data, secret } }, { status: 201 });
+  return withCors(NextResponse.json({ data: { ...data, secret } }, { status: 201 }), req);
 }

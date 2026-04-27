@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Key, Plus, Trash2, Copy, Check } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { auth, db, isFirebaseConfigured } from '../lib/firebase.js';
@@ -29,6 +29,195 @@ function getLocalSetting(key, fallback) {
 function setLocalSetting(key, value) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(key, value);
+}
+
+function ApiKeysSection() {
+  const [keys, setKeys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newKey, setNewKey] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const getHeaders = async (includeContentType = false) => {
+    const orgId = typeof window !== 'undefined'
+      ? (window.localStorage.getItem('gdg_org_id') || process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || 'demo-org')
+      : (process.env.NEXT_PUBLIC_DEFAULT_ORG_ID || 'demo-org');
+    const headers = { 'x-org-id': orgId };
+    if (includeContentType) headers['Content-Type'] = 'application/json';
+
+    if (auth?.currentUser) {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+      } catch {
+        // Fall back to org header when token retrieval is unavailable.
+      }
+    }
+
+    return headers;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialKeys() {
+      setLoading(true);
+      try {
+        const headers = await getHeaders(false);
+        const res = await fetch('/api/auth/api-keys', { headers });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || 'Failed to load API keys');
+        if (!cancelled) setKeys(payload.data || []);
+      } catch (error) {
+        import('sonner').then(({ toast }) => {
+          toast.error(error.message || 'Failed to load API keys');
+        });
+        if (!cancelled) setKeys([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadInitialKeys();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const create = async () => {
+    if (!newLabel.trim()) return;
+    setCreating(true);
+    try {
+      const headers = await getHeaders(true);
+      const res = await fetch('/api/auth/api-keys', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ label: newLabel.trim() }),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Failed to create key');
+      setNewKey(payload.data.key);
+      setKeys((prev) => [payload.data, ...prev]);
+      setNewLabel('');
+    } catch (error) {
+      import('sonner').then(({ toast }) => {
+        toast.error(error.message || 'Failed to create key');
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const revoke = async (id) => {
+    if (!confirm('Revoke this key? Any integrations using it will stop working immediately.')) return;
+    try {
+      const headers = await getHeaders(false);
+      const res = await fetch(`/api/auth/api-keys?id=${id}`, { method: 'DELETE', headers });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Failed to revoke key');
+      setKeys((prev) => prev.filter((keyItem) => keyItem.id !== id));
+    } catch (error) {
+      import('sonner').then(({ toast }) => {
+        toast.error(error.message || 'Failed to revoke key');
+      });
+    }
+  };
+
+  const copyKey = async (keyValue) => {
+    try {
+      await navigator.clipboard.writeText(keyValue);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Key className="w-4 h-4 text-[var(--accent-cyan)]" />
+        <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">API Keys</h2>
+      </div>
+      <p className="text-[12px] text-[var(--text-muted)]">
+        Keys authenticate requests to the OpenTrade REST API.
+        See the <a href="/developers" className="text-[var(--accent-cyan)] underline">Developer Portal</a> for usage examples.
+      </p>
+
+      {newKey && (
+        <div className="border border-[var(--accent-green)]/40 bg-[var(--accent-green)]/5 rounded-xl p-4 space-y-2">
+          <p className="text-[11px] font-bold text-[var(--accent-green)] uppercase tracking-widest">
+            Copy this key now. It will not be shown again.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 font-mono text-[12px] text-[var(--text-primary)] break-all bg-[var(--bg-elevated)] px-3 py-2 rounded-lg">
+              {newKey}
+            </code>
+            <button
+              onClick={() => copyKey(newKey)}
+              className="p-2 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] hover:border-[var(--accent-cyan)]/40 transition-all"
+              aria-label="Copy API key"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-[var(--text-secondary)]" />}
+            </button>
+          </div>
+          <button onClick={() => setNewKey(null)} className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+            I have saved it
+          </button>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input
+          value={newLabel}
+          onChange={(e) => setNewLabel(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && create()}
+          placeholder="Key label (for example: Production, Zapier)"
+          className="flex-1 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-cyan)]/50 transition-colors"
+        />
+        <button
+          onClick={create}
+          disabled={creating || !newLabel.trim()}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent-cyan)] text-[#020617] text-[11px] font-extrabold uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-40"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          {creating ? 'Creating...' : 'Generate'}
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-[12px] text-[var(--text-muted)]">Loading keys...</p>
+      ) : keys.length === 0 ? (
+        <p className="text-[12px] text-[var(--text-muted)]">No API keys yet. Generate one above to get started.</p>
+      ) : (
+        <div className="space-y-2">
+          {keys.map((k) => (
+            <div key={k.id} className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/40">
+              <div className="w-2 h-2 rounded-full bg-[var(--accent-green)] shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-[var(--text-primary)] truncate">{k.label}</p>
+                <p className="text-[10px] text-[var(--text-muted)]">
+                  Created {new Date(k.created_at).toLocaleDateString()}
+                  {k.last_used && ` · Last used ${new Date(k.last_used).toLocaleDateString()}`}
+                </p>
+              </div>
+              <code className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-elevated)] px-2 py-1 rounded-lg">
+                ot-••••••••
+              </code>
+              <button
+                onClick={() => revoke(k.id)}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red)]/10 transition-all"
+                title="Revoke key"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -244,6 +433,10 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </SettingCard>
+              </section>
+
+              <section className="border-t border-[var(--border-subtle)] pt-8">
+                <ApiKeysSection />
               </section>
             </>
           )}
