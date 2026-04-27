@@ -50,69 +50,67 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="absolute inset-0 z-30 pointer-events-none">
-          <motion.div
-            ref={panelRef}
-            key="agent-panel"
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-            style={{ transformOrigin: 'bottom right' }}
-            className={[
-              'absolute bottom-24 right-6 z-30 pointer-events-auto',
-              'w-100 max-h-[70vh] flex flex-col',
-              'liquid-glass !rounded-3xl overflow-hidden shadow-2xl',
-            ].join(' ')}
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
-              <div className="flex gap-1.5 bg-[var(--bg-elevated)]/50 rounded-xl p-1 border border-[var(--border-subtle)]">
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => onTabChange(tab.id)}
-                    className={[
-                      'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border border-transparent',
-                      activeTab === tab.id
-                        ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/30 shadow-sm shadow-[var(--accent-cyan)]/10'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
-                    ].join(' ')}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={onClose}
-                className="w-8 h-8 rounded-full glass-panel !shadow-sm flex items-center justify-center hover:bg-[var(--glass-bg-elevated)] hover:!border-[var(--accent-cyan)]/30 transition-all group"
-                aria-label="Close panel"
-              >
-                <svg
-                  viewBox="0 0 14 14"
-                  className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
+        <motion.div
+          ref={panelRef}
+          key="agent-panel"
+          initial={{ opacity: 0, scale: 0.95, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 8 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          style={{ transformOrigin: 'bottom right' }}
+          className={[
+            'absolute bottom-full right-0 mb-3 z-30 pointer-events-auto',
+            'w-100 max-h-[70vh] flex flex-col',
+            'liquid-glass !rounded-3xl overflow-hidden shadow-2xl',
+          ].join(' ')}
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
+            <div className="flex gap-1.5 bg-[var(--bg-elevated)]/50 rounded-xl p-1 border border-[var(--border-subtle)]">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={[
+                    'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border border-transparent',
+                    activeTab === tab.id
+                      ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/30 shadow-sm shadow-[var(--accent-cyan)]/10'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
+                  ].join(' ')}
                 >
-                  <path d="M1 1l12 12M13 1L1 13" />
-                </svg>
-              </button>
+                  {tab.label}
+                </button>
+              ))}
             </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full glass-panel !shadow-sm flex items-center justify-center hover:bg-[var(--glass-bg-elevated)] hover:!border-[var(--accent-cyan)]/30 transition-all group"
+              aria-label="Close panel"
+            >
+              <svg
+                viewBox="0 0 14 14"
+                className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M1 1l12 12M13 1L1 13" />
+              </svg>
+            </button>
+          </div>
 
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {activeTab === 'agent' && (
-                <div className="h-full overflow-y-auto custom-scrollbar">
-                  <AgentChatSidebar />
-                </div>
-              )}
-              {activeTab === 'news' && (
-                <div className="h-full overflow-y-auto custom-scrollbar p-3">
-                  <NewsFeed />
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {activeTab === 'agent' && (
+              <div className="h-full overflow-y-auto custom-scrollbar">
+                <AgentChatSidebar />
+              </div>
+            )}
+            {activeTab === 'news' && (
+              <div className="h-full overflow-y-auto custom-scrollbar p-3">
+                <NewsFeed />
+              </div>
+            )}
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

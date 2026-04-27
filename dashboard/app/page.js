@@ -225,17 +225,21 @@ export default function Home() {
             </div>
           )}
         </div>
-        <AgentTrigger isOpen={panelOpen} onClick={() => setPanelOpen((v) => !v)} />
-        {panelOpen ? (
-          <ErrorBoundary fallback={<MinimalErrorFallback name="Agent Panel" />}>
-            <AgentPanel
-              isOpen={panelOpen}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              onClose={() => setPanelOpen(false)}
-            />
-          </ErrorBoundary>
-        ) : null}
+        <div className="absolute bottom-6 right-6 z-40 pointer-events-none">
+          {panelOpen ? (
+            <ErrorBoundary fallback={<MinimalErrorFallback name="Agent Panel" />}>
+              <AgentPanel
+                isOpen={panelOpen}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onClose={() => setPanelOpen(false)}
+              />
+            </ErrorBoundary>
+          ) : null}
+          <div className="pointer-events-auto">
+            <AgentTrigger isOpen={panelOpen} onClick={() => setPanelOpen((v) => !v)} />
+          </div>
+        </div>
       </div>
     </div>
   );
