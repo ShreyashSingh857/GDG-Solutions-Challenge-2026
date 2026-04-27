@@ -115,12 +115,6 @@ export default function GlobeView({ simulationControlsOpen = false }) {
   const [t, setT] = useState(null);
   const [zoomLevel, setZoomLevel] = useState('far');
   const [viewerEpoch, setViewerEpoch] = useState(0);
-  const [globeSettings, setGlobeSettings] = useState({
-    terrain: 'terrain',
-    imagery: 'satellite',
-    arcSpeed: 1,
-    labels: true,
-  });
   const setZoomLevelDebounced = useDebouncedCallback((next) => setZoomLevel(next), 300);
   const s = useShipmentStore((x) => x.shipments, shallow);
   const disruptions = useAlertStore((x) => x.disruptions);
@@ -315,7 +309,7 @@ export default function GlobeView({ simulationControlsOpen = false }) {
     const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
     viewer.imageryLayers.removeAll();
 
-    if (globeSettings.imagery === 'satellite' && ionToken) {
+    if (ionToken) {
       viewer.imageryLayers.add(ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS }));
     } else {
       viewer.imageryLayers.addImageryProvider(
@@ -329,14 +323,14 @@ export default function GlobeView({ simulationControlsOpen = false }) {
     }
 
     viewer.scene.requestRender();
-  }, [globeSettings.imagery, viewerEpoch]);
+  }, [viewerEpoch]);
 
   useEffect(() => {
     const viewer = vRef.current;
     if (!viewer) return;
 
     const ionToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN;
-    if (globeSettings.terrain === 'flat' || !ionToken) {
+    if (!ionToken) {
       viewer.terrainProvider = new EllipsoidTerrainProvider();
       viewer.scene.globe.depthTestAgainstTerrain = false;
       viewer.scene.requestRender();
@@ -356,7 +350,7 @@ export default function GlobeView({ simulationControlsOpen = false }) {
     return () => {
       cancelled = true;
     };
-  }, [globeSettings.terrain, viewerEpoch]);
+  }, [viewerEpoch]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -544,7 +538,7 @@ export default function GlobeView({ simulationControlsOpen = false }) {
         const isVisible = f === 'all' || status === f;
         if (!isVisible) continue;
 
-        const wave = 0.62 + 0.22 * Math.sin((timestamp / 1000) * globeSettings.arcSpeed + index * 0.6);
+        const wave = 0.62 + 0.22 * Math.sin((timestamp / 1000) * 1 + index * 0.6);
         refs.arc.polyline.material = Color.fromCssColorString(colorMap[status] || C.active).withAlpha(wave);
         index += 1;
       }
@@ -556,15 +550,15 @@ export default function GlobeView({ simulationControlsOpen = false }) {
     return () => {
       if (frameId) cancelAnimationFrame(frameId);
     };
-  }, [f, groupedRoutes, globeSettings.arcSpeed, viewerEpoch]);
+  }, [f, groupedRoutes, viewerEpoch]);
 
   useEffect(() => {
-    const show = globeSettings.labels && zoomLevel !== 'far';
+    const show = zoomLevel !== 'far';
     for (const entity of portLabelEntitiesRef.current.values()) {
       entity.show = new ConstantProperty(show);
     }
     vRef.current?.scene.requestRender();
-  }, [zoomLevel, globeSettings.labels, viewerEpoch]);
+  }, [zoomLevel, viewerEpoch]);
 
   useEffect(() => {
     if (!vRef.current) return;
@@ -830,8 +824,6 @@ export default function GlobeView({ simulationControlsOpen = false }) {
     <div className="relative w-full h-full bg-[#020617]">
       <GlobeControls
         onFilterChange={setF}
-        globeSettings={globeSettings}
-        onGlobeSettingsChange={setGlobeSettings}
         showSimulationControls={simulationControlsOpen}
       />
       <div ref={cRef} className="h-full w-full" />
