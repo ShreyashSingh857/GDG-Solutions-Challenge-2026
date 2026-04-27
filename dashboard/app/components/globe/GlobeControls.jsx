@@ -69,7 +69,7 @@ export default function GlobeControls({ onFilterChange, showSimulationControls =
 
   return (
     <div className="absolute top-20 left-6 z-40 flex flex-col gap-4">
-      <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[180px] space-y-4">
+      {/* <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[180px] space-y-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 pl-1">Operational Filter</p>
           <div className="space-y-1">
@@ -105,7 +105,7 @@ export default function GlobeControls({ onFilterChange, showSimulationControls =
             })}
           </div>
         </div>
-      </div>
+      </div> */}
 
       {showSimulationControls && (
         <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl space-y-3">
