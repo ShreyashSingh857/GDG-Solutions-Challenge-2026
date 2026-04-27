@@ -1,8 +1,17 @@
 import { EventEmitter } from 'events';
 import { TOPICS } from './topics.js';
 
-const MESSAGE_LOG_LIMIT = 500; // keep last 500 messages per topic for replay
+const MESSAGE_LOG_LIMIT = Number.parseInt(process.env.EVENT_BUS_REPLAY_LIMIT ?? '120', 10); // per-topic replay depth
+const MESSAGE_LOG_BYTES_LIMIT = Number.parseInt(process.env.EVENT_BUS_REPLAY_BYTES_LIMIT ?? String(5 * 1024 * 1024), 10); // per-topic byte cap
 const MAX_RETRIES = 5;
+
+function estimateSizeBytes(value) {
+  try {
+    return Buffer.byteLength(JSON.stringify(value), 'utf8');
+  } catch {
+    return 0;
+  }
+}
 
 class EventBroker extends EventEmitter {
   constructor() {
@@ -10,8 +19,10 @@ class EventBroker extends EventEmitter {
     this.setMaxListeners(50);
     // In-memory message log per topic for replay on reconnect
     this.messageLog = {};
+    this.messageLogBytes = {};
     Object.values(TOPICS).forEach((topic) => {
       this.messageLog[topic] = [];
+      this.messageLogBytes[topic] = 0;
     });
   }
 
@@ -37,9 +48,22 @@ class EventBroker extends EventEmitter {
     try {
       // Store in message log for replay
       if (!this.messageLog[topic]) this.messageLog[topic] = [];
-      this.messageLog[topic].push(message);
-      if (this.messageLog[topic].length > MESSAGE_LOG_LIMIT) {
-        this.messageLog[topic].shift();
+      if (typeof this.messageLogBytes[topic] !== 'number') this.messageLogBytes[topic] = 0;
+
+      const sizeBytes = estimateSizeBytes(message);
+      this.messageLog[topic].push({ ...message, _sizeBytes: sizeBytes });
+      this.messageLogBytes[topic] += sizeBytes;
+
+      while (
+        this.messageLog[topic].length > MESSAGE_LOG_LIMIT ||
+        this.messageLogBytes[topic] > MESSAGE_LOG_BYTES_LIMIT
+      ) {
+        const removed = this.messageLog[topic].shift();
+        this.messageLogBytes[topic] -= Number(removed?._sizeBytes || 0);
+      }
+
+      if (this.messageLogBytes[topic] < 0) {
+        this.messageLogBytes[topic] = 0;
       }
 
       this.emit(topic, message);
@@ -63,7 +87,8 @@ class EventBroker extends EventEmitter {
    * @returns {object[]}
    */
   getReplay(topic) {
-    return this.messageLog[topic] || [];
+    const messages = this.messageLog[topic] || [];
+    return messages.map(({ _sizeBytes, ...message }) => message);
   }
 
   getReplaySince(topic, since = 0) {

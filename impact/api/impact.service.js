@@ -23,6 +23,7 @@ let _processing = false; // serialise AI work to cap peak RAM
 
 const HEALTH_CHECK_INTERVAL = 60000;
 const STALE_THRESHOLD = 300000;
+const MAX_SCORED_SHIPMENTS = Number.parseInt(process.env.IMPACT_MAX_SCORED_SHIPMENTS ?? '50', 10);
 
 function isChokepoint(disruption) {
 	const text = [disruption?.location, ...(disruption?.affectedZones || [])].join(' ').toLowerCase();
@@ -61,7 +62,7 @@ export async function processDisruptionEvent(agentPayload) {
 
 	const nearbyShipments = await getShipmentsNearEpicenter(disruption.epicenterLat, disruption.epicenterLng);
 	// Cap to 50 to avoid unbounded Firestore batch writes and large in-memory arrays
-	const scoredShipments = (await scoreShipmentsWithTradeWeight(disruption, nearbyShipments)).slice(0, 50);
+	const scoredShipments = (await scoreShipmentsWithTradeWeight(disruption, nearbyShipments)).slice(0, MAX_SCORED_SHIPMENTS);
 	const totalCargoAtRiskUSD = scoredShipments.reduce((sum, shipment) => sum + shipment.cargoValueUSD, 0);
 
 	const shipmentSummary = scoredShipments
@@ -221,11 +222,12 @@ export function startImpactSubscriber() {
 	}
 
 	connect();
-	setInterval(() => {
+	const healthCheckTimer = setInterval(() => {
 		const stale = _lastMessageAt && Date.now() - _lastMessageAt > STALE_THRESHOLD;
 		if (stale || !_subscription || _subscription.readyState === 2) {
 			console.warn('[ImpactService] SSE connection stale, reconnecting...');
 			connect();
 		}
 	}, HEALTH_CHECK_INTERVAL);
+	healthCheckTimer.unref?.();
 }

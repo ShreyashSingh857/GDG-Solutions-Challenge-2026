@@ -12,7 +12,6 @@ const STATUS_FILTERS = [
 ];
 
 function MiniSparkline({ status, shipments }) {
-  // Take last 20 shipments
   const last20 = shipments.slice(-20);
   
   return (
@@ -31,11 +30,7 @@ function MiniSparkline({ status, shipments }) {
   );
 }
 
-export default function GlobeControls({
-  onFilterChange,
-  globeSettings = { terrain: 'terrain', imagery: 'satellite', arcSpeed: 1, labels: true },
-  onGlobeSettingsChange = () => {},
-}) {
+export default function GlobeControls({ onFilterChange, showSimulationControls = false }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [injecting, setInjecting] = useState(null);
   const shipments = useShipmentStore((s) => s.shipments);
@@ -74,8 +69,7 @@ export default function GlobeControls({
 
   return (
     <div className="absolute top-20 left-6 z-40 flex flex-col gap-4">
-      {/* Filter HUD */}
-      <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[180px] space-y-4">
+      {/* <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[180px] space-y-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 pl-1">Operational Filter</p>
           <div className="space-y-1">
@@ -103,7 +97,6 @@ export default function GlobeControls({
                     <MiniSparkline status={f.id} shipments={shipments} />
                   )}
 
-                  {/* Underline for active state */}
                   {active && (
                     <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full shadow-[0_-2px_6px_currentColor]" style={{ backgroundColor: 'currentColor' }} />
                   )}
@@ -112,91 +105,29 @@ export default function GlobeControls({
             })}
           </div>
         </div>
-      </div>
+      </div> */}
 
-      {/* Scenario Injection */}
-      <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] pl-1">Simulation</p>
-        <div className="grid grid-cols-1 gap-2">
-          {['Pacific Storm', 'Port Strike', 'Suez Closure'].map((name) => (
-            <button
-              key={name}
-              onClick={() => injectScenario(name)}
-              className="text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 transition-all flex items-center justify-between group"
-            >
-              <span>{name}</span>
-              {injecting === name ? (
-                <div className="w-3 h-3 rounded-full border-2 border-[var(--accent-cyan)] border-t-transparent animate-spin" />
-              ) : (
-                <div className="w-1 h-1 rounded-full bg-[var(--text-muted)] group-hover:bg-[var(--accent-cyan)] transition-colors" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl space-y-4 min-w-[180px]">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] pl-1">Globe Quality</p>
-
-        <div className="space-y-1.5">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] pl-1">Terrain</p>
-          {[
-            { id: 'flat', label: 'Flat', sub: 'Fastest' },
-            { id: 'terrain', label: '3D Terrain', sub: 'Recommended' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => onGlobeSettingsChange({ ...globeSettings, terrain: opt.id })}
-              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all ${globeSettings.terrain === opt.id ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/20' : 'text-[var(--text-muted)] hover:bg-white/5 border border-transparent'}`}
-            >
-              <span>{opt.label}</span>
-              <span className="text-[9px] opacity-50 font-normal">{opt.sub}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-1.5">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)] pl-1">Imagery</p>
-          {[
-            { id: 'satellite', label: 'Satellite' },
-            { id: 'street', label: 'Street Map' },
-          ].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => onGlobeSettingsChange({ ...globeSettings, imagery: opt.id })}
-              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all ${globeSettings.imagery === opt.id ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/20' : 'text-[var(--text-muted)] hover:bg-white/5 border border-transparent'}`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between pl-1">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Arc Speed</p>
-            <span className="text-[9px] font-mono text-[var(--text-muted)]">{globeSettings.arcSpeed}x</span>
+      {showSimulationControls && (
+        <div className="bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] pl-1">Simulation</p>
+          <div className="grid grid-cols-1 gap-2">
+            {['Pacific Storm', 'Port Strike', 'Suez Closure'].map((name) => (
+              <button
+                key={name}
+                onClick={() => injectScenario(name)}
+                className="text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 transition-all flex items-center justify-between group"
+              >
+                <span>{name}</span>
+                {injecting === name ? (
+                  <div className="w-3 h-3 rounded-full border-2 border-[var(--accent-cyan)] border-t-transparent animate-spin" />
+                ) : (
+                  <div className="w-1 h-1 rounded-full bg-[var(--text-muted)] group-hover:bg-[var(--accent-cyan)] transition-colors" />
+                )}
+              </button>
+            ))}
           </div>
-          <input
-            type="range"
-            min="0.5"
-            max="3"
-            step="0.5"
-            value={globeSettings.arcSpeed}
-            onChange={(e) => onGlobeSettingsChange({ ...globeSettings, arcSpeed: Number(e.target.value) })}
-            className="w-full h-1 appearance-none bg-[var(--bg-elevated)] rounded-full cursor-pointer accent-[var(--accent-cyan)]"
-          />
         </div>
-
-        <button
-          onClick={() => onGlobeSettingsChange({ ...globeSettings, labels: !globeSettings.labels })}
-          className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] font-bold text-[var(--text-muted)] hover:bg-white/5 transition-all"
-        >
-          <span>Port Labels</span>
-          <div className={`w-8 h-4 rounded-full transition-colors relative ${globeSettings.labels ? 'bg-[var(--accent-cyan)]' : 'bg-[var(--bg-elevated)] border border-[var(--border-subtle)]'}`}>
-            <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${globeSettings.labels ? 'left-4' : 'left-0.5'}`} />
-          </div>
-        </button>
-      </div>
+      )}
     </div>
   );
 }

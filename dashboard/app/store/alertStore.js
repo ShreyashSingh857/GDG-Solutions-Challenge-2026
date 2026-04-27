@@ -14,7 +14,6 @@ export const useAlertStore = create((set, get) => ({
 	addDisruption: (disruption) =>
 		set((state) => ({
 			disruptions: [disruption, ...state.disruptions].slice(0, 50),
-			activeDisruptionId: disruption.id || disruption.traceId,
 		})),
 
 	addNewsAlert: (alert) =>

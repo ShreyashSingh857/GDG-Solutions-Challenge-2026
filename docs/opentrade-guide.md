@@ -1044,3 +1044,14 @@ Finally, find the button row in the DecisionModal's resolved/executed state and 
 ```
 
 **Estimated total time with AI assistance: 5–7 hours.**
+
+
+New tunable env vars (all have safe defaults)
+
+EVENT_BUS_REPLAY_LIMIT
+EVENT_BUS_REPLAY_BYTES_LIMIT
+EVENT_BUS_MAX_SSE_CLIENTS
+EVENT_BUS_MAX_SSE_CLIENTS_PER_TOPIC
+RESOLUTION_STREAM_MAX_ENTRIES
+IMPACT_MAX_SCORED_SHIPMENTS
+AIS_MAX_PENDING_WRITES

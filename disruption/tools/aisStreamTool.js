@@ -6,6 +6,16 @@ const AIS_WS_URL = 'wss://stream.aisstream.io/v0/stream';
 let ws = null;
 const pendingVesselWrites = new Map();
 let vesselFlushTimer = null;
+let reconnectTimer = null;
+const MAX_PENDING_VESSEL_WRITES = Number.parseInt(process.env.AIS_MAX_PENDING_WRITES ?? '5000', 10);
+
+function scheduleReconnect(connect) {
+  if (reconnectTimer) return;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect();
+  }, 10000);
+}
 
 function scheduleVesselFlush() {
   if (vesselFlushTimer) return;
@@ -26,6 +36,7 @@ function scheduleVesselFlush() {
       console.warn('[AIS] Batch flush failed:', err.message);
     }
   }, 5000);
+  vesselFlushTimer.unref?.();
 }
 
 export const MAJOR_CORRIDORS = [
@@ -68,6 +79,10 @@ export function startAISStream(boundingBoxes = MAJOR_CORRIDORS) {
           status: Number(pos.NavigationalStatus || 0),
           updatedAt: new Date().toISOString(),
         };
+        if (pendingVesselWrites.size >= MAX_PENDING_VESSEL_WRITES) {
+          const oldestKey = pendingVesselWrites.keys().next().value;
+          if (oldestKey) pendingVesselWrites.delete(oldestKey);
+        }
 		pendingVesselWrites.set(mmsi, position);
 		scheduleVesselFlush();
         await resilientUpsert('vessel_positions', {
@@ -86,11 +101,12 @@ export function startAISStream(boundingBoxes = MAJOR_CORRIDORS) {
 
     ws.on('close', () => {
       console.warn('[AIS] Disconnected; reconnecting in 10s');
-      setTimeout(connect, 10000);
+      scheduleReconnect(connect);
     });
 
     ws.on('error', (err) => {
       console.warn('[AIS] Socket error:', err.message);
+      scheduleReconnect(connect);
     });
   }
 

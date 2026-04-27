@@ -19,6 +19,39 @@ const app = Fastify({ logger: true });
 await app.register(cors, { origin: '*' });
 
 const startTime = Date.now();
+let isPortPollRunning = false;
+let isCanalPollRunning = false;
+let isWeatherPollRunning = false;
+
+async function runPortPoll() {
+	if (isPortPollRunning) return;
+	isPortPollRunning = true;
+	try {
+		await pollPortCongestion();
+	} finally {
+		isPortPollRunning = false;
+	}
+}
+
+async function runCanalPoll() {
+	if (isCanalPollRunning) return;
+	isCanalPollRunning = true;
+	try {
+		await pollCanalStatus();
+	} finally {
+		isCanalPollRunning = false;
+	}
+}
+
+async function runWeatherPoll() {
+	if (isWeatherPollRunning) return;
+	isWeatherPollRunning = true;
+	try {
+		await pollCorridorWeather();
+	} finally {
+		isWeatherPollRunning = false;
+	}
+}
 
 function scheduleDailyDigest() {
 	if (!process.env.DIGEST_EMAIL) return;
@@ -90,44 +123,50 @@ try {
 	logger.info('Service started', { port: 3001 });
 	startAISStream(MAJOR_CORRIDORS);
 
-	setTimeout(() => {
-		pollPortCongestion().catch((err) =>
+	const initialPortTimer = setTimeout(() => {
+		runPortPoll().catch((err) =>
 			console.warn('[DisruptionAgent] initial pollPortCongestion failed:', err.message)
 		);
 	}, 15_000);
+	initialPortTimer.unref?.();
 
-	setTimeout(() => {
-		pollCanalStatus().catch((err) =>
+	const initialCanalTimer = setTimeout(() => {
+		runCanalPoll().catch((err) =>
 			console.warn('[DisruptionAgent] initial pollCanalStatus failed:', err.message)
 		);
 	}, 20_000);
+	initialCanalTimer.unref?.();
 
-	setTimeout(() => {
-		pollCorridorWeather().catch((err) =>
+	const initialWeatherTimer = setTimeout(() => {
+		runWeatherPoll().catch((err) =>
 			console.warn('[DisruptionAgent] initial pollCorridorWeather failed:', err.message)
 		);
 	}, 25_000);
+	initialWeatherTimer.unref?.();
 
 	scheduleDailyDigest();
 
 	// Staggered polling schedule to avoid simultaneous external calls.
-	setInterval(() => {
-		pollPortCongestion().catch((err) =>
+	const portInterval = setInterval(() => {
+		runPortPoll().catch((err) =>
 			console.warn('[DisruptionAgent] pollPortCongestion failed:', err.message)
 		);
 	}, 60 * 60_000);
+	portInterval.unref?.();
 
-	setInterval(() => {
-		pollCanalStatus().catch((err) =>
+	const canalInterval = setInterval(() => {
+		runCanalPoll().catch((err) =>
 			console.warn('[DisruptionAgent] pollCanalStatus failed:', err.message)
 		);
 	}, 65 * 60_000);
+	canalInterval.unref?.();
 
-	setInterval(() => {
-		pollCorridorWeather().catch((err) =>
+	const weatherInterval = setInterval(() => {
+		runWeatherPoll().catch((err) =>
 			console.warn('[DisruptionAgent] pollCorridorWeather failed:', err.message)
 		);
 	}, 3 * 60 * 60_000);
+	weatherInterval.unref?.();
 } catch (err) {
 	app.log.error(err);
 	process.exit(1);

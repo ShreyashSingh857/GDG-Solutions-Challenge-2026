@@ -11,9 +11,9 @@ import { motion } from 'framer-motion';
 const NAV_ITEMS = [
   { href: '/', label: 'Globe', icon: Globe, section: 'live' },
   { href: '/shipments', label: 'Shipments', icon: Package, section: 'live' },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3, section: 'live' },
   { href: '/replay', label: 'Replay', icon: RotateCcw, section: 'analysis' },
   { href: '/visualize', label: 'Visualize', icon: Workflow, section: 'analysis' },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3, section: 'analysis' },
   { href: '/developers', label: 'API', icon: Code2, section: 'analysis' },
   { href: '/health', label: 'System', icon: Activity, section: 'analysis' },
 ];
