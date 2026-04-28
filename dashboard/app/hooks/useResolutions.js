@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { collection, onSnapshot, orderBy, query, limit, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, limit, getDocs, where } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { useAlertStore } from '../store/alertStore.js';
 
@@ -50,12 +50,19 @@ export function useResolutions() {
       return;
     }
 
-    const q = query(collection(db, 'resolutions'), orderBy('createdAt', 'desc'), limit(100));
+    // Query efficiently with where() to filter by disruptionId server-side
+    // Requires composite index on (disruptionId, createdAt)
+    const q = query(
+      collection(db, 'resolutions'),
+      where('disruptionId', '==', activeDisruptionId),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
 
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
-        const latestDoc = snapshot.docs.find((doc) => doc.data()?.disruptionId === activeDisruptionId);
+        const latestDoc = snapshot.docs[0];
         if (!latestDoc) {
           return;
         }

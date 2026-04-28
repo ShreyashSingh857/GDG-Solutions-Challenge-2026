@@ -383,7 +383,7 @@ async function processImpactReport(agentPayload) {
 		SYSTEM_PROMPT,
 		'CONSIDER carbon footprint, insurance premium, and sanctions compliance for each option.',
 		`DISRUPTION: ${impactReport.disruptionType} at ${impactReport.disruptionLocation}`,
-		`CARGO_AT_RISK: $${Number(impactReport.totalCargoAtRiskUSD || 0).toLocaleString()} across ${impactReport.affectedShipments.length} shipments`,
+		`CARGO_AT_RISK: $${Number(impactReport.totalCargoAtRiskUSD || 0).toLocaleString()} across ${(impactReport.affectedShipments || []).length} shipments`,
 		`CASCADE: ${impactReport.cascadeRisk} | URGENCY: ${impactReport.urgency}/10`,
 		`TOP_SHIPMENTS:\n${shipmentLines || 'None'}`,
 		`AIR_FREIGHT: ${airFreightNote}`,
@@ -604,9 +604,9 @@ export function startResolutionSubscriber() {
 	connect();
 
 	const healthCheckTimer = setInterval(() => {
-		const stale = _lastMessageAt && Date.now() - _lastMessageAt > STALE_THRESHOLD;
-		if (stale || !_subscription || _subscription.readyState === 2) {
-			console.warn('[ResolutionService] SSE connection stale, reconnecting...');
+		// Only reconnect if connection is actually closed; don't treat silence as staleness
+		if (!_subscription || _subscription.readyState === 2) {
+			console.warn('[ResolutionService] SSE connection lost, reconnecting...');
 			connect();
 		}
 	}, HEALTH_CHECK_INTERVAL);
