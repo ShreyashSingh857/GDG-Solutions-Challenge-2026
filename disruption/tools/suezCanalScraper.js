@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { politeFetch } from '../../shared/lib/scraper.js';
+import { politeFetch } from '../shared/lib/scraper.js';
 
 const SUEZ_VESSEL_URL =
   'https://suezcanal.net.eg/English/Navigation/Pages/VesselMovement.aspx';

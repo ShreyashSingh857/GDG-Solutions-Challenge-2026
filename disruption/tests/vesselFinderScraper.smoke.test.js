@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { fetchVesselFromVesselFinder } from '../tools/vesselFinderScraper.js';
-import { resetScraperState } from '../../shared/lib/scraper.js';
+import { resetScraperState } from '../shared/lib/scraper.js';
 
 test('fetchVesselFromVesselFinder parses table and json-ld', async () => {
   resetScraperState();

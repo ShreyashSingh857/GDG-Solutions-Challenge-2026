@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { clearVesselRegistry, resolveVesselPosition, updateVesselRegistry } from '../tools/aisResolver.js';
-import { resetScraperState } from '../../shared/lib/scraper.js';
+import { resetScraperState } from '../shared/lib/scraper.js';
 
 test('resolveVesselPosition prefers recent live AIS data', async () => {
   clearVesselRegistry();
