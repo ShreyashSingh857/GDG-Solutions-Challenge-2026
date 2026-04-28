@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle, Code2 } from 'lucide-react';
+import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle, Code2, Zap } from 'lucide-react';
 import { useAlertStore } from '../store/alertStore.js';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { motion } from 'framer-motion';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Globe', icon: Globe, section: 'live' },
   { href: '/shipments', label: 'Shipments', icon: Package, section: 'live' },
   { href: '/analytics', label: 'Analytics', icon: BarChart3, section: 'live' },
+  { href: '/demo', label: 'Demo', icon: Zap, section: 'live' },
   { href: '/replay', label: 'Replay', icon: RotateCcw, section: 'analysis' },
   { href: '/visualize', label: 'Visualize', icon: Workflow, section: 'analysis' },
   { href: '/developers', label: 'API', icon: Code2, section: 'analysis' },
