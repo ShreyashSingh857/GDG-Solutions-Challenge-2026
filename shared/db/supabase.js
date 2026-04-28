@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
 // Best-effort local env loading: skip if dotenv is unavailable in this package context.
 try {
   await import('dotenv/config');
@@ -6,11 +9,22 @@ try {
 }
 
 let createClientFn = null;
-try {
-  const mod = await import('@supabase/supabase-js');
-  createClientFn = mod.createClient;
-} catch {
-  // no-op
+
+const moduleResolutionContexts = [
+  process.cwd(),
+  fileURLToPath(new URL('../../package.json', import.meta.url)),
+];
+
+for (const packageJsonPath of moduleResolutionContexts) {
+  try {
+    const requireFromHere = createRequire(pathToFileURL(packageJsonPath).href);
+    const resolvedModulePath = requireFromHere.resolve('@supabase/supabase-js');
+    const mod = await import(pathToFileURL(resolvedModulePath).href);
+    createClientFn = mod.createClient;
+    break;
+  } catch {
+    // Try the next package context.
+  }
 }
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
