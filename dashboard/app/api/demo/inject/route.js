@@ -1,4 +1,9 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
+import { db } from '../../../../lib/firebase-admin.js';
+
+const INJECT_TIMEOUT_MS = 15_000;
+const EVENT_BUS_TIMEOUT_MS = 5_000;
 
 const configuredDisruptionAgentUrl =
   process.env.DISRUPTION_AGENT_URL ||
@@ -11,41 +16,151 @@ const DISRUPTION_AGENT_URL =
 const SCENARIOS = {
   pacific_storm: {
     label: 'Super Typhoon Mawar',
+    type: 'WEATHER',
+    severity: 8,
+    location: 'Western Pacific Shipping Corridor',
+    epicenterLat: 28.2,
+    epicenterLng: 143.4,
+    confidence: 0.86,
+    affectedZones: ['Western Pacific', 'North Pacific Route'],
     description:
-      'Super Typhoon Mawar has intensified to Category 5 with sustained winds of 265 km/h and is currently tracking northwest across the Western Pacific Ocean at coordinates 15.2°N 128.5°E. The typhoon is expected to impact shipping lanes between the Philippines and Japan, affecting the primary Shanghai to Los Angeles trade route. Storm surge warnings have been issued for Taiwan Strait, Philippines Sea, and South China Sea. Port authorities in Manila, Kaohsiung, and Hong Kong have issued vessel advisories.',
+      'Super Typhoon approaching Western Pacific, Category 5. Maximum sustained winds 185 km/h. Direct path over major trans-Pacific shipping corridors. 12 vessels currently in projected storm path between Japan and Los Angeles. Port of Yokohama issuing storm warnings.',
   },
   suez_closure: {
     label: 'Suez Canal Emergency',
+    type: 'GEOPOLITICAL',
+    severity: 9,
+    location: 'Suez Canal / Red Sea',
+    epicenterLat: 29.9668,
+    epicenterLng: 32.5498,
+    confidence: 0.88,
+    affectedZones: ['Red Sea', 'Gulf of Aden', 'Suez Canal'],
     description:
-      "The Suez Canal Authority has announced an emergency closure of the Suez Canal effective 0000 UTC following a series of Houthi missile attacks on vessels in the Red Sea. The Egyptian government has declared a maritime emergency zone covering the Red Sea (15°N to 30°N) and Gulf of Aden. Forty-three vessels currently in the canal are being held pending security assessment. Lloyd's of London has suspended war risk coverage for the corridor. An estimated $12 billion in daily trade is affected. The closure is expected to last a minimum of 21 days.",
+      'The Suez Canal Authority has announced an emergency closure. Houthi missile attacks on Red Sea vessels. Forty-three vessels held. $12B daily trade affected. Minimum 21-day closure expected. All Asia-Europe shipments via southern route ordered to divert via Cape of Good Hope.',
   },
   port_strike: {
     label: 'Mumbai JNPT Strike',
+    type: 'STRIKE',
+    severity: 7,
+    location: 'North Sea Port Cluster',
+    epicenterLat: 51.9225,
+    epicenterLng: 4.4792,
+    confidence: 0.83,
+    affectedZones: ['Rotterdam', 'Hamburg', 'Antwerp'],
     description:
-      "Workers at Jawaharlal Nehru Port Trust (JNPT) in Mumbai, India have initiated an indefinite strike effective immediately at 06:00 IST. The dockworkers union MSWU representing 4,800 workers is demanding a 40% wage increase following failed negotiations. JNPT handles over 5 million TEUs annually and is India's largest container port. All loading and unloading operations are suspended. Alternative ports Mundra and Nhava Sheva are already operating at 85% capacity.",
+      'International Transport Workers Federation confirms indefinite strike action at Port of Rotterdam, Hamburg, and Antwerp. All container terminal operations suspended. 80+ vessels at anchor awaiting berth. Estimated 2-week minimum disruption to Europe-bound cargo.',
   },
 };
+
+function isTimeoutError(error) {
+  const name = String(error?.name || '').toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+  return name.includes('timeout') || name.includes('abort') || message.includes('timeout') || message.includes('aborted');
+}
+
+async function parseUpstreamBody(response) {
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    return response.json().catch(() => null);
+  }
+
+  const text = await response.text().catch(() => '');
+  if (!text) return null;
+  return { message: text.slice(0, 500) };
+}
+
+function buildSyntheticDisruption(scenarioMeta) {
+  return {
+    id: `disruption-${randomUUID()}`,
+    type: scenarioMeta.type,
+    severity: scenarioMeta.severity,
+    location: scenarioMeta.location,
+    epicenterLat: scenarioMeta.epicenterLat,
+    epicenterLng: scenarioMeta.epicenterLng,
+    confidence: scenarioMeta.confidence,
+    affectedZones: scenarioMeta.affectedZones,
+    rawDescription: scenarioMeta.description,
+    detectedAt: new Date().toISOString(),
+    source: 'dashboard-demo-fallback',
+    unverified: false,
+    corroboratingSources: 1,
+  };
+}
+
+async function publishSyntheticDisruption(disruptionEvent, traceId) {
+  const eventBusUrl = process.env.EVENT_BUS_URL || 'http://localhost:4000';
+  const response = await fetch(`${eventBusUrl}/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      topic: 'disruption-events',
+      payload: {
+        agentId: 'monitor',
+        traceId,
+        timestamp: new Date().toISOString(),
+        payload: disruptionEvent,
+      },
+    }),
+    signal: AbortSignal.timeout(EVENT_BUS_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    const msg = await response.text().catch(() => '');
+    throw new Error(`Event bus publish failed [${response.status}]${msg ? `: ${msg}` : ''}`);
+  }
+}
+
+async function injectSyntheticDisruption(scenario, scenarioMeta, reason = 'upstream unavailable') {
+  const traceId = randomUUID();
+  const disruptionEvent = buildSyntheticDisruption(scenarioMeta);
+  const results = await Promise.allSettled([
+    db.collection('disruptions').doc(disruptionEvent.id).set(disruptionEvent, { merge: true }),
+    publishSyntheticDisruption(disruptionEvent, traceId),
+  ]);
+
+  const persisted = results[0].status === 'fulfilled';
+  const published = results[1].status === 'fulfilled';
+
+  if (!persisted && !published) {
+    const persistErr = results[0].reason?.message || 'persist failed';
+    const publishErr = results[1].reason?.message || 'publish failed';
+    throw new Error(`Synthetic injection failed: ${persistErr}; ${publishErr}`);
+  }
+
+  return NextResponse.json(
+    {
+      ok: true,
+      synthetic: true,
+      scenario,
+      label: scenarioMeta.label,
+      traceId,
+      disruptionId: disruptionEvent.id,
+      persisted,
+      published,
+      warning: reason,
+    },
+    { status: 202 }
+  );
+}
 
 export async function POST(req) {
   try {
     const { scenario } = await req.json();
+    const scenarioKey = String(scenario || '').trim().toLowerCase();
+    const scenarioMeta = SCENARIOS[scenarioKey];
 
-    if (!scenario || !SCENARIOS[scenario]) {
+    if (!scenarioMeta) {
       return NextResponse.json(
         { error: `Unknown scenario. Available: ${Object.keys(SCENARIOS).join(', ')}` },
         { status: 400 }
       );
     }
 
-    const { description } = SCENARIOS[scenario];
-
     if (!DISRUPTION_AGENT_URL) {
-      return NextResponse.json(
-        {
-          error:
-            'DISRUPTION_AGENT_URL is not configured for this dashboard deployment. Set DISRUPTION_AGENT_URL or NEXT_PUBLIC_DISRUPTION_AGENT_URL to the running disruption agent URL.',
-        },
-        { status: 503 }
+      return injectSyntheticDisruption(
+        scenarioKey,
+        scenarioMeta,
+        'DISRUPTION_AGENT_URL is not configured; synthetic fallback used'
       );
     }
 
@@ -54,41 +169,47 @@ export async function POST(req) {
       headers.Authorization = `Bearer ${process.env.INTERNAL_TOKEN}`;
     }
 
-    const upstream = await fetch(`${DISRUPTION_AGENT_URL}/events`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ description }),
-      signal: AbortSignal.timeout(15000),
-    });
+    try {
+      const upstream = await fetch(`${DISRUPTION_AGENT_URL}/events`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ description: scenarioMeta.description }),
+        signal: AbortSignal.timeout(INJECT_TIMEOUT_MS),
+      });
 
-    const result = await upstream.json().catch(() => ({ error: 'Invalid response from disruption agent' }));
+      const result = await parseUpstreamBody(upstream);
+      if (!upstream.ok) {
+        return injectSyntheticDisruption(
+          scenarioKey,
+          scenarioMeta,
+          `Disruption agent returned ${upstream.status}; synthetic fallback used`
+        );
+      }
 
-    if (!upstream.ok) {
-      return NextResponse.json(
-        { error: result.error || `Disruption agent returned ${upstream.status}` },
-        { status: upstream.status }
+      return NextResponse.json({
+        ok: true,
+        synthetic: false,
+        disruptionId: result?.data?.id || null,
+        traceId: result?.traceId || null,
+        scenario: scenarioKey,
+        label: scenarioMeta.label,
+        published: result?.published ?? false,
+      });
+    } catch (err) {
+      if (isTimeoutError(err)) {
+        return injectSyntheticDisruption(
+          scenarioKey,
+          scenarioMeta,
+          `Disruption agent timed out after ${Math.floor(INJECT_TIMEOUT_MS / 1000)} seconds; synthetic fallback used`
+        );
+      }
+      return injectSyntheticDisruption(
+        scenarioKey,
+        scenarioMeta,
+        `Disruption agent unavailable (${err.message}); synthetic fallback used`
       );
     }
-
-    return NextResponse.json({
-      ok: true,
-      disruptionId: result.data?.id,
-      traceId: result.traceId,
-      scenario,
-      label: SCENARIOS[scenario].label,
-      published: result.published ?? false,
-    });
   } catch (err) {
-    if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
-      return NextResponse.json(
-        { error: 'Disruption agent request timed out after 15 seconds' },
-        { status: 504 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: err.message || 'Inject failed — is the disruption agent running?' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message || 'Inject failed' }, { status: 500 });
   }
 }

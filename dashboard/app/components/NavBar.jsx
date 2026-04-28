@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle, Code2, Zap } from 'lucide-react';
 import { useAlertStore } from '../store/alertStore.js';
 import { useTheme } from '../providers/ThemeProvider.jsx';
@@ -20,16 +20,24 @@ const NAV_ITEMS = [
 ];
 
 function ThemeToggleButton({ theme, onToggle }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const titleText = mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle theme';
+
   return (
     <button
       onClick={onToggle}
-      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      title={titleText}
       aria-label="Toggle theme"
       className="p-1.5 rounded-lg border border-[var(--border-subtle)] 
                  text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                  hover:bg-[var(--bg-elevated)] transition-all active:scale-95 shadow-sm"
     >
-      {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+      {mounted ? (theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />) : <span className="inline-block w-3.5 h-3.5" />}
     </button>
   );
 }
