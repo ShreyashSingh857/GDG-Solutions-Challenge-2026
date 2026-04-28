@@ -59,8 +59,8 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
           transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           style={{ transformOrigin: 'bottom right' }}
           className={[
-            'absolute bottom-full right-0 mb-3 z-30 pointer-events-auto',
-            'w-100 max-h-[70vh] flex flex-col',
+            'fixed sm:absolute bottom-6 right-6 sm:bottom-full sm:right-0 sm:mb-3 z-30 pointer-events-auto',
+            'w-[calc(100vw-48px)] sm:w-96 max-h-[60vh] sm:max-h-[70vh] flex flex-col',
             'liquid-glass !rounded-3xl overflow-hidden shadow-2xl',
           ].join(' ')}
         >
@@ -71,7 +71,7 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
                   className={[
-                    'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border border-transparent',
+                    'px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border border-transparent whitespace-nowrap',
                     activeTab === tab.id
                       ? 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/30 shadow-sm shadow-[var(--accent-cyan)]/10'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
@@ -83,7 +83,7 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full glass-panel !shadow-sm flex items-center justify-center hover:bg-[var(--glass-bg-elevated)] hover:!border-[var(--accent-cyan)]/30 transition-all group"
+              className="w-8 h-8 rounded-full glass-panel !shadow-sm flex items-center justify-center hover:bg-[var(--glass-bg-elevated)] hover:!border-[var(--accent-cyan)]/30 transition-all group flex-shrink-0"
               aria-label="Close panel"
             >
               <svg
@@ -98,14 +98,14 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
             </button>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {activeTab === 'agent' && (
-              <div className="h-full overflow-y-auto custom-scrollbar">
+              <div className="h-full w-full overflow-y-auto custom-scrollbar">
                 <AgentChatSidebar />
               </div>
             )}
             {activeTab === 'news' && (
-              <div className="h-full overflow-y-auto custom-scrollbar p-3">
+              <div className="h-full w-full overflow-y-auto custom-scrollbar">
                 <NewsFeed />
               </div>
             )}
