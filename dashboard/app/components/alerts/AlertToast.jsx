@@ -44,16 +44,25 @@ export default function AlertToastController() {
       const zones = (newest.affectedZones || []).slice(0, 3).join(', ') || 'Multiple zones';
       const borderColor = newest.severity >= 8 ? 'var(--accent-red)' : newest.severity >= 6 ? 'var(--accent-amber)' : 'var(--accent-cyan)';
 
-      toast(
+      const toastId = toast(
         <div className="flex flex-col gap-1 min-w-[260px]">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{icon}</span>
-            <div>
-              <p className="font-bold text-[var(--text-primary)] text-sm uppercase tracking-tight">
-                {newest.type} — {newest.severity}/10
-              </p>
-              <p className="text-[var(--text-secondary)] text-[11px] font-medium">{newest.location}</p>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{icon}</span>
+              <div>
+                <p className="font-bold text-[var(--text-primary)] text-sm uppercase tracking-tight">
+                  {newest.type} — {newest.severity}/10
+                </p>
+                <p className="text-[var(--text-secondary)] text-[11px] font-medium">{newest.location}</p>
+              </div>
             </div>
+            <button
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0 active:scale-90"
+              onClick={() => toast.dismiss(toastId)}
+              title="Dismiss"
+            >
+              ✕
+            </button>
           </div>
           <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">{zones} affected</p>
           <button
@@ -66,7 +75,7 @@ export default function AlertToastController() {
           </button>
         </div>,
         {
-          duration: 15000,
+          duration: 45000,
           style: {
             background: 'var(--glass-bg-elevated)',
             backdropFilter: 'blur(16px)',
