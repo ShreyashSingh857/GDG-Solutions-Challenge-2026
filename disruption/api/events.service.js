@@ -4,7 +4,7 @@ import { DISRUPTION_SCHEMA, validateAndRepair } from '../shared/lib/validateSche
 import { db } from '../shared/db/firebase.js';
 import { resilientUpsert, supabase } from '../shared/db/supabase.js';
 import { publish } from '../shared/eventBusClient.js';
-import { TOPICS } from '../../event-bus/topics.js';
+import { TOPICS } from '../shared/lib/topics.js';
 import { createAgentPayload } from '../shared/types/AgentPayload.js';
 import { createDisruptionEvent, validateDisruptionEvent } from '../types/DisruptionEvent.js';
 import { weatherToolDeclaration, getWeatherData } from '../tools/weatherTool.js';

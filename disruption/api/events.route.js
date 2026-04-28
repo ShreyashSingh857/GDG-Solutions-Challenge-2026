@@ -1,5 +1,5 @@
 import { classifyAndPublish } from './events.service.js';
-import { db } from '../../shared/db/firebase.js';
+import { db } from '../shared/db/firebase.js';
 
 export default async function eventsRoute(app) {
 	app.post('/events', async (req, reply) => {
