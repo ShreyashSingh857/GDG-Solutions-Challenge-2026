@@ -5,9 +5,7 @@ try {
   // no-op
 }
 
-// Dynamic ESM import — Node's resolver walks up the directory tree and finds
-// @supabase/supabase-js in the nearest node_modules (root or service-level).
-// Using dynamic import with try-catch handles missing package gracefully.
+// Direct ESM import — dynamically import to handle missing package gracefully
 let createClient = null;
 let importError = null;
 
@@ -28,6 +26,7 @@ const hasSupabaseConfig = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY;
  * This bypasses Row Level Security and must stay server-side only.
  */
 let unavailableReason = null;
+
 if (importError) {
   unavailableReason = `[Supabase] @supabase/supabase-js is not available: ${importError.message}`;
 } else if (!hasSupabaseConfig) {

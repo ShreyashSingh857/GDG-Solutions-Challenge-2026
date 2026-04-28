@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
-import { db } from '../../shared/db/firebase.js';
-import { resilientUpsert } from '../../shared/db/supabase.js';
+import { db } from '../shared/db/firebase.js';
+import { resilientUpsert } from '../shared/db/supabase.js';
 
 const AIS_WS_URL = 'wss://stream.aisstream.io/v0/stream';
 let ws = null;

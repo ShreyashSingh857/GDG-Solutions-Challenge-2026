@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { fetchEcmwfForecast } from '../tools/ecmwfScraper.js';
-import { resetScraperState } from '../../shared/lib/scraper.js';
+import { resetScraperState } from '../shared/lib/scraper.js';
 
 test('fetchEcmwfForecast computes risk and includes hourly slices', async () => {
   resetScraperState();

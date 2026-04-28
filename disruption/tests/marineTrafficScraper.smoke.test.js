@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { fetchVesselDetails, fetchVesselsInPort } from '../tools/marineTrafficScraper.js';
-import { resetScraperState } from '../../shared/lib/scraper.js';
+import { resetScraperState } from '../shared/lib/scraper.js';
 
 test('fetchVesselDetails parses public vessel metadata', async () => {
   resetScraperState();

@@ -1,4 +1,4 @@
-import { politeFetch } from '../../shared/lib/scraper.js';
+import { politeFetch } from '../shared/lib/scraper.js';
 
 const ECMWF_POINT_API = 'https://api.open-meteo.com/v1/ecmwf';
 

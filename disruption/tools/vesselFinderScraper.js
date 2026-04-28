@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 
-import { politeFetch } from '../../shared/lib/scraper.js';
+import { politeFetch } from '../shared/lib/scraper.js';
 
 const VF_BASE = 'https://www.vesselfinder.com/vessels/details/';
 

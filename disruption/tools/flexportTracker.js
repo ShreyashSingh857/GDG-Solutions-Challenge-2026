@@ -1,4 +1,4 @@
-import { scrapeWithJs } from '../../shared/lib/headlessBrowser.js';
+import { scrapeWithJs } from '../shared/lib/headlessBrowser.js';
 
 export async function fetchFlexportTracking(trackingNumber, opts = {}) {
   const scraper = opts.scraper || scrapeWithJs;

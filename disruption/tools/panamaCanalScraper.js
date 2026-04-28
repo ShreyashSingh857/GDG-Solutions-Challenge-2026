@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { politeFetch } from '../../shared/lib/scraper.js';
+import { politeFetch } from '../shared/lib/scraper.js';
 
 const PANCANAL_STATS_URL = 'https://www.pancanal.com/eng/op/transit-stats/index.html';
 const PANCANAL_WATER_URL = 'https://www.pancanal.com/eng/op/Gatun_level.html';

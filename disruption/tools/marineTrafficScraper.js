@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 
-import { politeFetch } from '../../shared/lib/scraper.js';
+import { politeFetch } from '../shared/lib/scraper.js';
 
 const MT_BASE = 'https://www.marinetraffic.com/en/ais/details/ships/mmsi';
 
