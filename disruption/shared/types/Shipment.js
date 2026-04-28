@@ -1,5 +1,3 @@
-import crypto from 'node:crypto';
-
 /**
  * @typedef {object} Shipment
  */

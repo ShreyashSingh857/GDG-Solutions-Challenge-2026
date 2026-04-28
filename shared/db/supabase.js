@@ -5,12 +5,18 @@ try {
   // no-op
 }
 
-// Direct ESM import — Node's resolver walks up the directory tree and finds
+// Dynamic ESM import — Node's resolver walks up the directory tree and finds
 // @supabase/supabase-js in the nearest node_modules (root or service-level).
-// The old createRequire dance was broken in production because it was passed
-// directory paths instead of file paths, causing it to resolve from the wrong
-// node_modules scope.
-import { createClient } from '@supabase/supabase-js';
+// Using dynamic import with try-catch handles missing package gracefully.
+let createClient = null;
+let importError = null;
+
+try {
+  const mod = await import('@supabase/supabase-js');
+  createClient = mod.createClient;
+} catch (err) {
+  importError = err;
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -22,7 +28,9 @@ const hasSupabaseConfig = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY;
  * This bypasses Row Level Security and must stay server-side only.
  */
 let unavailableReason = null;
-if (!hasSupabaseConfig) {
+if (importError) {
+  unavailableReason = `[Supabase] @supabase/supabase-js is not available: ${importError.message}`;
+} else if (!hasSupabaseConfig) {
   unavailableReason = '[Supabase] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in environment variables';
 }
 
@@ -35,7 +43,7 @@ const unavailable = new Proxy(
   }
 );
 
-export const supabase = hasSupabaseConfig
+export const supabase = (createClient && hasSupabaseConfig)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: {
         autoRefreshToken: false,
