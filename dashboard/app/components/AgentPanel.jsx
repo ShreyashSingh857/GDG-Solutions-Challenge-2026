@@ -41,6 +41,14 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
     };
 
     const timer = setTimeout(() => document.addEventListener('mousedown', onClick), 150);
+
+    // focus panel without scrolling the page
+    try {
+      panelRef.current?.focus({ preventScroll: true });
+    } catch {
+      panelRef.current?.focus && panelRef.current.focus();
+    }
+
     return () => {
       clearTimeout(timer);
       document.removeEventListener('mousedown', onClick);
@@ -52,6 +60,7 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
       {isOpen && (
         <motion.div
           ref={panelRef}
+          tabIndex={-1}
           key="agent-panel"
           initial={{ opacity: 0, scale: 0.95, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -59,7 +68,7 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
           transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           style={{ transformOrigin: 'bottom right' }}
           className={[
-            'fixed sm:absolute bottom-6 right-6 sm:bottom-full sm:right-0 sm:mb-3 z-50 pointer-events-auto',
+            'fixed bottom-[72px] right-6 z-50 pointer-events-auto',
             'w-[calc(100vw-48px)] sm:w-96 max-h-[60vh] sm:max-h-[70vh] flex flex-col',
             'liquid-glass !rounded-3xl overflow-hidden shadow-2xl',
           ].join(' ')}

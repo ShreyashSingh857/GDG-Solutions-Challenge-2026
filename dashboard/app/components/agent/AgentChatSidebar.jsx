@@ -63,7 +63,13 @@ export default function AgentChatSidebar() {
     };
   }, [traceId]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chains]);
+  useEffect(() => {
+    try {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+    } catch {
+      bottomRef.current?.scrollIntoView && bottomRef.current.scrollIntoView();
+    }
+  }, [chains]);
 
   return (
     <div className="flex flex-col h-full w-full bg-transparent">
