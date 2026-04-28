@@ -25,6 +25,7 @@ const SYSTEM_PROMPT = readFileSync(join(__dirname, '../agent/prompt.md'), 'utf-8
 const activeStreams = new Map();
 const completedStreams = new Map();
 const streamTouchedAt = new Map();
+const _pendingQueue = [];
 
 let _subscription = null;
 let _lastMessageAt = null;
@@ -571,17 +572,30 @@ export function startResolutionSubscriber() {
 				if (!publishedAt || Date.now() - publishedAt > 600000) return;
 			}
 
-			// Serialise processing: skip if a heavy AI job is already running.
-			// This prevents stacking multiple large in-flight payloads that
-			// together exceed the Render instance's RAM limit.
+			// Serialise processing with queue: if a heavy AI job is already running,
+			// queue the message for later processing instead of dropping it.
 			if (_processing) {
-				console.warn('[ResolutionService] Skipping event – processor busy, will catch next event');
+				if (_pendingQueue.length < 5) { // cap at 5 to prevent RAM overflow
+					_pendingQueue.push(message);
+					console.warn('[ResolutionService] Queued event for later processing (queue length:', _pendingQueue.length + ')');
+				} else {
+					console.warn('[ResolutionService] Queue full, dropping event');
+				}
 				return;
 			}
 			_processing = true;
 			processImpactReport(message)
 				.catch((err) => console.error('[ResolutionService] processImpactReport error:', err.message))
-				.finally(() => { _processing = false; });
+				.finally(() => {
+					_processing = false;
+					const next = _pendingQueue.shift();
+					if (next) {
+						_processing = true;
+						processImpactReport(next)
+							.catch((err) => console.error('[ResolutionService] Queue processing error:', err.message))
+							.finally(() => { _processing = false; });
+					}
+				});
 		});
 
 		console.log('[ResolutionService] SSE subscription established');
