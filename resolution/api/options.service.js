@@ -32,7 +32,6 @@ let _lastMessageAt = null;
 let _processing = false; // serialise heavy AI work to cap peak RAM
 
 const HEALTH_CHECK_INTERVAL = 60000;
-const STALE_THRESHOLD = 300000;
 const STREAM_TTL_MS = 300000;
 const STREAM_TEXT_CAP = 50_000; // max chars kept in activeStreams (≈50 KB)
 const MAX_STREAM_ENTRIES = Number.parseInt(process.env.RESOLUTION_STREAM_MAX_ENTRIES ?? '200', 10);

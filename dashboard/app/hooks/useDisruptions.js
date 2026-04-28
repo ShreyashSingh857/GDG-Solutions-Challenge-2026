@@ -36,12 +36,6 @@ export function useDisruptions() {
           if (change.type === 'added') {
             const data = { id: change.doc.id, ...change.doc.data() };
             addDisruption(data);
-            
-            // AUTO-TRIGGER: open modal for high-severity disruptions
-            const severity = data.severity ?? 0;
-            if (severity >= 6 && !useAlertStore.getState().activeDisruptionId) {
-              useAlertStore.getState().setActiveDisruptionId(data.id);
-            }
           }
         });
       },
