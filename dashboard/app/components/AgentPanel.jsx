@@ -59,7 +59,7 @@ export default function AgentPanel({ isOpen, activeTab, onTabChange, onClose }) 
           transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           style={{ transformOrigin: 'bottom right' }}
           className={[
-            'fixed sm:absolute bottom-6 right-6 sm:bottom-full sm:right-0 sm:mb-3 z-30 pointer-events-auto',
+            'fixed sm:absolute bottom-6 right-6 sm:bottom-full sm:right-0 sm:mb-3 z-50 pointer-events-auto',
             'w-[calc(100vw-48px)] sm:w-96 max-h-[60vh] sm:max-h-[70vh] flex flex-col',
             'liquid-glass !rounded-3xl overflow-hidden shadow-2xl',
           ].join(' ')}

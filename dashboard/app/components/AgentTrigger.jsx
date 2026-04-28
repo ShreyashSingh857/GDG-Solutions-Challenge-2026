@@ -21,6 +21,7 @@ export default function AgentTrigger({ isOpen, onClick }) {
       )}
 
       <button
+        onMouseDown={(e) => e.preventDefault()}
         onClick={onClick}
         title={isOpen ? 'Close AI Agent Panel' : 'Open AI Agent Panel'}
         style={{ clipPath: HEX_CLIP, width: 52, height: 52 }}

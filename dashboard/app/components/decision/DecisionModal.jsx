@@ -133,18 +133,20 @@ export default function DecisionModal() {
       if (e.key !== 'Tab') return;
       if (e.shiftKey) {
         if (document.activeElement === firstElement) {
-          lastElement.focus();
+          try { lastElement.focus({ preventScroll: true }); } catch { lastElement.focus(); }
           e.preventDefault();
         }
       } else {
         if (document.activeElement === lastElement) {
-          firstElement.focus();
+          try { firstElement.focus({ preventScroll: true }); } catch { firstElement.focus(); }
           e.preventDefault();
         }
       }
     };
 
-    if (firstElement) firstElement.focus();
+    if (firstElement) {
+      try { firstElement.focus({ preventScroll: true }); } catch { firstElement.focus(); }
+    }
     document.addEventListener('keydown', handleTab);
     return () => document.removeEventListener('keydown', handleTab);
   }, [activeDisruptionId, activeResolution?.options?.length, isExecuted]);
