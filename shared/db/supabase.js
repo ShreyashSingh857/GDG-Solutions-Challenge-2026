@@ -1,6 +1,3 @@
-import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-
 // Best-effort local env loading: skip if dotenv is unavailable in this package context.
 try {
   await import('dotenv/config');
@@ -8,24 +5,12 @@ try {
   // no-op
 }
 
-let createClientFn = null;
-
-const moduleResolutionContexts = [
-  process.cwd(),
-  fileURLToPath(new URL('../../package.json', import.meta.url)),
-];
-
-for (const packageJsonPath of moduleResolutionContexts) {
-  try {
-    const requireFromHere = createRequire(pathToFileURL(packageJsonPath).href);
-    const resolvedModulePath = requireFromHere.resolve('@supabase/supabase-js');
-    const mod = await import(pathToFileURL(resolvedModulePath).href);
-    createClientFn = mod.createClient;
-    break;
-  } catch {
-    // Try the next package context.
-  }
-}
+// Direct ESM import — Node's resolver walks up the directory tree and finds
+// @supabase/supabase-js in the nearest node_modules (root or service-level).
+// The old createRequire dance was broken in production because it was passed
+// directory paths instead of file paths, causing it to resolve from the wrong
+// node_modules scope.
+import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,9 +25,6 @@ let unavailableReason = null;
 if (!hasSupabaseConfig) {
   unavailableReason = '[Supabase] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in environment variables';
 }
-if (!createClientFn) {
-  unavailableReason = '[Supabase] @supabase/supabase-js is not available in this package context';
-}
 
 const unavailable = new Proxy(
   {},
@@ -53,8 +35,8 @@ const unavailable = new Proxy(
   }
 );
 
-export const supabase = hasSupabaseConfig && createClientFn
-  ? createClientFn(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+export const supabase = hasSupabaseConfig
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -113,6 +95,5 @@ if (!retryTickerStarted) {
       console.warn('[Supabase] Retry queue flush failed:', err.message);
     });
   }, 30000);
-  // Do not keep the process alive solely for retry flushing (important for test runners/CI).
   retryTicker.unref?.();
 }
