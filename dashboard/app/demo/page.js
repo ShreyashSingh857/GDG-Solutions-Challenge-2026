@@ -10,8 +10,8 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '../../lib/firebase.js';
-import NavBar from '../../components/NavBar.jsx';
+import { db, isFirebaseConfigured } from '../lib/firebase.js';
+import NavBar from '../components/NavBar.jsx';
 
 const SCENARIOS = [
   {
@@ -403,65 +403,8 @@ export default function DemoPage() {
     return () => unsubsRef.current.forEach((u) => u?.());
   }, []);
 
-  const watchDisruption = useCallback(
-    (dId) => {
-      if (!isFirebaseConfigured || !db) {
-        log('Firebase not configured — polling REST fallback', 'warn');
-        return;
-      }
-
-      log(`Listening for disruption ${dId} in Firestore…`, 'info');
-
-      const q = query(
-        collection(db, 'disruptions'),
-        where('__name__', '==', dId),
-        limit(1)
-      );
-
-      const unsub = onSnapshot(q, (snap) => {
-        if (!snap.empty) {
-          const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
-          setDisruption(data);
-          setStage('monitoring');
-          log(`✓ Disruption confirmed: ${data.title || data.type || dId}`, 'success');
-          watchImpact(dId);
-        }
-      });
-
-      unsubsRef.current.push(unsub);
-    },
-    [log]
-  );
-
-  const watchImpact = useCallback(
-    (dId) => {
-      if (!isFirebaseConfigured || !db) return;
-      log('Monitor agent processing… watching impact_reports…', 'info');
-
-      const q = query(
-        collection(db, 'impact_reports'),
-        where('disruptionId', '==', dId),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-
-      const unsub = onSnapshot(q, (snap) => {
-        if (!snap.empty) {
-          const data = snap.docs[0].data();
-          setImpactReport(data);
-          setStage('impact');
-          log(
-            `✓ Impact scored: $${Number(data.totalCargoAtRiskUSD || 0).toLocaleString()} at risk across ${(data.affectedShipments || []).length} shipments`,
-            'success'
-          );
-          watchResolution(dId);
-        }
-      });
-
-      unsubsRef.current.push(unsub);
-    },
-    [log]
-  );
+  const watchResolutionRef = useRef(null);
+  const watchImpactRef = useRef(null);
 
   const watchResolution = useCallback(
     (dId) => {
@@ -503,6 +446,69 @@ export default function DemoPage() {
     },
     [log]
   );
+
+  const watchImpact = useCallback(
+    (dId) => {
+      if (!isFirebaseConfigured || !db) return;
+      log('Monitor agent processing… watching impact_reports…', 'info');
+
+      const q = query(
+        collection(db, 'impact_reports'),
+        where('disruptionId', '==', dId),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+
+      const unsub = onSnapshot(q, (snap) => {
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          setImpactReport(data);
+          setStage('impact');
+          log(
+            `✓ Impact scored: $${Number(data.totalCargoAtRiskUSD || 0).toLocaleString()} at risk across ${(data.affectedShipments || []).length} shipments`,
+            'success'
+          );
+          if (watchResolutionRef.current) watchResolutionRef.current(dId);
+        }
+      });
+
+      unsubsRef.current.push(unsub);
+    },
+    [log]
+  );
+
+  const watchDisruption = useCallback(
+    (dId) => {
+      if (!isFirebaseConfigured || !db) {
+        log('Firebase not configured — polling REST fallback', 'warn');
+        return;
+      }
+
+      log(`Listening for disruption ${dId} in Firestore…`, 'info');
+
+      const q = query(
+        collection(db, 'disruptions'),
+        where('__name__', '==', dId),
+        limit(1)
+      );
+
+      const unsub = onSnapshot(q, (snap) => {
+        if (!snap.empty) {
+          const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
+          setDisruption(data);
+          setStage('monitoring');
+          log(`✓ Disruption confirmed: ${data.title || data.type || dId}`, 'success');
+          if (watchImpactRef.current) watchImpactRef.current(dId);
+        }
+      });
+
+      unsubsRef.current.push(unsub);
+    },
+    [log]
+  );
+
+  watchResolutionRef.current = watchResolution;
+  watchImpactRef.current = watchImpact;
 
   const handleLaunch = async () => {
     if (!selectedScenario) return;
@@ -621,7 +627,7 @@ export default function DemoPage() {
   const handleDownload = async () => {
     if (!reportData) return;
     try {
-      const { generateReportPdf } = await import('../../lib/generateReportPdf.js');
+      const { generateReportPdf } = await import('../lib/generateReportPdf.js');
       const doc = generateReportPdf({ reportText: reportData, disruption, traceId });
       doc.save(`opentrade-incident-${traceId || Date.now()}.pdf`);
       log('✓ PDF downloaded', 'success');
