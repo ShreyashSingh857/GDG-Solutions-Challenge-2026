@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 
+const configuredDisruptionAgentUrl =
+  process.env.DISRUPTION_AGENT_URL ||
+  process.env.NEXT_PUBLIC_DISRUPTION_AGENT_URL ||
+  '';
+
 const DISRUPTION_AGENT_URL =
-  process.env.DISRUPTION_AGENT_URL || 
-  process.env.NEXT_PUBLIC_DISRUPTION_AGENT_URL || 
-  'http://localhost:3001';
+  configuredDisruptionAgentUrl || (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : '');
 
 const SCENARIOS = {
   pacific_storm: {
@@ -36,6 +39,16 @@ export async function POST(req) {
 
     const { description } = SCENARIOS[scenario];
 
+    if (!DISRUPTION_AGENT_URL) {
+      return NextResponse.json(
+        {
+          error:
+            'DISRUPTION_AGENT_URL is not configured for this dashboard deployment. Set DISRUPTION_AGENT_URL or NEXT_PUBLIC_DISRUPTION_AGENT_URL to the running disruption agent URL.',
+        },
+        { status: 503 }
+      );
+    }
+
     const headers = { 'Content-Type': 'application/json' };
     if (process.env.INTERNAL_TOKEN) {
       headers.Authorization = `Bearer ${process.env.INTERNAL_TOKEN}`;
@@ -45,6 +58,7 @@ export async function POST(req) {
       method: 'POST',
       headers,
       body: JSON.stringify({ description }),
+      signal: AbortSignal.timeout(15000),
     });
 
     const result = await upstream.json().catch(() => ({ error: 'Invalid response from disruption agent' }));
@@ -65,6 +79,13 @@ export async function POST(req) {
       published: result.published ?? false,
     });
   } catch (err) {
+    if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'Disruption agent request timed out after 15 seconds' },
+        { status: 504 }
+      );
+    }
+
     return NextResponse.json(
       { error: err.message || 'Inject failed — is the disruption agent running?' },
       { status: 500 }

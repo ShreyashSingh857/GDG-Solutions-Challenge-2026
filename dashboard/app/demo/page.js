@@ -720,7 +720,7 @@ export default function DemoPage() {
                 OpenTrade Command Demo
               </h1>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '6px 0 0' }}>
-                End-to-end pipeline: disruption injection → AI resolution → human decision → protocol deployment → PDF report
+                End-to-end pipeline: Disruption Injection → AI resolution → Human Decision → Protocol Deployment → PDF Report
               </p>
             </div>
 
