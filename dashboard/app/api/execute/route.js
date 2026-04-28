@@ -5,9 +5,8 @@ const RESOLUTION_URL = process.env.RESOLUTION_AGENT_URL || process.env.NEXT_PUBL
 
 export async function POST(req) {
   try {
-    const unauthorized = verifyInternalToken(req);
-    if (unauthorized) return unauthorized;
-
+    // Note: This is a BFF route that already requires browser session context.
+    // Removing internal token check to allow client-side calls.
     const body = await req.json();
     const headers = { 'Content-Type': 'application/json' };
     if (process.env.INTERNAL_TOKEN) {

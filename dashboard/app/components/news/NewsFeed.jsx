@@ -44,55 +44,52 @@ export default function NewsFeed() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-transparent">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)] glass-panel !rounded-none !border-t-0 !border-x-0 !border-b shadow-none">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--accent-cyan)] mb-1">Intelligence Feed</p>
-          <p className="text-[11px] text-[var(--text-primary)] font-bold tracking-tight">Real-time Global Supply Signals</p>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] glass-panel !rounded-none !border-t-0 !border-x-0 !border-b shadow-none flex-shrink-0">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--accent-cyan)] mb-0.5">Intelligence Feed</p>
+          <p className="text-[10px] text-[var(--text-primary)] font-bold tracking-tight truncate">Real-time Global Supply Signals</p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[9px] font-bold tracking-[0.1em] bg-[var(--accent-cyan)]/10 px-2 py-1 rounded-md border border-[var(--accent-cyan)]/20 text-[var(--accent-cyan)]">
-            {newsAlerts.length} ACTIVE SIGNALS
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          <span className="text-[9px] font-bold tracking-[0.1em] bg-[var(--accent-cyan)]/10 px-2 py-1 rounded-md border border-[var(--accent-cyan)]/20 text-[var(--accent-cyan)] whitespace-nowrap">
+            {newsAlerts.length} SIGNALS
           </span>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]/40 transition-all disabled:opacity-50 shadow-sm"
+            className="p-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]/40 transition-all disabled:opacity-50 shadow-sm flex-shrink-0"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {refreshError && (
-        <div className="m-4 px-4 py-2 bg-[var(--accent-red)]/10 text-[var(--accent-red)] text-[10px] font-bold uppercase tracking-wider rounded-xl border border-[var(--accent-red)]/20">
-          Source Connection Error: {refreshError}
+        <div className="mx-2 mt-2 px-3 py-2 bg-[var(--accent-red)]/10 text-[var(--accent-red)] text-[9px] font-bold uppercase tracking-wider rounded-lg border border-[var(--accent-red)]/20 flex-shrink-0">
+          Error: {refreshError}
         </div>
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3 min-h-0">
         {!newsAlerts.length ? (
-          <div className="h-full flex flex-col items-center justify-center text-center py-20 px-6">
-            <div className="relative mb-8">
-              <div className="absolute inset-0 bg-[var(--accent-cyan)]/20 blur-3xl rounded-full" />
-              <div className="w-24 h-24 rounded-[32px] bg-[var(--bg-elevated)]/50 flex items-center justify-center relative border border-[var(--border-subtle)] glass-panel shadow-2xl">
-                <ShieldCheck className="w-12 h-12 text-[var(--text-muted)]" />
-              </div>
+          <div className="h-full flex flex-col items-center justify-center text-center py-8 px-3">
+            <div className="w-12 h-12 rounded-lg bg-[var(--bg-elevated)]/50 flex items-center justify-center mb-3 border border-[var(--border-subtle)]">
+              <ShieldCheck className="w-6 h-6 text-[var(--text-muted)]" />
             </div>
-            <div className="space-y-3 mb-8">
-              <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-[var(--text-primary)]">Scanning Horizons</h3>
-              <p className="text-[11px] text-[var(--text-secondary)] max-w-[240px] mx-auto leading-relaxed font-medium">
-                No critical disruptions detected in monitored trade corridors. Continuous scanning active.
+            <div className="space-y-1.5 mb-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-primary)]">Scanning Horizons</h3>
+              <p className="text-[9px] text-[var(--text-secondary)] max-w-[160px] leading-snug">
+                No critical disruptions detected. Scanning active.
               </p>
             </div>
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="px-8 py-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 hover:text-[var(--accent-cyan)] transition-all disabled:opacity-50 shadow-lg"
+              className="px-3 py-1.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 hover:text-[var(--accent-cyan)] transition-all disabled:opacity-50"
             >
-              {isRefreshing ? 'Syncing Sources...' : 'Refresh Intelligence'}
+              {isRefreshing ? 'Syncing...' : 'Refresh'}
             </button>
           </div>
         ) : (

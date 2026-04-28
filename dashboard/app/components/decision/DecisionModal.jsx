@@ -110,9 +110,14 @@ export default function DecisionModal() {
   const [isApproving, setIsApproving] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
   const [approvedRank, setApprovedRank] = useState(null);
-  const [agentStage, setAgentStage] = useState(0);
   const approveRef = useRef(null);
   const modalRef = useRef(null);
+
+  // Derive agentStage from store state instead of local useState to stay in sync
+  const agentStage = !activeDisruptionId ? 0
+    : !activeResolution ? 1
+    : activeResolution.options?.length === 0 ? 2
+    : 3;
 
   // Focus Trap
   useEffect(() => {
@@ -128,18 +133,20 @@ export default function DecisionModal() {
       if (e.key !== 'Tab') return;
       if (e.shiftKey) {
         if (document.activeElement === firstElement) {
-          lastElement.focus();
+          try { lastElement.focus({ preventScroll: true }); } catch { lastElement.focus(); }
           e.preventDefault();
         }
       } else {
         if (document.activeElement === lastElement) {
-          firstElement.focus();
+          try { firstElement.focus({ preventScroll: true }); } catch { firstElement.focus(); }
           e.preventDefault();
         }
       }
     };
 
-    if (firstElement) firstElement.focus();
+    if (firstElement) {
+      try { firstElement.focus({ preventScroll: true }); } catch { firstElement.focus(); }
+    }
     document.addEventListener('keydown', handleTab);
     return () => document.removeEventListener('keydown', handleTab);
   }, [activeDisruptionId, activeResolution?.options?.length, isExecuted]);
@@ -147,40 +154,15 @@ export default function DecisionModal() {
   useEffect(() => {
     if (!activeDisruptionId) {
       setTimeout(() => {
-        setAgentStage(0);
         setIsExecuted(false);
         setApprovedRank(null);
       }, 0);
       return;
     }
-    setTimeout(() => setAgentStage(1), 0);
-    if (!isFirebaseConfigured || !db) {
-      if (activeResolution?.options?.length > 0) setTimeout(() => setAgentStage(3), 0);
-      return;
-    }
 
-    const impactUnsub = onSnapshot(
-      query(collection(db, 'impactReports'), where('disruptionId', '==', activeDisruptionId), limit(1)),
-      (snap) => {
-        if (!snap.empty) setAgentStage((s) => Math.max(s, 2));
-      }
-    );
-
-    const resolutionUnsub = onSnapshot(
-      query(collection(db, 'resolutions'), where('disruptionId', '==', activeDisruptionId), limit(1)),
-      (snap) => {
-        if (!snap.empty) {
-          const status = snap.docs[0].data()?.status;
-          if (status === 'pending') setAgentStage(3);
-        }
-      }
-    );
-
-    return () => {
-      impactUnsub();
-      resolutionUnsub();
-    };
-  }, [activeDisruptionId, activeResolution?.options?.length]);
+    // agentStage is now derived from store state, no need for listeners
+    return () => {};
+  }, [activeDisruptionId]);
 
   const traceId = activeResolution?.traceId || activeResolution?.id;
   const disruption = disruptions.find((d) => d.id === activeResolution?.disruptionId || d.traceId === activeResolution?.disruptionId);

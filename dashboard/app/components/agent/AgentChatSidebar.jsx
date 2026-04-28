@@ -63,41 +63,47 @@ export default function AgentChatSidebar() {
     };
   }, [traceId]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chains]);
+  useEffect(() => {
+    try {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+    } catch {
+      bottomRef.current?.scrollIntoView && bottomRef.current.scrollIntoView();
+    }
+  }, [chains]);
 
   return (
-    <div className="flex flex-col h-full bg-transparent">
-      <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between glass-panel !rounded-none !border-t-0 !border-x-0 !border-b shadow-none">
-        <div>
-          <h2 className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--accent-cyan)] mb-1">AI Reasoning Engine</h2>
-          {traceId && <p className="text-[11px] text-[var(--text-primary)] font-bold tracking-tight">Active Trace #{traceId.slice(-8).toUpperCase()}</p>}
+    <div className="flex flex-col h-full w-full bg-transparent">
+      <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between glass-panel !rounded-none !border-t-0 !border-x-0 !border-b shadow-none flex-shrink-0">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--accent-cyan)] mb-0.5">AI Reasoning Engine</h2>
+          {traceId && <p className="text-[10px] text-[var(--text-primary)] font-bold tracking-tight truncate">Trace #{traceId.slice(-8).toUpperCase()}</p>}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
           {isStreaming ? (
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-[var(--accent-cyan)] rounded-full animate-pulse shadow-[0_0_8px_var(--accent-cyan)]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-cyan)]">Synthesizing</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1 h-1 bg-[var(--accent-cyan)] rounded-full animate-pulse" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--accent-cyan)] whitespace-nowrap">Synthesizing</span>
             </div>
           ) : current?.complete ? (
-            <div className="flex items-center gap-2 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Optimized</span>
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500 whitespace-nowrap">Optimized</span>
             </div>
           ) : null}
         </div>
       </div>
       
       {activeDisruption && (
-        <div className="px-6 py-3 border-b border-[var(--border-subtle)] bg-[var(--accent-red)]/5">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-[var(--accent-red)] rounded-full" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-red)]">
-              Impact: {activeDisruption.type} — {activeDisruption.location}
+        <div className="px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--accent-red)]/5 flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-1 h-1 bg-[var(--accent-red)] rounded-full flex-shrink-0" />
+            <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--accent-red)] truncate">
+              {activeDisruption.type} — {activeDisruption.location}
             </p>
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 text-xs text-[var(--text-secondary)]">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 text-xs text-[var(--text-secondary)] min-h-0">
         {current ? (
           <AnimatePresence mode="wait">
             <motion.div
