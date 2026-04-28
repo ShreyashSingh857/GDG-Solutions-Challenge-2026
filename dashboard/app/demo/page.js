@@ -683,78 +683,72 @@ export default function DemoPage() {
         }
       `}</style>
 
-      <NavBar />
+      <div className="flex h-screen flex-col overflow-hidden bg-(--bg-base) text-(--text-primary)">
+        <NavBar />
 
-      <main
-        style={{
-          minHeight: '100vh',
-          background: 'var(--bg-base)',
-          padding: '80px 24px 40px',
-          fontFamily: 'system-ui, sans-serif',
-        }}
-      >
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-4 py-6 sm:px-6 lg:px-8">
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: 'var(--accent-cyan)',
+                    background: 'rgba(34,211,238,0.08)',
+                    border: '1px solid rgba(34,211,238,0.2)',
+                    padding: '3px 10px',
+                    borderRadius: 20,
+                  }}
+                >
+                  Live Pipeline Demo
+                </span>
+                {stage !== 'idle' && stage !== 'injected' && <Pulse />}
+              </div>
+              <h1
                 style={{
-                  fontSize: 10,
+                  fontSize: 28,
                   fontWeight: 800,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: 'var(--accent-cyan)',
-                  background: 'rgba(34,211,238,0.08)',
-                  border: '1px solid rgba(34,211,238,0.2)',
-                  padding: '3px 10px',
-                  borderRadius: 20,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.02em',
+                  margin: 0,
                 }}
               >
-                Live Pipeline Demo
-              </span>
-              {stage !== 'idle' && stage !== 'injected' && <Pulse />}
+                OpenTrade Command Demo
+              </h1>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '6px 0 0' }}>
+                End-to-end pipeline: disruption injection → AI resolution → human decision → protocol deployment → PDF report
+              </p>
             </div>
-            <h1
-              style={{
-                fontSize: 28,
-                fontWeight: 800,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em',
-                margin: 0,
-              }}
-            >
-              OpenTrade Command Demo
-            </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '6px 0 0' }}>
-              End-to-end pipeline: disruption injection → AI resolution → human decision → protocol deployment → PDF report
-            </p>
-          </div>
 
-          <PipelineBar currentStage={stage} />
+            <PipelineBar currentStage={stage} />
 
-          {error && (
-            <div
-              style={{
-                background: 'rgba(239,68,68,0.08)',
-                border: '1px solid rgba(239,68,68,0.25)',
-                borderRadius: 12,
-                padding: '12px 16px',
-                marginBottom: 20,
-                fontSize: 12,
-                color: 'var(--accent-red)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span>⚠</span>
-              <strong>Error:</strong> {error} — Check that all agents are running and env vars are set.
-            </div>
-          )}
+            {error && (
+              <div
+                style={{
+                  background: 'rgba(239,68,68,0.08)',
+                  border: '1px solid rgba(239,68,68,0.25)',
+                  borderRadius: 12,
+                  padding: '12px 16px',
+                  marginBottom: 20,
+                  fontSize: 12,
+                  color: 'var(--accent-red)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>⚠</span>
+                <strong>Error:</strong> {error} — Check that all agents are running and env vars are set.
+              </div>
+            )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
 
               {stage === 'idle' && (
                 <div className="anim-fadeinup">
@@ -1165,7 +1159,7 @@ export default function DemoPage() {
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
 
               {(disruptionId || stage !== 'idle') && (
                 <div
@@ -1291,9 +1285,10 @@ export default function DemoPage() {
                 </button>
               )}
             </div>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </>
   );
 }
