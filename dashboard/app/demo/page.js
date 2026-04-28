@@ -406,11 +406,6 @@ export default function DemoPage() {
   const watchResolutionRef = useRef(null);
   const watchImpactRef = useRef(null);
 
-  useEffect(() => {
-    watchResolutionRef.current = watchResolution;
-    watchImpactRef.current = watchImpact;
-  }, [watchResolution, watchImpact]);
-
   const watchResolution = useCallback(
     (dId) => {
       if (!isFirebaseConfigured || !db) return;
@@ -481,6 +476,11 @@ export default function DemoPage() {
     },
     [log]
   );
+
+  useEffect(() => {
+    watchResolutionRef.current = watchResolution;
+    watchImpactRef.current = watchImpact;
+  }, [watchResolution, watchImpact]);
 
   const watchDisruption = useCallback(
     (dId) => {
