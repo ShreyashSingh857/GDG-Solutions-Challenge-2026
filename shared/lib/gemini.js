@@ -178,3 +178,19 @@ export async function* generateStream(prompt, tools = []) {
     throw err;
   }
 }
+
+/**
+ * Returns true if this process's Gemini client is currently in a cooldown period.
+ */
+export function isRateLimited() {
+  const now = Date.now();
+  return rateLimitState.blocked && now < rateLimitState.unblockAt;
+}
+
+/**
+ * Returns the remaining cooldown in milliseconds, or 0 if not blocked.
+ */
+export function getRateLimitCooldownMs() {
+  if (!rateLimitState.blocked) return 0;
+  return Math.max(0, rateLimitState.unblockAt - Date.now());
+}

@@ -5,7 +5,7 @@ import { db } from '../../shared/db/firebase.js';
 import { createAgentPayload } from '../../shared/types/AgentPayload.js';
 import { publish } from '../../shared/eventBusClient.js';
 import { TOPICS } from '../../event-bus/topics.js';
-import { generate } from '../../shared/lib/gemini.js';
+import { generate, getRateLimitCooldownMs, isRateLimited } from '../../shared/lib/gemini.js';
 import { generateWithRetry } from '../../shared/lib/llmJson.js';
 import { NEWS_ALERT_RESULT_SCHEMA, validateAndRepair } from '../../shared/lib/validateSchema.js';
 import { fetchGdeltArticles } from '../tools/gdeltFetcher.js';
@@ -26,6 +26,12 @@ const RELEVANCE_THRESHOLD = Number.isFinite(parsedRelevanceThreshold) ? parsedRe
 const MAX_ARTICLES_PER_CALL = 20;
 const MAX_ARTICLES_PER_CYCLE = 100; // cap total in-memory article array per poll cycle
 const DISRUPTION_AGENT_URL = process.env.DISRUPTION_AGENT_URL ?? 'http://localhost:3001';
+const SUPPLY_CHAIN_KEYWORDS = [
+  'port', 'vessel', 'shipping', 'cargo', 'container', 'tanker', 'freight',
+  'canal', 'suez', 'panama', 'malacca', 'strait', 'congestion', 'strike',
+  'typhoon', 'hurricane', 'storm', 'closure', 'disruption', 'delay',
+  'sanctions', 'blockade', 'piracy', 'houthi', 'red sea',
+];
 
 let lastGdeltFetch = new Date(Date.now() - 30 * 60 * 1000);
 let _cycleRunning = false; // prevent overlapping cycles from doubling RAM usage
@@ -47,6 +53,11 @@ function buildNewsFallback(article) {
     epicenterLng: 0,
     affectedCorridors: [],
   };
+}
+
+function hasSupplyChainKeyword(article) {
+  const text = `${article?.headline ?? ''} ${article?.summary ?? ''}`.toLowerCase();
+  return SUPPLY_CHAIN_KEYWORDS.some((keyword) => text.includes(keyword));
 }
 
 export async function injectToDisruptionAgent(description, traceId, maxAttempts = 3, retryDelayMs = 3000) {
@@ -155,10 +166,25 @@ export async function runPollCycle() {
       return stats;
     }
 
-    const batches = chunk(novel, MAX_ARTICLES_PER_CALL);
+    const relevant = novel.filter(hasSupplyChainKeyword);
+    const irrelevant = novel.filter((article) => !hasSupplyChainKeyword(article));
+
+    if (irrelevant.length) {
+      await Promise.all(irrelevant.map((article) => markProcessed(article.url)));
+      console.log(`[NewsAgent] ${irrelevant.length} articles pre-filtered (no supply chain keywords), ${relevant.length} sent to Gemini`);
+    }
+
+    const batches = chunk(relevant, MAX_ARTICLES_PER_CALL);
     const classified = [];
 
     for (const batch of batches) {
+      if (isRateLimited()) {
+        const cooldownSec = Math.ceil(getRateLimitCooldownMs() / 1000);
+        console.warn(`[NewsAgent] Gemini rate-limited (${cooldownSec}s remaining). Marking ${batch.length} articles as processed and deferring classification.`);
+        await Promise.all(batch.map((article) => markProcessed(article.url)));
+        continue;
+      }
+
       const input = batch.map(({ url, headline, source, publishedAt }) => ({ url, headline, source, publishedAt }));
 
       let results = [];

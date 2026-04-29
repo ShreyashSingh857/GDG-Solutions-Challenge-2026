@@ -186,7 +186,7 @@ export async function processDisruptionEvent(agentPayload) {
 			});
 		});
 		batch.commit().catch((err) => {
-			console.warn('[ImpactService] Firestore batch update failed (non-fatal):', err.message);
+			console.warn('[ImpactService] Firestore shipment batch failed (non-fatal):', err.message);
 		});
 	}
 
