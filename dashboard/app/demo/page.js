@@ -521,8 +521,8 @@ export default function DemoPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          resolutionId: resolution.id,
-          selectedOptionRank: rank,
+          traceId: resolution.id,
+          rank,
           disruptionId,
         }),
       });
