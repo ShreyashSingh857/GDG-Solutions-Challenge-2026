@@ -1,0 +1,130 @@
+{
+  "timestamp": "2026-04-30T04:22:10.567Z",
+  "traceId": "smoke-20260430-095210",
+  "files": {
+    "logPath": "docs/smoketest/smoke-20260430-095210.log",
+    "jsonPath": "docs/smoketest/smoke-20260430-095210.json"
+  },
+  "serviceChecks": [
+    {
+      "service": "event-bus",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 150,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 8,
+        "error": null
+      }
+    },
+    {
+      "service": "disruption",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 11,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 8,
+        "error": null
+      }
+    },
+    {
+      "service": "impact",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 15,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 12,
+        "error": null
+      }
+    },
+    {
+      "service": "resolution",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 10,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 8,
+        "error": null
+      }
+    },
+    {
+      "service": "news-intel",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 38,
+        "error": null
+      },
+      "metrics": {
+        "ok": true,
+        "status": 200,
+        "elapsedMs": 10,
+        "error": null
+      }
+    }
+  ],
+  "baselineMessageCounts": {
+    "disruption-events": 1,
+    "impact-reports": 2,
+    "resolution-options": 2,
+    "news-alerts": 0
+  },
+  "postDisruption": {
+    "ok": true,
+    "status": 201,
+    "elapsedMs": 182,
+    "error": null
+  },
+  "pollAttempts": 30,
+  "chainComplete": false,
+  "postMessageCounts": {
+    "disruption-events": 1,
+    "impact-reports": 2,
+    "resolution-options": 2,
+    "news-alerts": 0
+  },
+  "messageCountDelta": {
+    "disruption-events": 0,
+    "impact-reports": 0,
+    "resolution-options": 0,
+    "news-alerts": 0
+  },
+  "resolutionProbe": {
+    "ok": false,
+    "status": 404,
+    "elapsedMs": 61,
+    "optionCount": 0,
+    "firstTitle": null,
+    "error": null
+  },
+  "scraperChecks": {
+    "smokeScraper": {
+      "passed": true,
+      "exitCode": 0
+    },
+    "disruptionSmokes": {
+      "passed": true,
+      "exitCode": 0
+    }
+  },
+  "overallPass": false
+}

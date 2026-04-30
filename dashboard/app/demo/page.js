@@ -11,6 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
+import { watchDisruptionSupabase, watchImpactSupabase, watchResolutionSupabase } from '../lib/supabaseWatcher.js';
 import NavBar from '../components/NavBar.jsx';
 
 const SCENARIOS = [
@@ -408,40 +409,14 @@ export default function DemoPage() {
 
   const watchResolution = useCallback(
     (dId) => {
-      if (!isFirebaseConfigured || !db) return;
       log('Impact complete — AI resolution agent active…', 'info');
-
-      const q = query(
-        collection(db, 'resolutions'),
-        where('disruptionId', '==', dId),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-
-      const unsub = onSnapshot(q, async (snap) => {
-        if (snap.empty) return;
-
-        const doc = snap.docs[0];
-        const res = { id: doc.id, ...doc.data() };
-
-        try {
-          const optSnap = await getDocs(
-            query(collection(db, 'resolutions', doc.id, 'options'), orderBy('rank'))
-          );
-          const opts = optSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-          if (opts.length > 0) {
-            setResolution(res);
-            setOptions(opts);
-            setStage('resolution');
-            log(`✓ AI generated ${opts.length} resolution strategies`, 'success');
-            setTimeout(() => setStage('decision'), 1200);
-          }
-        } catch (err) {
-          log(`Options fetch error: ${err.message}`, 'warn');
-        }
+      const unsub = watchResolutionSupabase(dId, ({ resolution: res, options: opts }) => {
+        setResolution(res);
+        setOptions(opts);
+        setStage('resolution');
+        log(`✓ AI generated ${opts.length} resolution strategies`, 'success');
+        setTimeout(() => setStage('decision'), 1200);
       });
-
       unsubsRef.current.push(unsub);
     },
     [log]
@@ -449,29 +424,16 @@ export default function DemoPage() {
 
   const watchImpact = useCallback(
     (dId) => {
-      if (!isFirebaseConfigured || !db) return;
       log('Monitor agent processing… watching impact_reports…', 'info');
-
-      const q = query(
-        collection(db, 'impact_reports'),
-        where('disruptionId', '==', dId),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-
-      const unsub = onSnapshot(q, (snap) => {
-        if (!snap.empty) {
-          const data = snap.docs[0].data();
-          setImpactReport(data);
-          setStage('impact');
-          log(
-            `✓ Impact scored: $${Number(data.totalCargoAtRiskUSD || 0).toLocaleString()} at risk across ${(data.affectedShipments || []).length} shipments`,
-            'success'
-          );
-          if (watchResolutionRef.current) watchResolutionRef.current(dId);
-        }
+      const unsub = watchImpactSupabase(dId, (data) => {
+        setImpactReport(data);
+        setStage('impact');
+        log(
+          `✓ Impact scored: $${Number(data.totalCargoAtRiskUSD || 0).toLocaleString()} at risk across ${(data.affectedShipments || []).length} shipments`,
+          'success'
+        );
+        if (watchResolutionRef.current) watchResolutionRef.current(dId);
       });
-
       unsubsRef.current.push(unsub);
     },
     [log]
@@ -484,29 +446,13 @@ export default function DemoPage() {
 
   const watchDisruption = useCallback(
     (dId) => {
-      if (!isFirebaseConfigured || !db) {
-        log('Firebase not configured — polling REST fallback', 'warn');
-        return;
-      }
-
-      log(`Listening for disruption ${dId} in Firestore…`, 'info');
-
-      const q = query(
-        collection(db, 'disruptions'),
-        where('__name__', '==', dId),
-        limit(1)
-      );
-
-      const unsub = onSnapshot(q, (snap) => {
-        if (!snap.empty) {
-          const data = { id: snap.docs[0].id, ...snap.docs[0].data() };
-          setDisruption(data);
-          setStage('monitoring');
-          log(`✓ Disruption confirmed: ${data.title || data.type || dId}`, 'success');
-          if (watchImpactRef.current) watchImpactRef.current(dId);
-        }
+      log(`Listening for disruption ${dId} in Supabase…`, 'info');
+      const unsub = watchDisruptionSupabase(dId, (data) => {
+        setDisruption(data);
+        setStage('monitoring');
+        log(`✓ Disruption confirmed: ${data.title || data.type || dId}`, 'success');
+        if (watchImpactRef.current) watchImpactRef.current(dId);
       });
-
       unsubsRef.current.push(unsub);
     },
     [log]

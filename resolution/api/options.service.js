@@ -515,7 +515,7 @@ async function processImpactReport(agentPayload) {
 		validationStatus,
 	});
 
-	await batch.commit();
+	batch.commit().catch((err) => console.warn('[ResolutionService] Firestore batch failed (non-fatal):', err.message));
 
 	try {
 		await db.collection('stats').doc('global').set(

@@ -1,0 +1,62 @@
+Smoke run start: 2026-04-30T04:20:22.868Z
+Scenario: pacific_storm
+
+
+=== CMD: node resolution/simulation/inject.js pacific_storm
+[Inject] ✅ Event injected successfully
+[Inject] Disruption ID: disruption-27dc7c24-420a-4a61-b0aa-071dbd5336e3
+[Inject] TraceId: disruption-27dc7c24-420a-4a61-b0aa-071dbd5336e3
+[Inject] Published to event bus: false
+
+PROCESS EXIT CODE: 0
+
+
+=== CMD: node scripts/smoke-overall.mjs
+Smoke started at 2026-04-30T04:20:44.881Z
+Trace ID: smoke-20260430-095044
+[event-bus] /health -> 200 (105ms)
+[event-bus] /metrics -> 200 (12ms)
+[disruption] /health -> 200 (11ms)
+[disruption] /metrics -> 200 (8ms)
+[impact] /health -> 200 (53ms)
+[impact] /metrics -> 200 (22ms)
+[resolution] /health -> 200 (31ms)
+[resolution] /metrics -> 200 (13ms)
+[news-intel] /health -> 200 (26ms)
+[news-intel] /metrics -> 200 (10ms)
+Baseline counts: {"disruption-events":1,"impact-reports":2,"resolution-options":2,"news-alerts":0}
+POST /events -> 201 (178ms)
+Post counts: {"disruption-events":1,"impact-reports":2,"resolution-options":2,"news-alerts":0}
+Count delta: {"disruption-events":0,"impact-reports":0,"resolution-options":0,"news-alerts":0}
+GET /options/smoke-20260430-095044 -> 404 (145ms)
+Running scraper smoke checks
+$ npm run smoke:scraper
+(node:15140) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  > opentrade@1.0.0 smoke:scraper
+  > node scripts/smoke-scraper.mjs
+  [smoke-scraper] PASS: fetch/cache/rss helpers are working
+  -> exit 0
+$ node --test disruption/tests/aisResolver.smoke.test.js disruption/tests/ecmwfScraper.smoke.test.js disruption/tests/flexportTracker.smoke.test.js disruption/tests/marineTrafficScraper.smoke.test.js disruption/tests/vesselFinderScraper.smoke.test.js
+  ✔ resolveVesselPosition prefers recent live AIS data (5.2856ms)
+  ✔ resolveVesselPosition falls back to MarineTraffic then VesselFinder (160.1512ms)
+  ✔ fetchEcmwfForecast computes risk and includes hourly slices (128.751ms)
+  ✔ fetchFlexportTracking maps scraper output (12.4274ms)
+  ✔ syncFlexportShipments updates active shipments (1.9974ms)
+  ✔ fetchVesselDetails parses public vessel metadata (70.5352ms)
+  ✔ fetchVesselsInPort parses vessel table rows (21.2153ms)
+  ✔ fetchVesselFromVesselFinder parses table and json-ld (171.3425ms)
+  ℹ tests 8
+  ℹ suites 0
+  ℹ pass 8
+  ℹ fail 0
+  ℹ cancelled 0
+  ℹ skipped 0
+  ℹ todo 0
+  ℹ duration_ms 2854.1775
+  -> exit 0
+Smoke log written: docs/smoketest/smoke-20260430-095044.log
+Smoke summary written: docs/smoketest/smoke-20260430-095044.json
+OVERALL_PASS=false
+
+PROCESS EXIT CODE: 1
