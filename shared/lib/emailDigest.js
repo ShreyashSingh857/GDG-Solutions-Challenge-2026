@@ -46,7 +46,7 @@ export async function sendDailyDigest({ orgId, recipientEmail, disruptions, reso
 
   try {
     await brevo.transactionalEmails.sendTransacEmail(sendSmtpEmail);
-  } catch (err) {
+  } catch (_err) {
     // swallow errors silently in this helper
   }
 }
