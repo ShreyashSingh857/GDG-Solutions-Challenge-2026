@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle, Code2, Zap } from 'lucide-react';
 import { useAlertStore } from '../store/alertStore.js';
 import { useTheme } from '../providers/ThemeProvider.jsx';
@@ -19,25 +19,18 @@ const NAV_ITEMS = [
   { href: '/health', label: 'System', icon: Activity, section: 'analysis' },
 ];
 
-function ThemeToggleButton({ theme, onToggle }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const titleText = mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle theme';
-
+function ThemeToggleButton({ onToggle }) {
   return (
     <button
       onClick={onToggle}
-      title={titleText}
+      title="Toggle theme"
       aria-label="Toggle theme"
       className="p-1.5 rounded-lg border border-[var(--border-subtle)] 
                  text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                  hover:bg-[var(--bg-elevated)] transition-all active:scale-95 shadow-sm"
     >
-      {mounted ? (theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />) : <span className="inline-block w-3.5 h-3.5" />}
+      <Sun className="theme-toggle-light-icon w-3.5 h-3.5" aria-hidden="true" />
+      <Moon className="theme-toggle-dark-icon w-3.5 h-3.5" aria-hidden="true" />
     </button>
   );
 }
@@ -45,7 +38,7 @@ function ThemeToggleButton({ theme, onToggle }) {
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const isGlobePage = pathname === '/';
   const hasActiveDisruption = useAlertStore((s) => Boolean(s.activeDisruptionId));
 
@@ -131,7 +124,7 @@ export default function NavBar() {
       {/* Right actions */}
       <div className="flex items-center gap-3">
         {!isGlobePage && (
-          <ThemeToggleButton theme={theme} onToggle={toggleTheme} />
+          <ThemeToggleButton onToggle={toggleTheme} />
         )}
         <Link
           href="/settings"

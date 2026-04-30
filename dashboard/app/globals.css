@@ -199,6 +199,22 @@ body {
 }
 
 @layer utilities {
+  .theme-toggle-light-icon {
+    display: none;
+  }
+
+  .theme-toggle-dark-icon {
+    display: inline-block;
+  }
+
+  [data-theme="light"] .theme-toggle-light-icon {
+    display: inline-block;
+  }
+
+  [data-theme="light"] .theme-toggle-dark-icon {
+    display: none;
+  }
+
   /* Pure Glass Panel */
   .glass-panel {
     background: var(--glass-bg);
