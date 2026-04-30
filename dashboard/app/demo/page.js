@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   collection,
   getDocs,
@@ -373,6 +374,27 @@ function OptionCardInline({ option, onApprove, isApproving, approvedRank }) {
 
 export default function DemoPage() {
   const [selectedScenario, setSelectedScenario] = useState(null);
+  const searchParams = useSearchParams();
+
+  // Auto-select and launch scenario from URL param (?scenario=pacific_storm)
+  useEffect(() => {
+    const scenarioParam = searchParams?.get('scenario');
+    if (!scenarioParam) return;
+    const match = SCENARIOS.find((s) => s.id === scenarioParam);
+    if (match) setSelectedScenario(match.id);
+  }, [searchParams]);
+
+  // Auto-launch once scenario is pre-selected from URL
+  useEffect(() => {
+    const scenarioParam = searchParams?.get('scenario');
+    if (!scenarioParam || !selectedScenario) return;
+    if (selectedScenario === scenarioParam) {
+      // Small delay to let UI render before launch
+      const t = setTimeout(() => handleLaunch(), 300);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedScenario]);
   const [stage, setStage]         = useState('idle');
   const [disruptionId, setDisruptionId] = useState(null);
   const [traceId, setTraceId]     = useState(null);
