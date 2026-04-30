@@ -40,7 +40,7 @@ export function generateReportPdf({ reportText, disruption, traceId }) {
   const now = new Date();
   doc.text(`Generated: ${now.toLocaleString()}`, width - margin, 14, { align: 'right' });
   doc.text(`Trace ID: ${traceId || 'N/A'}`, width - margin, 21, { align: 'right' });
-  doc.text(`Severity: ${(disruption?.severity || 'HIGH').toUpperCase()}`, width - margin, 28, { align: 'right' });
+  doc.text(`Severity: ${disruption?.severity != null ? `${disruption.severity}/10` : 'HIGH'}`, width - margin, 28, { align: 'right' });
 
   let y = 50;
   const lines = String(reportText || '').split('\n');

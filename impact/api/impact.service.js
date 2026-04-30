@@ -120,7 +120,7 @@ export async function processDisruptionEvent(agentPayload) {
 	});
 	validateImpactReport(impactReport);
 
-	await db.collection('impactReports').doc(impactReport.id).set({
+	db.collection('impactReports').doc(impactReport.id).set({
 		...impactReport,
 		systemPromptSnapshot: SYSTEM_PROMPT.slice(0, 2000),
 		inputPayloadSnapshot: JSON.stringify({
@@ -135,6 +135,8 @@ export async function processDisruptionEvent(agentPayload) {
 			repairedCount: nonParseErrors.length,
 			parseRetries: retriesUsed,
 		},
+	}).catch((err) => {
+		console.warn('[ImpactService] Firestore impactReport write failed (non-fatal):', err.message);
 	});
 
 	const { queued: irQueued } = await resilientUpsert(
@@ -183,7 +185,9 @@ export async function processDisruptionEvent(agentPayload) {
 				disruptionId: disruption.id,
 			});
 		});
-		await batch.commit();
+		batch.commit().catch((err) => {
+			console.warn('[ImpactService] Firestore shipment batch failed (non-fatal):', err.message);
+		});
 	}
 
 	await publish(TOPICS.IMPACT_REPORTS, createAgentPayload('impact', impactReport, traceId));

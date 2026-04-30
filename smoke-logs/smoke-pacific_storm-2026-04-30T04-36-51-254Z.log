@@ -1,0 +1,179 @@
+Smoke run start: 2026-04-30T04:36:51.271Z
+Scenario: pacific_storm
+
+
+=== CMD-SYNC: node resolution/simulation/inject.js pacific_storm
+[Inject] ✅ Event injected successfully
+[Inject] Disruption ID: disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81
+[Inject] TraceId: disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81
+[Inject] Published to event bus: false
+
+PROCESS EXIT CODE: 0
+
+Parsed injection: disruptionId=disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81 traceId=disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81
+Detected published:false from injector — attempting fallback publish to event-bus
+Posting fallback publish to http://localhost:4000/publish with traceId=disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81
+Fallback publish response: 200 OK {"ok":true,"topic":"disruption-events","traceId":"disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81"}
+
+
+=== CMD-SYNC: node scripts/smoke-overall.mjs
+Smoke started at 2026-04-30T04:36:53.964Z
+Trace ID: smoke-20260430-100653
+[event-bus] /health -> 200 (208ms)
+[event-bus] /metrics -> 200 (12ms)
+[disruption] /health -> 200 (22ms)
+[disruption] /metrics -> 200 (31ms)
+[impact] /health -> 200 (8ms)
+[impact] /metrics -> 200 (11ms)
+[resolution] /health -> 200 (11ms)
+[resolution] /metrics -> 200 (7ms)
+[news-intel] /health -> 200 (22ms)
+[news-intel] /metrics -> 200 (8ms)
+Baseline counts: {"disruption-events":2,"impact-reports":2,"resolution-options":2,"news-alerts":0}
+POST /events -> 201 (183ms)
+Post counts: {"disruption-events":2,"impact-reports":2,"resolution-options":2,"news-alerts":0}
+Count delta: {"disruption-events":0,"impact-reports":0,"resolution-options":0,"news-alerts":0}
+GET /options/smoke-20260430-100653 -> 404 (358ms)
+Running scraper smoke checks
+$ npm run smoke:scraper
+  > opentrade@1.0.0 smoke:scraper
+  > node scripts/smoke-scraper.mjs
+  [smoke-scraper] PASS: fetch/cache/rss helpers are working
+  -> exit 0
+$ node --test disruption/tests/aisResolver.smoke.test.js disruption/tests/ecmwfScraper.smoke.test.js disruption/tests/flexportTracker.smoke.test.js disruption/tests/marineTrafficScraper.smoke.test.js disruption/tests/vesselFinderScraper.smoke.test.js
+  ✔ resolveVesselPosition prefers recent live AIS data (5.1961ms)
+  ✔ resolveVesselPosition falls back to MarineTraffic then VesselFinder (270.1755ms)
+  ✔ fetchEcmwfForecast computes risk and includes hourly slices (165.2036ms)
+  ✔ fetchFlexportTracking maps scraper output (4.4323ms)
+  ✔ syncFlexportShipments updates active shipments (5.8291ms)
+  ✔ fetchVesselDetails parses public vessel metadata (120.5212ms)
+  ✔ fetchVesselsInPort parses vessel table rows (13.4171ms)
+  ✔ fetchVesselFromVesselFinder parses table and json-ld (130.6613ms)
+  ℹ tests 8
+  ℹ suites 0
+  ℹ pass 8
+  ℹ fail 0
+  ℹ cancelled 0
+  ℹ skipped 0
+  ℹ todo 0
+  ℹ duration_ms 3394.7097
+  -> exit 0
+Smoke log written: docs/smoketest/smoke-20260430-100653.log
+Smoke summary written: docs/smoketest/smoke-20260430-100653.json
+OVERALL_PASS=false
+(node:3912) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+PROCESS EXIT CODE: 1
+
+Smoke overall script failed (non-fatal): Exit code 1
+
+
+=== CMD-SYNC: node -e (async()=>{try{const r=await fetch('http://localhost:4000/health');console.log(await r.text())}catch(e){console.error(e.message);process.exit(2)}})()
+[eval]:1
+(async()=
+         
+Invalid assignment target
+
+SyntaxError: Unexpected end of input
+    at makeContextifyScript (node:internal/vm:194:14)
+    at compileScript (node:internal/process/execution:388:10)
+    at evalTypeScript (node:internal/process/execution:260:22)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.13.0
+
+PROCESS EXIT CODE: 1
+
+
+=== CMD-SYNC: node -e (async()=>{try{const r=await fetch('http://localhost:3001/health');console.log(await r.text())}catch(e){console.error(e.message);process.exit(2)}})()
+[eval]:1
+(async()=
+         
+Invalid assignment target
+
+SyntaxError: Unexpected end of input
+    at makeContextifyScript (node:internal/vm:194:14)
+    at compileScript (node:internal/process/execution:388:10)
+    at evalTypeScript (node:internal/process/execution:260:22)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.13.0
+
+PROCESS EXIT CODE: 1
+
+
+=== CMD-SYNC: node -e (async()=>{try{const r=await fetch('http://localhost:3002/health');console.log(await r.text())}catch(e){console.error(e.message);process.exit(2)}})()
+[eval]:1
+(async()=
+         
+Invalid assignment target
+
+SyntaxError: Unexpected end of input
+    at makeContextifyScript (node:internal/vm:194:14)
+    at compileScript (node:internal/process/execution:388:10)
+    at evalTypeScript (node:internal/process/execution:260:22)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.13.0
+
+PROCESS EXIT CODE: 1
+
+
+=== CMD-SYNC: node -e (async()=>{try{const r=await fetch('http://localhost:3003/health');console.log(await r.text())}catch(e){console.error(e.message);process.exit(2)}})()
+[eval]:1
+(async()=
+         
+Invalid assignment target
+
+SyntaxError: Unexpected end of input
+    at makeContextifyScript (node:internal/vm:194:14)
+    at compileScript (node:internal/process/execution:388:10)
+    at evalTypeScript (node:internal/process/execution:260:22)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.13.0
+
+PROCESS EXIT CODE: 1
+
+
+=== CMD-SYNC: node -e (async()=>{try{const r=await fetch('http://localhost:3005/health');console.log(await r.text())}catch(e){console.error(e.message);process.exit(2)}})()
+[eval]:1
+(async()=
+         
+Invalid assignment target
+
+SyntaxError: Unexpected end of input
+    at makeContextifyScript (node:internal/vm:194:14)
+    at compileScript (node:internal/process/execution:388:10)
+    at evalTypeScript (node:internal/process/execution:260:22)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.13.0
+
+PROCESS EXIT CODE: 1
+
+
+=== CMD-SYNC: node -e (async()=>{try{const r=await fetch('http://localhost:3000/health');console.log(await r.text())}catch(e){console.error(e.message);process.exit(2)}})()
+[eval]:1
+(async()=
+         
+Invalid assignment target
+
+SyntaxError: Unexpected end of input
+    at makeContextifyScript (node:internal/vm:194:14)
+    at compileScript (node:internal/process/execution:388:10)
+    at evalTypeScript (node:internal/process/execution:260:22)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.13.0
+
+PROCESS EXIT CODE: 1
+
+Smoke run finished: 2026-04-30T04:39:03.100Z
+
+Supabase verification start:
+disruptions: FOUND disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81
+impact_reports: MISSING for trace=disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81
+resolution_options: MISSING for resolution_id=disruption-ccf91c15-a294-4d8e-b7b9-ab8e81751d81
+Supabase verification result: false

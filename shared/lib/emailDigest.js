@@ -1,30 +1,12 @@
-let resendClient = null;
-
-async function getResendClient() {
-  if (resendClient) return resendClient;
-  if (!process.env.RESEND_API_KEY) return null;
-
-  try {
-    const { Resend } = await import('resend');
-    resendClient = new Resend(process.env.RESEND_API_KEY);
-    return resendClient;
-  } catch {
-    return null;
-  }
-}
-
 export async function sendDailyDigest({ orgId, recipientEmail, disruptions, resolutions }) {
-  const resend = await getResendClient();
-  if (!resend || !recipientEmail) return;
+  if (!recipientEmail) return;
+  const apiKey = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || process.env.SIB_API_KEY || process.env.SENDINBLUE_API;
+  if (!apiKey) return;
 
   const critical = disruptions.filter((d) => Number(d.severity || 0) >= 8).length;
   const executed = resolutions.filter((r) => r.status === 'resolved').length;
 
-  await resend.emails.send({
-    from: process.env.DIGEST_FROM_EMAIL || 'Supply Chain Intelligence <alerts@yourapp.com>',
-    to: recipientEmail,
-    subject: `Daily Digest (${orgId || 'default'}) - ${critical} critical events, ${executed} executed`,
-    html: `
+  const html = `
       <div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:640px;margin:0 auto;background:#0f172a;color:#e2e8f0;padding:24px;border-radius:12px;">
         <h2 style="margin:0 0 12px;color:#38bdf8;">Supply Chain Daily Digest</h2>
         <p style="margin:0 0 16px;color:#94a3b8;">Last 24 hours summary</p>
@@ -41,6 +23,50 @@ export async function sendDailyDigest({ orgId, recipientEmail, disruptions, reso
         `).join('')}
         <p style="margin-top:20px;"><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}" style="color:#38bdf8;">Open dashboard</a></p>
       </div>
-    `,
-  });
+    `;
+
+  const sendSmtpEmail = {
+    sender: {
+      name: 'Supply Chain Intelligence',
+      email: process.env.DIGEST_FROM_EMAIL || 'alerts@yourapp.com',
+    },
+    to: [{ email: recipientEmail }],
+    subject: `Daily Digest (${orgId || 'default'}) - ${critical} critical events, ${executed} executed`,
+    htmlContent: html,
+  };
+
+  try {
+    // Prefer SDK when available at runtime; otherwise use direct HTTP API.
+    const sdkName = '@getbrevo/brevo';
+    let usedSdk = false;
+    try {
+      // dynamic import using a variable avoids static bundler resolution
+      const mod = await import(sdkName).catch(() => null);
+      const BrevoClient = mod?.BrevoClient || mod?.default?.BrevoClient;
+      if (BrevoClient) {
+        const client = new BrevoClient({ apiKey });
+        // v5 client API: transactionalEmails.sendTransacEmail
+        if (client?.transactionalEmails?.sendTransacEmail) {
+          await client.transactionalEmails.sendTransacEmail(sendSmtpEmail);
+          usedSdk = true;
+        }
+      }
+    } catch (_e) {
+      // fall through to HTTP send
+    }
+
+    if (!usedSdk) {
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(sendSmtpEmail),
+      });
+    }
+  } catch (_err) {
+    // swallow errors silently in this helper
+  }
 }

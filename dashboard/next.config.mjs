@@ -9,10 +9,10 @@ const require = createRequire(import.meta.url);
 const cesiumRoot = dirname(require.resolve('cesium/package.json'));
 const cspHeader = `
 	default-src 'self';
-	script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cesium.com;
+	script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cesium.com https://vercel.live;
 	style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
 	img-src 'self' data: blob: https://*.tile.openstreetmap.org https://ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net;
-	connect-src 'self' https://*.supabase.co https://firestore.googleapis.com https://*.googleapis.com https://api.cesium.com https://ion.cesium.com https://assets.ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://aisstream.io wss://stream.aisstream.io https://*.onrender.com wss: ws: http://localhost:*;
+	connect-src 'self' https://*.supabase.co https://firestore.googleapis.com https://*.googleapis.com https://api.cesium.com https://ion.cesium.com https://assets.ion.cesium.com https://dev.virtualearth.net https://*.virtualearth.net https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://aisstream.io wss://stream.aisstream.io https://*.onrender.com https://vercel.live wss: ws: http://localhost:*;
 	font-src 'self' https://fonts.gstatic.com;
 	worker-src 'self' blob:;
 	frame-src 'none';

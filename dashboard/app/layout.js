@@ -39,26 +39,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${firaCode.variable} ${spaceGrotesk.variable} h-full antialiased`}>
       <head>
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-  (function() {
-    try {
-      var t = localStorage.getItem('gdg_theme');
-      if (t === 'light' || t === 'dark') {
-        document.documentElement.setAttribute('data-theme', t);
-      } else {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    } catch(e) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  })();
-`,
-          }}
-        />
+        <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>

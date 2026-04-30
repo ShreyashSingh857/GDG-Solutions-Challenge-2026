@@ -249,7 +249,7 @@ export async function classifyAndPublish(rawDescription, traceId = null) {
 		: nonParseErrors;
 	const disruptionEvent = createDisruptionEvent({ ...parsed, rawDescription });
 	validateDisruptionEvent(disruptionEvent);
-	await db.collection('disruptions').doc(disruptionEvent.id).set({
+	db.collection('disruptions').doc(disruptionEvent.id).set({
 		...disruptionEvent,
 		systemPromptSnapshot: SYSTEM_PROMPT.slice(0, 2000),
 		inputPayloadSnapshot: rawDescription.slice(0, 3000),
@@ -261,6 +261,8 @@ export async function classifyAndPublish(rawDescription, traceId = null) {
 			parseRetries: retriesUsed,
 			corroboratingSources,
 		},
+	}).catch((err) => {
+		console.warn('[DisruptionService] Firestore write failed (non-fatal):', err.message);
 	});
 	const { queued } = await resilientUpsert('disruptions', {
 		id: disruptionEvent.id,

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle, Code2 } from 'lucide-react';
+import { Activity, BarChart3, Globe, Package, RotateCcw, Settings, Moon, Sun, Workflow, AlertCircle, Code2, Zap } from 'lucide-react';
 import { useAlertStore } from '../store/alertStore.js';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { motion } from 'framer-motion';
@@ -12,23 +12,25 @@ const NAV_ITEMS = [
   { href: '/', label: 'Globe', icon: Globe, section: 'live' },
   { href: '/shipments', label: 'Shipments', icon: Package, section: 'live' },
   { href: '/analytics', label: 'Analytics', icon: BarChart3, section: 'live' },
+  { href: '/demo', label: 'Demo', icon: Zap, section: 'live' },
   { href: '/replay', label: 'Replay', icon: RotateCcw, section: 'analysis' },
   { href: '/visualize', label: 'Visualize', icon: Workflow, section: 'analysis' },
   { href: '/developers', label: 'API', icon: Code2, section: 'analysis' },
   { href: '/health', label: 'System', icon: Activity, section: 'analysis' },
 ];
 
-function ThemeToggleButton({ theme, onToggle }) {
+function ThemeToggleButton({ onToggle }) {
   return (
     <button
       onClick={onToggle}
-      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      title="Toggle theme"
       aria-label="Toggle theme"
       className="p-1.5 rounded-lg border border-[var(--border-subtle)] 
                  text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                  hover:bg-[var(--bg-elevated)] transition-all active:scale-95 shadow-sm"
     >
-      {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+      <Sun className="theme-toggle-light-icon w-3.5 h-3.5" aria-hidden="true" />
+      <Moon className="theme-toggle-dark-icon w-3.5 h-3.5" aria-hidden="true" />
     </button>
   );
 }
@@ -36,7 +38,7 @@ function ThemeToggleButton({ theme, onToggle }) {
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const isGlobePage = pathname === '/';
   const hasActiveDisruption = useAlertStore((s) => Boolean(s.activeDisruptionId));
 
@@ -122,7 +124,7 @@ export default function NavBar() {
       {/* Right actions */}
       <div className="flex items-center gap-3">
         {!isGlobePage && (
-          <ThemeToggleButton theme={theme} onToggle={toggleTheme} />
+          <ThemeToggleButton onToggle={toggleTheme} />
         )}
         <Link
           href="/settings"

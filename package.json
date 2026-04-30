@@ -28,17 +28,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ShreyashSingh857/GDG-Solutions-Challenge-2026.git"
+    "url": "git+https://github.com/SamanPandey-in/OpenTrade.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ShreyashSingh857/GDG-Solutions-Challenge-2026/issues"
+    "url": "https://github.com/SamanPandey-in/OpenTrade/issues"
   },
-  "homepage": "https://github.com/ShreyashSingh857/GDG-Solutions-Challenge-2026#readme",
+  "homepage": "https://github.com/SamanPandey-in/OpenTrade#readme",
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@getbrevo/brevo": "^5.0.3",
     "@google/generative-ai": "^0.24.1",
     "@opentelemetry/auto-instrumentations-node": "^0.66.0",
     "@opentelemetry/sdk-node": "^0.205.0",

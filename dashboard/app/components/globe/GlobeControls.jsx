@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useShipmentStore } from '../../store/shipmentStore.js';
 
 const STATUS_FILTERS = [
@@ -33,6 +34,7 @@ function MiniSparkline({ status, shipments }) {
 export default function GlobeControls({ onFilterChange, showSimulationControls = false }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [injecting, setInjecting] = useState(null);
+  const router = useRouter();
   const shipments = useShipmentStore((s) => s.shipments);
 
   const handleFilter = (filter) => {
@@ -54,17 +56,9 @@ export default function GlobeControls({ onFilterChange, showSimulationControls =
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onFilterChange]);
 
-  async function injectScenario(name) {
-    setInjecting(name);
-    try {
-      await fetch('/api/webhooks/disruption', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: name.toLowerCase().replace(/ /g, '_') }),
-      });
-    } finally {
-      setInjecting(null);
-    }
+  function injectScenario(name) {
+    const scenarioId = name.toLowerCase().replace(/ /g, '_');
+    router.push(`/demo?scenario=${scenarioId}`);
   }
 
   return (
@@ -118,11 +112,7 @@ export default function GlobeControls({ onFilterChange, showSimulationControls =
                 className="text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)]/40 transition-all flex items-center justify-between group"
               >
                 <span>{name}</span>
-                {injecting === name ? (
-                  <div className="w-3 h-3 rounded-full border-2 border-[var(--accent-cyan)] border-t-transparent animate-spin" />
-                ) : (
-                  <div className="w-1 h-1 rounded-full bg-[var(--text-muted)] group-hover:bg-[var(--accent-cyan)] transition-colors" />
-                )}
+                <div className="w-1 h-1 rounded-full bg-[var(--text-muted)] group-hover:bg-[var(--accent-cyan)] transition-colors" />
               </button>
             ))}
           </div>
