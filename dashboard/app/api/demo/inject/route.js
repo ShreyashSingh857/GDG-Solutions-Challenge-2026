@@ -1,6 +1,31 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { db } from '../../../../lib/firebase-admin.js';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+);
+
+async function writeDisruptionToSupabase(disruptionEvent) {
+  const { error } = await supabaseAdmin.from('disruptions').upsert({
+    id:              disruptionEvent.id,
+    trace_id:        disruptionEvent.id,
+    type:            disruptionEvent.type,
+    severity:        disruptionEvent.severity,
+    location:        disruptionEvent.location,
+    epicenter_lat:   disruptionEvent.epicenterLat,
+    epicenter_lng:   disruptionEvent.epicenterLng,
+    affected_zones:  disruptionEvent.affectedZones || [],
+    confidence:      disruptionEvent.confidence,
+    raw_description: disruptionEvent.rawDescription || disruptionEvent.description || '',
+    published:       true,
+    resolved:        false,
+    detected_at:     disruptionEvent.detectedAt || new Date().toISOString(),
+  }, { onConflict: 'id' });
+  if (error) throw new Error(`Supabase disruption write failed: ${error.message}`);
+}
 
 const INJECT_TIMEOUT_MS = 15_000;
 const EVENT_BUS_TIMEOUT_MS = 5_000;
@@ -116,10 +141,14 @@ async function injectSyntheticDisruption(scenario, scenarioMeta, reason = 'upstr
   const results = await Promise.allSettled([
     db.collection('disruptions').doc(disruptionEvent.id).set(disruptionEvent, { merge: true }),
     publishSyntheticDisruption(disruptionEvent, traceId),
+    writeDisruptionToSupabase(disruptionEvent),
   ]);
 
-  const persisted = results[0].status === 'fulfilled';
+  const persisted = results[0].status === 'fulfilled' || results[2].status === 'fulfilled';
   const published = results[1].status === 'fulfilled';
+  if (results[2].status === 'rejected') {
+    console.warn('[InjectRoute] Supabase disruption write failed:', results[2].reason?.message);
+  }
 
   if (!persisted && !published) {
     const persistErr = results[0].reason?.message || 'persist failed';
