@@ -3,12 +3,13 @@ import { randomUUID } from 'node:crypto';
 import { db } from '../../../../lib/firebase-admin.js';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-);
+const _supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const _supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseAdmin = _supabaseUrl && _supabaseKey ? createClient(_supabaseUrl, _supabaseKey) : null;
 
 async function writeDisruptionToSupabase(disruptionEvent) {
+  if (!supabaseAdmin) return;
+
   const { error } = await supabaseAdmin.from('disruptions').upsert({
     id:              disruptionEvent.id,
     trace_id:        disruptionEvent.id,
