@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import {
   collection,
   getDocs,
@@ -373,28 +372,12 @@ function OptionCardInline({ option, onApprove, isApproving, approvedRank }) {
 }
 
 export default function DemoPage() {
-  const [selectedScenario, setSelectedScenario] = useState(null);
-  const searchParams = useSearchParams();
-
-  // Auto-select and launch scenario from URL param (?scenario=pacific_storm)
-  useEffect(() => {
-    const scenarioParam = searchParams?.get('scenario');
-    if (!scenarioParam) return;
+  const [selectedScenario, setSelectedScenario] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const scenarioParam = new URLSearchParams(window.location.search).get('scenario');
     const match = SCENARIOS.find((s) => s.id === scenarioParam);
-    if (match) setSelectedScenario(match.id);
-  }, [searchParams]);
-
-  // Auto-launch once scenario is pre-selected from URL
-  useEffect(() => {
-    const scenarioParam = searchParams?.get('scenario');
-    if (!scenarioParam || !selectedScenario) return;
-    if (selectedScenario === scenarioParam) {
-      // Small delay to let UI render before launch
-      const t = setTimeout(() => handleLaunch(), 300);
-      return () => clearTimeout(t);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedScenario]);
+    return match ? match.id : null;
+  });
   const [stage, setStage]         = useState('idle');
   const [disruptionId, setDisruptionId] = useState(null);
   const [traceId, setTraceId]     = useState(null);
@@ -480,7 +463,7 @@ export default function DemoPage() {
     [log]
   );
 
-  const handleLaunch = async () => {
+  const handleLaunch = useCallback(async () => {
     if (!selectedScenario) return;
     setError(null);
     setLaunching(true);
@@ -528,7 +511,20 @@ export default function DemoPage() {
     } finally {
       setLaunching(false);
     }
-  };
+  }, [selectedScenario, log, watchDisruption]);
+
+  // Auto-launch once scenario is pre-selected from URL
+  useEffect(() => {
+    const scenarioParam = typeof window === 'undefined'
+      ? null
+      : new URLSearchParams(window.location.search).get('scenario');
+    if (!scenarioParam || !selectedScenario) return;
+    if (selectedScenario === scenarioParam) {
+      // Small delay to let UI render before launch
+      const t = setTimeout(() => handleLaunch(), 300);
+      return () => clearTimeout(t);
+    }
+  }, [selectedScenario, handleLaunch]);
 
   const handleApprove = async (rank) => {
     if (!resolution || !options.length) return;

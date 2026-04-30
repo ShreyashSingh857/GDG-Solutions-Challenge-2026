@@ -1,16 +1,7 @@
 export async function sendDailyDigest({ orgId, recipientEmail, disruptions, resolutions }) {
   if (!recipientEmail) return;
-    const apiKey = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || process.env.SIB_API_KEY || process.env.SENDINBLUE_API;
-    if (!apiKey) return;
-
-  let BrevoClient;
-  try {
-    ({ BrevoClient } = await import('@getbrevo/brevo'));
-  } catch {
-    return;
-  }
-
-  const brevo = new BrevoClient({ apiKey });
+  const apiKey = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || process.env.SIB_API_KEY || process.env.SENDINBLUE_API;
+  if (!apiKey) return;
 
   const critical = disruptions.filter((d) => Number(d.severity || 0) >= 8).length;
   const executed = resolutions.filter((r) => r.status === 'resolved').length;
@@ -45,7 +36,36 @@ export async function sendDailyDigest({ orgId, recipientEmail, disruptions, reso
   };
 
   try {
-    await brevo.transactionalEmails.sendTransacEmail(sendSmtpEmail);
+    // Prefer SDK when available at runtime; otherwise use direct HTTP API.
+    const sdkName = '@getbrevo/brevo';
+    let usedSdk = false;
+    try {
+      // dynamic import using a variable avoids static bundler resolution
+      const mod = await import(sdkName).catch(() => null);
+      const BrevoClient = mod?.BrevoClient || mod?.default?.BrevoClient;
+      if (BrevoClient) {
+        const client = new BrevoClient({ apiKey });
+        // v5 client API: transactionalEmails.sendTransacEmail
+        if (client?.transactionalEmails?.sendTransacEmail) {
+          await client.transactionalEmails.sendTransacEmail(sendSmtpEmail);
+          usedSdk = true;
+        }
+      }
+    } catch (_e) {
+      // fall through to HTTP send
+    }
+
+    if (!usedSdk) {
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(sendSmtpEmail),
+      });
+    }
   } catch (_err) {
     // swallow errors silently in this helper
   }
