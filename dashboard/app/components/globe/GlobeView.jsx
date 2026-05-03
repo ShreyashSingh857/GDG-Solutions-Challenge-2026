@@ -113,7 +113,7 @@ export default function GlobeView({ simulationControlsOpen = false, filter: exte
   const resetIdleTimerRef = useRef(null);
   const [internalFilter, setInternalFilter] = useState('all');
   const f = externalFilter ?? internalFilter;
-  const setF = externalFilter ? () => {} : setInternalFilter;
+  const setF = externalFilter ? () => { } : setInternalFilter;
   const [t, setT] = useState(null);
   const [zoomLevel, setZoomLevel] = useState('far');
   const [viewerEpoch, setViewerEpoch] = useState(0);
@@ -161,7 +161,7 @@ export default function GlobeView({ simulationControlsOpen = false, filter: exte
 
   useEffect(() => {
     if (!cRef.current || vRef.current) return;
-    let cleanup = () => {};
+    let cleanup = () => { };
     let initFrameId = null;
     let cancelled = false;
 
@@ -186,13 +186,13 @@ export default function GlobeView({ simulationControlsOpen = false, filter: exte
           baseLayer: ionToken
             ? ImageryLayer.fromWorldImagery({ style: IonWorldImageryStyle.AERIAL_WITH_LABELS })
             : new ImageryLayer(
-                new UrlTemplateImageryProvider({
-                  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: ['a', 'b', 'c'],
-                  credit: 'Map data © OpenStreetMap contributors',
-                  maximumLevel: 19,
-                })
-              )
+              new UrlTemplateImageryProvider({
+                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: ['a', 'b', 'c'],
+                credit: 'Map data © OpenStreetMap contributors',
+                maximumLevel: 19,
+              })
+            )
         });
         if (cancelled) {
           v.destroy();
@@ -466,41 +466,41 @@ export default function GlobeView({ simulationControlsOpen = false, filter: exte
         ports.set(route.destKey, { label: route.destLabel, lat: destLat, lon: destLon });
       });
 
-    for (const [name, labelEntity] of portLabelEntitiesRef.current) {
-      if (!ports.has(name)) {
-        entities.remove(labelEntity);
-        portLabelEntitiesRef.current.delete(name);
+      for (const [name, labelEntity] of portLabelEntitiesRef.current) {
+        if (!ports.has(name)) {
+          entities.remove(labelEntity);
+          portLabelEntitiesRef.current.delete(name);
+        }
       }
-    }
 
-    for (const [name, port] of ports) {
-      const existing = portLabelEntitiesRef.current.get(name);
-      if (existing) {
-        existing.position = Cartesian3.fromDegrees(port.lon, port.lat);
-        existing.label.text = port.label;
-      } else {
-        const labelEntity = entities.add({
-          id: `port-${name}`,
-          position: Cartesian3.fromDegrees(port.lon, port.lat),
-          point: { pixelSize: 5, color: Color.fromCssColorString('#e2e8f0') },
-          label: {
-            text: name,
-            font: 'bold 14px sans-serif',
-            style: LabelStyle.FILL_AND_OUTLINE,
-            fillColor: Color.WHITE,
-            outlineColor: Color.BLACK,
-            outlineWidth: 2,
-            pixelOffset: new Cartesian2(0, -14),
-            translucencyByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.0),
-            scaleByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.5),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
-          properties: { kind: 'port-label', label: name },
-          show: new ConstantProperty(false),
-        });
-        portLabelEntitiesRef.current.set(name, labelEntity);
+      for (const [name, port] of ports) {
+        const existing = portLabelEntitiesRef.current.get(name);
+        if (existing) {
+          existing.position = Cartesian3.fromDegrees(port.lon, port.lat);
+          existing.label.text = port.label;
+        } else {
+          const labelEntity = entities.add({
+            id: `port-${name}`,
+            position: Cartesian3.fromDegrees(port.lon, port.lat),
+            point: { pixelSize: 5, color: Color.fromCssColorString('#e2e8f0') },
+            label: {
+              text: name,
+              font: 'bold 14px sans-serif',
+              style: LabelStyle.FILL_AND_OUTLINE,
+              fillColor: Color.WHITE,
+              outlineColor: Color.BLACK,
+              outlineWidth: 2,
+              pixelOffset: new Cartesian2(0, -14),
+              translucencyByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.0),
+              scaleByDistance: new NearFarScalar(1.5e6, 1.0, 5.0e6, 0.5),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            properties: { kind: 'port-label', label: name },
+            show: new ConstantProperty(false),
+          });
+          portLabelEntitiesRef.current.set(name, labelEntity);
+        }
       }
-    }
 
       viewer.scene.requestRender();
     } finally {
@@ -829,17 +829,17 @@ export default function GlobeView({ simulationControlsOpen = false, filter: exte
         showSimulationControls={simulationControlsOpen}
       />
       <div ref={cRef} className="h-full w-full" />
-      <div 
-        ref={tooltipRef} 
-        style={{ 
-          position: "fixed", 
-          top: 0, 
-          left: 0, 
-          transform: "translate(-9999px, -9999px)", 
-          zIndex: 50, 
-          pointerEvents: "none", 
-          transition: "transform 0.08s ease-out" 
-        }} 
+      <div
+        ref={tooltipRef}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          transform: "translate(-9999px, -9999px)",
+          zIndex: 50,
+          pointerEvents: "none",
+          transition: "transform 0.08s ease-out"
+        }}
         className={`bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[160px] ${t ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} transition-all duration-200`}
       >
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 leading-none">{t?.kind || 'Entity'}</p>
