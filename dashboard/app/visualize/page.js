@@ -11,6 +11,7 @@ import {
 	ShieldCheck,
 	TerminalSquare,
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/Skeleton';
 import NavBar from '../components/NavBar.jsx';
 
 const AGENT_METRICS = [
@@ -494,7 +495,7 @@ export default function VisualizePage() {
 			<main className="flex-1 overflow-y-auto custom-scrollbar">
 				<div className="mx-auto w-full max-w-[1480px] px-6 py-8 space-y-8">
 					<header>
-						<p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">AI Agent Pipeline</p>
+						<p className="text-xs uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">AI Agent Pipeline</p>
 						<h1 className="mt-2 text-3xl font-bold tracking-tight font-display text-[var(--text-primary)]">System Logic Visualization</h1>
 						<p className="mt-2 text-sm text-[var(--text-secondary)] max-w-2xl">
 							Real-time view of monitor → impact → resolution → execute stages. Monitor the live reasoning and automated decision flow across global shipping corridors.
@@ -504,7 +505,7 @@ export default function VisualizePage() {
 					<section className="glass-panel p-6">
 						<div className="mb-6 flex flex-wrap items-center justify-between gap-3">
 							<div>
-								<div className="text-[10px] uppercase tracking-[0.26em] text-[var(--text-muted)] font-bold">Pipeline Flow</div>
+								<div className="text-xs uppercase tracking-[0.26em] text-[var(--text-muted)] font-bold">Pipeline Flow</div>
 								<div className="mt-1 text-lg font-bold text-[var(--text-primary)]">End-to-End Status</div>
 							</div>
 							<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-cyan)]">
@@ -541,7 +542,7 @@ export default function VisualizePage() {
 					<section className="glass-panel p-6">
 						<div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--glass-border)] pb-4 mb-6">
 							<div>
-								<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-muted)] font-bold">Live Reasoning</div>
+								<div className="text-xs uppercase tracking-[0.24em] text-[var(--text-muted)] font-bold">Live Reasoning</div>
 								<div className="mt-1 text-xl font-bold text-[var(--text-primary)]">Trace {selectedTraceId ? `#${selectedTraceId.slice(-8)}` : '--'}</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
@@ -563,9 +564,14 @@ export default function VisualizePage() {
 						</div>
 
 						{traceLoading && !traceDetails ? (
-							<div className="flex items-center justify-center py-14 text-sm text-[var(--text-secondary)]">
-								<LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[var(--accent-cyan)]" />
-								Loading trace...
+							<div className="py-14 space-y-4">
+								<Skeleton variant="line" className="h-8 w-1/3" />
+								<div className="grid gap-4 xl:grid-cols-2">
+									<Skeleton variant="block" className="h-48" />
+									<Skeleton variant="block" className="h-48" />
+									<Skeleton variant="block" className="h-64" />
+									<Skeleton variant="block" className="h-64" />
+								</div>
 							</div>
 						) : traceDetails ? (
 							<div className="mt-4 grid gap-4 xl:grid-cols-2">
@@ -650,7 +656,7 @@ export default function VisualizePage() {
 					<section className="glass-panel p-6">
 						<div className="mb-6 flex flex-wrap items-center justify-between gap-3">
 							<div>
-								<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-muted)] font-bold">Disruption Timeline</div>
+								<div className="text-xs uppercase tracking-[0.24em] text-[var(--text-muted)] font-bold">Disruption Timeline</div>
 								<div className="mt-1 text-xl font-bold text-[var(--text-primary)]">Last {timeline.length} traces</div>
 							</div>
 							{selectedTimelineItem ? (
@@ -661,9 +667,10 @@ export default function VisualizePage() {
 						</div>
 
 						{timelineLoading ? (
-							<div className="flex items-center justify-center py-10 text-sm text-[var(--text-secondary)]">
-								<LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[var(--accent-cyan)]" />
-								Loading timeline...
+							<div className="flex gap-3 overflow-hidden py-2">
+								{[0, 1, 2, 3, 4].map((i) => (
+									<Skeleton key={i} variant="block" className="h-32 w-[260px] shrink-0 rounded-2xl" />
+								))}
 							</div>
 						) : timeline.length ? (
 							<div className="overflow-x-auto custom-scrollbar">

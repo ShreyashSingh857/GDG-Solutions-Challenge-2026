@@ -15,7 +15,9 @@ import {
   YAxis,
 } from 'recharts';
 import { motion } from 'framer-motion';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, ChevronUp, ChevronDown } from 'lucide-react';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
 import NavBar from '../components/NavBar.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { PAGE_ENTER, STAGGER_CHILDREN, CARD_ITEM } from '../lib/motion.js';
@@ -28,15 +30,15 @@ function KpiCard({ label, value, sub, trend, accentColor = 'var(--accent-cyan)' 
       variants={CARD_ITEM}
       className="glass-panel glass-edge relative overflow-hidden p-6 group"
     >
-      <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-bold">{label}</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)] font-bold">{label}</p>
       <p className="mt-4 font-mono text-4xl font-light text-[var(--text-primary)] leading-none">
         {value}
       </p>
       <div className="mt-4 flex items-center justify-between">
-        <p className="text-[11px] text-[var(--text-secondary)] font-medium">{sub}</p>
+        <p className="text-xs text-[var(--text-secondary)] font-medium">{sub}</p>
         {trend !== undefined && (
-          <div className={`flex items-center gap-1 text-xs font-bold ${trend > 0 ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
-            <span className="opacity-70">{trend > 0 ? '▲' : '▼'}</span>
+          <div className={`flex items-center gap-1 text-sm font-bold ${trend > 0 ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
+            <span className="opacity-70">{trend > 0 ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</span>
             <span>{Math.abs(trend)}%</span>
           </div>
         )}
@@ -57,11 +59,11 @@ function ChartPanel({ title, subtitle, children }) {
       className="glass-panel p-6 space-y-6"
     >
       <div className="flex flex-col gap-1">
-        <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] font-display">
+        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] font-display">
           {title}
         </p>
         {subtitle && (
-          <p className="text-[11px] text-[var(--text-muted)] font-medium">{subtitle}</p>
+          <p className="text-xs text-[var(--text-muted)] font-medium">{subtitle}</p>
         )}
       </div>
       <div className="w-full">
@@ -115,16 +117,16 @@ export default function AnalyticsPage() {
       <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
         <NavBar />
         <div className="flex-1 p-6 space-y-8">
-          <div className="h-10 w-64 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+          <Skeleton variant="line" className="h-10 w-64 rounded-xl" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="glass-panel h-32 animate-pulse" />
+              <Skeleton key={i} variant="block" className="h-32 rounded-2xl" />
             ))}
           </div>
-          <div className="glass-panel h-72 animate-pulse" />
+          <Skeleton variant="block" className="h-72 rounded-2xl" />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="glass-panel h-64 animate-pulse" />
-            <div className="glass-panel h-64 animate-pulse" />
+            <Skeleton variant="block" className="h-64 rounded-2xl" />
+            <Skeleton variant="block" className="h-64 rounded-2xl" />
           </div>
         </div>
       </div>
@@ -164,19 +166,17 @@ export default function AnalyticsPage() {
         </div>
 
         <header>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Operations Intelligence</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-[var(--accent-cyan)] font-bold font-display">Operations Intelligence</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight font-display">30-Day Performance</h1>
         </header>
 
         {(!data || Object.keys(data).length === 0) ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 glass-panel !bg-transparent border-dashed border-2 opacity-60">
-             <div className="w-16 h-16 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-subtle)] mb-4">
-               <BarChart3 className="w-8 h-8 text-[var(--text-muted)]" />
-             </div>
-             <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">No Intelligence Data</h3>
-             <p className="text-[11px] text-[var(--text-secondary)] mt-2 max-w-xs text-center leading-relaxed">
-               Historical performance metrics are calculated every 24 hours. Check back once your first disruption protocol has been executed.
-             </p>
+          <div className="flex-1 min-h-[400px] flex items-center justify-center glass-panel !bg-transparent border-dashed border-2 opacity-60">
+            <EmptyState 
+              icon={BarChart3} 
+              title="No Intelligence Data" 
+              description="Historical performance metrics are calculated every 24 hours. Check back once your first disruption protocol has been executed."
+            />
           </div>
         ) : (
           <>

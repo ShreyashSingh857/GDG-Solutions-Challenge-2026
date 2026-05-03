@@ -9,6 +9,8 @@ import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import MinimalErrorFallback from '../components/MinimalErrorFallback.jsx';
 import { useShipmentStore } from '../store/shipmentStore.js';
 import { PAGE_ENTER } from '../lib/motion.js';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
 
 const OverviewTab = dynamic(() => import('./components/OverviewTab.jsx'), {
   ssr: false,
@@ -85,7 +87,7 @@ export default function DetailsPage() {
       <NavBar />
       
       <div className="flex flex-col px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]/20 backdrop-blur-md z-30 space-y-4">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
           <span className="hover:text-[var(--text-primary)] transition-colors cursor-pointer">OpenTrade</span>
           <span className="opacity-30">/</span>
           <span className="text-[var(--text-secondary)]">Logistics</span>
@@ -100,7 +102,7 @@ export default function DetailsPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={[
-                  'px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2',
+                  'px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2',
                   activeTab === tab.id
                     ? 'bg-[var(--glass-bg-elevated)] text-[var(--text-primary)] shadow-sm border border-[var(--glass-border)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
@@ -117,7 +119,7 @@ export default function DetailsPage() {
               <div className="hidden md:flex items-center gap-3">
                 <button
                   onClick={() => setIsImportModalOpen(true)}
-                  className="h-10 flex items-center gap-2 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/20 hover:bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] transition-all active:scale-95"
+                  className="h-10 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/20 hover:bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] transition-all active:scale-95"
                 >
                   <Upload className="w-4 h-4" />
                   Import
@@ -125,7 +127,7 @@ export default function DetailsPage() {
                 <button
                   onClick={handleExport}
                   disabled={isExporting || isLoading || shipments.length === 0}
-                  className="h-10 flex items-center gap-2 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/20 hover:bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] transition-all active:scale-95 disabled:opacity-50"
+                  className="h-10 flex items-center gap-2 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/20 hover:bg-[var(--bg-elevated)]/50 text-[var(--text-secondary)] transition-all active:scale-95 disabled:opacity-50"
                 >
                   <Download className="w-4 h-4" />
                   {isExporting ? 'Exporting...' : 'Export Data'}
@@ -133,7 +135,7 @@ export default function DetailsPage() {
               </div>
               <button
                 onClick={openAdd}
-                className="h-10 flex items-center gap-2 px-5 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-blue)] hover:brightness-110 text-white transition-all active:scale-95 shadow-xl shadow-blue-500/20"
+                className="h-10 flex items-center gap-2 px-5 rounded-xl text-xs font-bold uppercase tracking-widest bg-[var(--accent-blue)] hover:brightness-110 text-white transition-all active:scale-95 shadow-xl shadow-blue-500/20"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Add Shipment</span>
@@ -150,7 +152,18 @@ export default function DetailsPage() {
         className="flex-1 overflow-y-auto custom-scrollbar relative z-10"
       >
         {!isLoading && shipments.length === 0 ? (
-          <EmptyState onAdd={openAdd} />
+          <div className="flex-1 min-h-[500px] flex items-center justify-center">
+            <EmptyState 
+              icon={ShipWheel}
+              title="No shipments yet"
+              description="Add your first shipment to start tracking cargo in real time across global trade corridors."
+              action={{
+                label: "Add your first shipment",
+                onClick: openAdd,
+                icon: Plus
+              }}
+            />
+          </div>
         ) : (
           <div className="p-6">
             {activeTab === 'overview' && (
@@ -185,43 +198,22 @@ export default function DetailsPage() {
   );
 }
 
-function EmptyState({ onAdd }) {
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-      <div className="relative mb-6">
-        <div className="absolute inset-0 bg-[var(--accent-cyan)]/10 blur-3xl rounded-full" />
-        <ShipWheel className="w-24 h-24 text-[var(--text-muted)] opacity-20 relative animate-pulse-slow" />
-      </div>
-      <h3 className="text-xl font-bold tracking-tight mb-2">No shipments yet</h3>
-      <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-8">
-        Add your first shipment to start tracking cargo in real time across global trade corridors.
-      </p>
-      <button
-        onClick={onAdd}
-        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--accent-blue)] text-white text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 shadow-xl shadow-[var(--accent-blue)]/20"
-      >
-        <Plus className="w-4 h-4" />
-        Add your first shipment
-      </button>
-    </div>
-  );
-}
 
 function ShipmentsPageSkeleton() {
   return (
     <div className="flex-1 p-6 space-y-8">
-      <div className="h-10 w-72 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+      <Skeleton variant="line" className="h-10 w-72 rounded-xl" />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-24 rounded-2xl glass-panel !bg-[var(--bg-elevated)]/40 animate-pulse" />
+          <Skeleton key={i} variant="block" className="h-24 rounded-2xl" />
         ))}
       </div>
       <div className="glass-panel glass-edge !bg-[var(--bg-elevated)]/20 p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <div className="h-9 w-64 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
-          <div className="h-9 w-32 rounded-xl bg-[var(--bg-elevated)] animate-pulse" />
+          <Skeleton variant="line" className="h-9 w-64 rounded-xl" />
+          <Skeleton variant="line" className="h-9 w-32 rounded-xl" />
         </div>
-        <div className="h-[400px] rounded-2xl bg-[var(--bg-elevated)]/40 animate-pulse border border-[var(--border-subtle)]" />
+        <Skeleton variant="block" className="h-[400px] rounded-2xl" />
       </div>
     </div>
   );

@@ -84,18 +84,26 @@ export default function NavBar() {
             : pathname.startsWith(href);
           
           const showDivider = idx > 0 && NAV_ITEMS[idx - 1].section !== section;
+          const sectionLabel = showDivider ? (NAV_ITEMS[idx].section === 'live' ? 'Monitor' : 'Intel') : null;
 
           return (
-            <div key={href} className="flex items-center gap-1">
+            <div key={href} className="flex items-center">
               {showDivider && (
-                <div className="w-px h-5 bg-[var(--border-subtle)] mx-1 opacity-50" />
+                <div className="flex items-center">
+                  <div className="w-px h-4 bg-[var(--border-subtle)] mx-2 opacity-50" />
+                  {sectionLabel && (
+                    <span className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-[0.2em] mr-2 hidden lg:block">
+                      {sectionLabel}
+                    </span>
+                  )}
+                </div>
               )}
               <Link
                 href={href}
                 aria-label={label}
                 title={label}
                 className={[
-                  'relative flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-[0.1em]',
+                  'relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-[0.1em]',
                   'transition-all duration-300 outline-none',
                   active
                     ? 'bg-[var(--glass-bg-elevated)] text-[var(--text-primary)] shadow-sm border border-[var(--glass-border)]'
