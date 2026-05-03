@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Copy, Check, Terminal, Zap, Key, Webhook, Package, AlertTriangle } from 'lucide-react';
+import { Copy, Check, Terminal, Zap, Key, Webhook, Package, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 
 const FALLBACK_BASE = 'https://your-deployed-url.vercel.app';
@@ -51,23 +51,25 @@ function EndpointCard({ method, path, description, example, response }) {
         onClick={() => setOpen((value) => !value)}
         className="w-full flex items-center gap-4 p-4 bg-[var(--bg-elevated)]/40 hover:bg-[var(--bg-elevated)] transition-colors text-left"
       >
-        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-lg border tracking-wider ${colors[method]}`}>{method}</span>
-        <code className="text-[13px] font-mono text-[var(--text-primary)] flex-1">{path}</code>
-        <span className="text-[11px] text-[var(--text-muted)] hidden md:block">{description}</span>
-        <span className="text-[var(--text-muted)] text-xs">{open ? '▲' : '▼'}</span>
+        <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg border tracking-wider ${colors[method]}`}>{method}</span>
+        <code className="text-sm font-mono text-[var(--text-primary)] flex-1">{path}</code>
+        <span className="text-sm text-[var(--text-muted)] hidden md:block">{description}</span>
+        <span className="text-[var(--text-muted)]">
+          {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </span>
       </button>
       {open && (
         <div className="p-4 space-y-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-          <p className="text-[12px] text-[var(--text-secondary)]">{description}</p>
+          <p className="text-sm text-[var(--text-secondary)]">{description}</p>
           {example && (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">curl example</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">curl example</p>
               <CodeBlock code={example} />
             </div>
           )}
           {response && (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">response shape</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">response shape</p>
               <CodeBlock code={response} />
             </div>
           )}

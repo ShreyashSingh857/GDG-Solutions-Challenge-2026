@@ -75,30 +75,30 @@ export default function OnboardingPage() {
       <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center px-6 py-16">
         
         {/* Step Indicator */}
-        <div className="mb-10 flex flex-col items-center gap-4">
-          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">
-            Step 2 of 2: <span className="text-[var(--accent-cyan)]">Organization Setup</span>
+        <div className="mb-12 flex flex-col items-center gap-6">
+          <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">
+            Setup Progress: <span className="text-[var(--accent-cyan)]">Step 2 of 2</span>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/40 flex items-center justify-center text-[10px] font-bold text-[var(--accent-cyan)]">1</div>
-              <span className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Account</span>
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 flex items-center justify-center text-[11px] font-bold text-[var(--accent-cyan)]">1</div>
+              <span className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Account</span>
             </div>
-            <div className="h-px w-8 bg-[var(--border-subtle)] -mt-4" />
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-[var(--accent-cyan)] border border-[var(--accent-cyan)] shadow-[0_0_12px_var(--accent-cyan)] flex items-center justify-center text-[10px] font-bold text-[#020617]">2</div>
-              <span className="text-[9px] uppercase tracking-widest text-[var(--accent-cyan)] font-bold">Setup</span>
+            <div className="h-px w-12 bg-[var(--border-subtle)] -mt-6" />
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-[var(--accent-cyan)] border border-[var(--accent-cyan)] shadow-[0_0_15px_rgba(34,211,238,0.4)] flex items-center justify-center text-[11px] font-bold text-[#020617]">2</div>
+              <span className="text-[11px] uppercase tracking-widest text-[var(--accent-cyan)] font-bold">Setup</span>
             </div>
-            <div className="h-px w-8 bg-[var(--border-subtle)] -mt-4" />
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-6 w-6 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)]">3</div>
-              <span className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Dashboard</span>
+            <div className="h-px w-12 bg-[var(--border-subtle)] -mt-6" />
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 rounded-full border border-[var(--border-subtle)] flex items-center justify-center text-[11px] font-bold text-[var(--text-muted)]">3</div>
+              <span className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Dashboard</span>
             </div>
           </div>
         </div>
 
-        <div className="w-full max-w-md glass-panel glass-edge p-8">
-          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[var(--accent-cyan)]">Organization Setup</p>
+        <div className="w-full max-w-md glass-panel glass-edge p-10">
+          <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[var(--accent-cyan)]">Organization Setup</p>
           <h1 className="mt-3 text-2xl font-bold leading-tight font-display text-[var(--text-primary)]">Identify your workspace</h1>
           <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
             Each organization gets its own isolated data vault. This only needs to be set once.
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div>
-              <label htmlFor="orgId" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+              <label htmlFor="orgId" className="mb-2 block text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
                 Organization ID
               </label>
               <input
@@ -119,12 +119,12 @@ export default function OnboardingPage() {
                 maxLength={50}
                 required
               />
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-3">
                 <p className="text-[11px] font-medium text-[var(--text-muted)] leading-relaxed">
-                  Your org ID is used to scope your team&apos;s shipment data. Use lowercase letters, numbers, and hyphens only. Example: acme-logistics
+                  Your org ID is used to scope your team&apos;s shipment data. Use lowercase letters, numbers, and hyphens only.
                 </p>
-                <div className="flex items-center gap-2 text-[10px] font-mono text-[var(--accent-cyan)] bg-[var(--accent-cyan)]/5 border border-[var(--accent-cyan)]/10 px-2 py-1 rounded-md w-fit">
-                  <span>PREVIEW:</span>
+                <div className="flex items-center gap-2 text-[11px] font-mono text-[var(--accent-cyan)] bg-[var(--accent-cyan)]/5 border border-[var(--accent-cyan)]/10 px-3 py-1.5 rounded-lg w-fit">
+                  <span className="opacity-50">WORKSPACE:</span>
                   <span className="font-bold">{orgId || '...'}</span>
                 </div>
               </div>
@@ -152,9 +152,9 @@ export default function OnboardingPage() {
             </div>
           ) : null}
 
-          <div className="mt-8 pt-6 border-t border-[var(--border-subtle)]">
-            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">Why do I need this?</p>
-            <p className="text-[10px] leading-relaxed text-[var(--text-muted)] opacity-70">
+          <div className="mt-10 pt-8 border-t border-[var(--border-subtle)]">
+            <p className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-[0.14em] mb-2">Architectural Privacy</p>
+            <p className="text-[11px] leading-relaxed text-[var(--text-muted)] opacity-60">
               Each organization gets its own isolated data workspace. This ensures strict privacy and compliance boundaries for your logistics telemetry.
             </p>
           </div>

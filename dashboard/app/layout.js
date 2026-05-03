@@ -38,10 +38,8 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${firaCode.variable} ${spaceGrotesk.variable} h-full antialiased`}>
-      <head>
-        <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
-      </head>
       <body className="min-h-full flex flex-col">
+        <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
         <ThemeProvider>
           <DataProvider>{children}</DataProvider>
         </ThemeProvider>

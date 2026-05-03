@@ -128,7 +128,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
   const renderHeader = (key, label) => (
     <th
       onClick={() => toggleSort(key)}
-      className="sticky top-0 z-20 px-4 py-4 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)] select-none whitespace-nowrap bg-[var(--bg-surface)] backdrop-blur-md transition-colors"
+      className="sticky top-0 z-20 px-4 py-4 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)] select-none whitespace-nowrap bg-[var(--bg-surface)] backdrop-blur-md transition-colors"
     >
       <div className="flex items-center">
         {label}
@@ -182,7 +182,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                     className={`group hover:bg-[var(--accent-blue)]/5 cursor-pointer transition-all duration-300 relative ${selectedIndex === idx ? 'bg-[var(--accent-blue)]/10' : ''}`}
                   >
                     <td className="px-6 py-5 whitespace-nowrap">
-                      <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${
+                      <span className={`text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${
                         s.importExport === 'export'
                           ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                           : 'bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/20'
@@ -196,7 +196,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
                         <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-50" />
                         <span className="font-medium text-[var(--text-secondary)]">{s.destination}</span>
                       </div>
-                      <div className="font-mono text-[9px] text-[var(--text-muted)] tracking-wider uppercase opacity-60">
+                      <div className="font-mono text-[11px] text-[var(--text-muted)] tracking-wider uppercase opacity-60">
                         {s.trackingNumber || s.id.slice(0, 8)}
                       </div>
                     </td>
@@ -259,7 +259,7 @@ export default function ShipmentsTab({ shipments, isLoading, onEdit }) {
       </div>
 
       <div className="flex items-center justify-between px-2">
-        <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-extrabold flex items-center gap-2">
+        <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)] font-extrabold flex items-center gap-2">
           <span className="w-1 h-1 rounded-full bg-[var(--accent-cyan)]" />
           Synchronized: {displayed.length} / {shipments.length} Global Nodes Active
         </p>

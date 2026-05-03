@@ -96,7 +96,7 @@ export default function LoginPage() {
             </div>
             
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent-cyan)]">OpenTrade Protocol</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.4em] text-[var(--accent-cyan)]">OpenTrade Protocol</p>
               <h1 className="text-3xl font-bold tracking-tight font-display">System Entry</h1>
               <p className="text-sm text-[var(--text-secondary)] leading-relaxed px-4">
                 Global supply chain intelligence and multi-agent AI disruption resolution.
@@ -126,26 +126,26 @@ export default function LoginPage() {
               </div>
             )}
             
-            {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
+            {error && <p className="text-[11px] text-red-400 font-medium">{error}</p>}
 
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/5">
               <div className="flex flex-col items-center gap-1.5 text-center">
                 <Search className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Live disruption feeds</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Live disruption feeds</span>
               </div>
               <div className="flex flex-col items-center gap-1.5 text-center">
                 <Zap className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Multi-agent resolution</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Multi-agent resolution</span>
               </div>
               <div className="flex flex-col items-center gap-1.5 text-center">
                 <Shield className="w-4 h-4 text-[var(--text-muted)]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Enterprise-grade security</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">Enterprise-grade security</span>
               </div>
             </div>
           </div>
         </div>
         
-        <p className="mt-8 text-center text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.2em] opacity-40">
+        <p className="mt-8 text-center text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.2em] opacity-40">
           SECURE ENCRYPTED CHANNEL 409-A
         </p>
       </motion.div>

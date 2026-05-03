@@ -13,6 +13,8 @@ import MinimalErrorFallback from './components/MinimalErrorFallback.jsx';
 import { registerPushSubscription } from './lib/pushNotifications.js';
 import { useShipmentStore } from './store/shipmentStore.js';
 
+import { GlobeSkeleton } from './components/ui/GlobeSkeleton';
+
 const AlertToastController = dynamic(() => import('./components/alerts/AlertToast.jsx'), {
   ssr: false,
   loading: () => null,
@@ -31,11 +33,11 @@ const GlobeActivationToggle = dynamic(() => import('./components/globe/GlobeActi
 });
 const GlobeView = dynamic(() => import('./components/globe/GlobeView.jsx'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>,
+  loading: () => <GlobeSkeleton />,
 });
 const MobileView = dynamic(() => import('./components/globe/MobileView.jsx'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading mobile view...</div>,
+  loading: () => <GlobeSkeleton />,
 });
 
 const STATUS_FILTERS = [
@@ -89,10 +91,10 @@ function ShipmentFilters({ onFilterChange }) {
             className={`w-full group flex flex-col items-start gap-1 p-2 rounded-lg transition-all relative ${active ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
           >
             <div className="w-full flex items-center justify-between">
-              <span className={`text-[11px] font-bold tracking-tight uppercase ${active ? '' : 'text-[var(--text-muted)]'}`}>
-                {f.label} <span className="text-[9px] opacity-40 ml-1 font-mono">[{f.key}]</span>
+              <span className={`text-xs font-bold tracking-tight uppercase ${active ? '' : 'text-[var(--text-muted)]'}`}>
+                {f.label} <span className="text-[10px] opacity-40 ml-1 font-mono">[{f.key}]</span>
               </span>
-              <span className="text-[11px] font-mono opacity-50">{count}</span>
+              <span className="text-xs font-mono opacity-50">{count}</span>
             </div>
             {f.id !== 'all' && (
               <MiniSparkline status={f.id} shipments={shipments} />
@@ -228,7 +230,7 @@ export default function Home() {
         <Toaster position="bottom-right" theme="dark" />
         <div className="absolute left-4 top-4 z-20 pointer-events-none flex flex-col gap-4">
           <div className="pointer-events-auto liquid-glass relative px-5 py-4 min-w-[280px] space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.24em] text-[var(--accent-cyan)] font-bold">Pipeline Impact</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-[var(--accent-cyan)] font-bold">Pipeline Impact</div>
             <div className="mt-2 text-base font-semibold text-[var(--text-primary)] tracking-tight">
               Cargo under protection: ${(cargoUnderProtectionUSD / 1e6).toFixed(1)}M
             </div>
@@ -249,7 +251,7 @@ export default function Home() {
           </div>
           <div className="pointer-events-auto bg-[var(--bg-overlay)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-4 shadow-2xl min-w-[180px] space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 pl-1">Operational Filter</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3 pl-1">Operational Filter</p>
               <ShipmentFilters onFilterChange={setActiveFilter} />
             </div>
           </div>
@@ -270,7 +272,7 @@ export default function Home() {
               {shouldLoadGlobe ? (
                 <GlobeView simulationControlsOpen={simulationControlsOpen} filter={activeFilter} />
               ) : (
-                <div className="flex items-center justify-center w-full h-full bg-[#020617] text-white/40">Loading globe...</div>
+                <GlobeSkeleton />
               )}
             </div>
           </ErrorBoundary>
@@ -283,7 +285,7 @@ export default function Home() {
 
             <div className="relative z-10 flex flex-col items-center gap-10 px-6 text-center">
               <div className="space-y-2">
-                <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-[0.4em]">Standby Mode</p>
+                <p className="text-[var(--text-muted)] text-xs font-bold uppercase tracking-[0.4em]">Standby Mode</p>
                 <h2 className="text-white/40 text-sm font-medium tracking-tight">Globe paused · Tab inactive</h2>
               </div>
 
@@ -295,7 +297,7 @@ export default function Home() {
 
               <button
                 onClick={() => setGlobeEnabled(true)}
-                className="liquid-glass px-10 py-4 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--text-primary)] hover:scale-105 transition-all active:scale-95 cursor-pointer shadow-2xl"
+                className="liquid-glass px-10 py-4 text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-primary)] hover:scale-105 transition-all active:scale-95 cursor-pointer shadow-2xl"
               >
                 Resume Live Environment
               </button>
@@ -305,7 +307,7 @@ export default function Home() {
         <div className="absolute top-4 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
           <button
             onClick={() => setSimulationControlsOpen((prev) => !prev)}
-            className={`pointer-events-auto liquid-glass px-4 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 transition-all ${simulationControlsOpen ? 'border-[var(--accent-cyan)]/40 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            className={`pointer-events-auto liquid-glass px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2 transition-all ${simulationControlsOpen ? 'border-[var(--accent-cyan)]/40 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
             title={simulationControlsOpen ? 'Hide simulation controls' : 'Show simulation controls'}
             aria-label="Toggle simulation controls"
           >
@@ -348,7 +350,7 @@ export default function Home() {
 function PausedKpiCard({ label, value, color = 'text-white' }) {
   return (
     <div className="min-w-44 liquid-glass px-6 py-6 text-left border-white/5">
-      <div className="text-[9px] uppercase tracking-[0.25em] text-[var(--text-muted)] font-bold mb-4">{label}</div>
+      <div className="text-xs uppercase tracking-[0.25em] text-[var(--text-muted)] font-bold mb-4">{label}</div>
       <div className={`text-4xl font-light font-mono tracking-tighter ${color}`}>{value}</div>
     </div>
   );

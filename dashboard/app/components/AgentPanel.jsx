@@ -4,14 +4,16 @@ import { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { PanelSkeleton } from './ui/PanelSkeleton';
+
 const AgentChatSidebar = dynamic(() => import('./agent/AgentChatSidebar.jsx'), {
   ssr: false,
-  loading: () => <div className="p-4 text-xs text-[var(--text-muted)]">Loading agent reasoning...</div>,
+  loading: () => <PanelSkeleton />,
 });
 
 const NewsFeed = dynamic(() => import('./news/NewsFeed.jsx'), {
   ssr: false,
-  loading: () => <div className="p-4 text-xs text-[var(--text-muted)]">Loading news intelligence...</div>,
+  loading: () => <PanelSkeleton />,
 });
 
 const TABS = [
