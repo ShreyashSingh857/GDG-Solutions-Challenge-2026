@@ -182,10 +182,10 @@ function PipelineCard({ node, status, lastProcessed, eventsCount, heartbeat }) {
 		<div className="min-w-[220px] glass-panel p-4 flex-1">
 			<div className="flex items-start justify-between gap-3">
 				<div>
-					<div className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-muted)]">Node</div>
+					<div className="text-[11px] uppercase tracking-[0.24em] text-[var(--text-muted)]">Node</div>
 					<div className="mt-1 text-sm font-bold text-[var(--text-primary)]">{node.label}</div>
 				</div>
-				<span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${style.chip}`}>
+				<span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${style.chip}`}>
 					<span className={`h-2 w-2 rounded-full ${style.dot}`} />
 					{style.label}
 				</span>
@@ -193,12 +193,12 @@ function PipelineCard({ node, status, lastProcessed, eventsCount, heartbeat }) {
 
 			<div className="mt-4 grid grid-cols-2 gap-2 text-xs">
 				<div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)]/20 px-2.5 py-2">
-					<div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Last</div>
+					<div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Last</div>
 					<div className="mt-1 text-[var(--text-primary)] font-medium">{formatTime(lastProcessed)}</div>
-					<div className="text-[10px] text-[var(--text-muted)]">{formatAgo(lastProcessed)}</div>
+					<div className="text-[11px] text-[var(--text-muted)]">{formatAgo(lastProcessed)}</div>
 				</div>
 				<div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-elevated)]/20 px-2.5 py-2">
-					<div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Events</div>
+					<div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Events</div>
 					<div className="mt-1 text-lg font-bold text-[var(--accent-cyan)]">{eventsCount}</div>
 				</div>
 			</div>
@@ -214,7 +214,7 @@ function Panel({ title, right, children }) {
 	return (
 		<div className="glass-panel overflow-hidden">
 			<div className="flex items-center justify-between border-b border-[var(--glass-border)] px-4 py-3 bg-[var(--glass-bg-elevated)]/30">
-				<div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">{title}</div>
+				<div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">{title}</div>
 				{right}
 			</div>
 			<div className="p-4">{children}</div>
@@ -508,7 +508,7 @@ export default function VisualizePage() {
 								<div className="text-xs uppercase tracking-[0.26em] text-[var(--text-muted)] font-bold">Pipeline Flow</div>
 								<div className="mt-1 text-lg font-bold text-[var(--text-primary)]">End-to-End Status</div>
 							</div>
-							<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-cyan)]">
+							<div className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-cyan)]/25 bg-[var(--accent-cyan)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--accent-cyan)]">
 								<Activity className="h-3.5 w-3.5" />
 								Live Network
 							</div>
@@ -610,17 +610,17 @@ export default function VisualizePage() {
 									title="Final Parsed JSON"
 									right={
 										!validation.valid ? (
-											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-red)]">
+											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--accent-red)]">
 												<ShieldAlert className="h-3.5 w-3.5" />
 												Fail
 											</span>
 										) : validation.repairedCount > 0 ? (
-											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-amber)]">
+											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/10 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--accent-amber)]">
 												<ShieldAlert className="h-3.5 w-3.5" />
 												{`Repaired ${validation.repairedCount}`}
 											</span>
 										) : (
-											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-green)]/30 bg-[var(--accent-green)]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-green)]">
+											<span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-green)]/30 bg-[var(--accent-green)]/10 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--accent-green)]">
 												<ShieldCheck className="h-3.5 w-3.5" />
 												Pass
 											</span>
@@ -699,7 +699,7 @@ export default function VisualizePage() {
 											>
 												<div className="flex items-start justify-between gap-2">
 													<div className="text-xs font-bold text-[var(--text-primary)]">{item.disruption?.type || 'UNKNOWN'}</div>
-													<span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${severityTone}`}>
+													<span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] ${severityTone}`}>
 														S{severity || 0}
 													</span>
 												</div>

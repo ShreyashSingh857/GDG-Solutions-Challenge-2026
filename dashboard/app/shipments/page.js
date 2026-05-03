@@ -108,7 +108,10 @@ export default function DetailsPage() {
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-overlay)]/40',
                 ].join(' ')}
               >
-                <tab.icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-[var(--accent-cyan)]' : 'opacity-60'}`} aria-hidden="true" />
+                {(() => {
+                  const Icon = tab.icon;
+                  return <Icon className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-[var(--accent-cyan)]' : 'opacity-60'}`} aria-hidden="true" />;
+                })()}
                 <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}

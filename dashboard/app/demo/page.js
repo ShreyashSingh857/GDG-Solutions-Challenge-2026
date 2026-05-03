@@ -12,6 +12,24 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
 import { watchDisruptionSupabase, watchImpactSupabase, watchResolutionSupabase } from '../lib/supabaseWatcher.js';
+import {
+  Wind,
+  Anchor,
+  Construction,
+  Circle,
+  Zap,
+  Radio,
+  BarChart3,
+  Bot,
+  Scale,
+  CheckCircle2,
+  FileText,
+  AlertTriangle,
+  ChevronRight,
+  Download,
+  RotateCcw,
+  X
+} from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 
 const SCENARIOS = [
@@ -20,7 +38,7 @@ const SCENARIOS = [
     label: 'Super Typhoon Mawar',
     region: 'Western Pacific',
     severity: 9,
-    icon: '🌀',
+    icon: Wind,
     tag: 'CAT 5 STORM',
     tagColor: 'var(--accent-red)',
     preview: 'Shanghai → LA corridor at risk. Manila, Kaohsiung, HK vessel advisories active.',
@@ -30,7 +48,7 @@ const SCENARIOS = [
     label: 'Suez Canal Emergency',
     region: 'Red Sea / Egypt',
     severity: 10,
-    icon: '⚓',
+    icon: Anchor,
     tag: 'CANAL BLOCKED',
     tagColor: 'var(--accent-amber)',
     preview: "$12B daily trade halted. 43 vessels held. Lloyd's suspended war-risk coverage.",
@@ -40,7 +58,7 @@ const SCENARIOS = [
     label: 'Mumbai JNPT Strike',
     region: 'South Asia',
     severity: 7,
-    icon: '🏗',
+    icon: Construction,
     tag: 'PORT STRIKE',
     tagColor: 'var(--accent-blue)',
     preview: '4,800 dockworkers AWOL. 5M TEU/yr port offline. Mundra at 85% capacity.',
@@ -48,14 +66,14 @@ const SCENARIOS = [
 ];
 
 const STAGES = [
-  { id: 'idle',       label: 'Ready',             icon: '◎',  color: 'var(--text-muted)' },
-  { id: 'injected',   label: 'Disruption Injected',icon: '⚡',  color: 'var(--accent-amber)' },
-  { id: 'monitoring',label: 'Monitor Agent',      icon: '📡', color: 'var(--accent-blue)' },
-  { id: 'impact',    label: 'Impact Analysis',    icon: '📊', color: 'var(--accent-red)' },
-  { id: 'resolution',label: 'AI Resolution',    icon: '🤖', color: 'var(--accent-cyan)' },
-  { id: 'decision',  label: 'Human Decision',    icon: '⚖️', color: 'var(--accent-amber)' },
-  { id: 'applied',  label: 'Protocol Applied',   icon: '✓',  color: 'var(--accent-green)' },
-  { id: 'report',   label: 'Report Ready',      icon: '📄', color: 'var(--accent-cyan)' },
+  { id: 'idle',       label: 'Ready',             icon: Circle,       color: 'var(--text-muted)' },
+  { id: 'injected',   label: 'Disruption Injected',icon: Zap,          color: 'var(--accent-amber)' },
+  { id: 'monitoring',label: 'Monitor Agent',      icon: Radio,        color: 'var(--accent-blue)' },
+  { id: 'impact',    label: 'Impact Analysis',    icon: BarChart3,    color: 'var(--accent-red)' },
+  { id: 'resolution',label: 'AI Resolution',    icon: Bot,          color: 'var(--accent-cyan)' },
+  { id: 'decision',  label: 'Human Decision',    icon: Scale,        color: 'var(--accent-amber)' },
+  { id: 'applied',  label: 'Protocol Applied',   icon: CheckCircle2, color: 'var(--accent-green)' },
+  { id: 'report',   label: 'Report Ready',      icon: FileText,     color: 'var(--accent-cyan)' },
 ];
 
 const STAGE_INDEX = Object.fromEntries(STAGES.map((s, i) => [s.id, i]));
@@ -114,11 +132,14 @@ function StageNode({ stage, index, currentIndex }) {
           flexShrink: 0,
         }}
       >
-        {done ? '✓' : stage.icon}
+        {(() => {
+          const Icon = done ? CheckCircle2 : stage.icon;
+          return <Icon className="w-5 h-5" />;
+        })()}
       </div>
       <span
         style={{
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: 700,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
@@ -231,7 +252,7 @@ function Chip({ label, value, accent }) {
         flex: 1,
       }}
     >
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
         {label}
       </span>
       <span style={{ fontSize: 13, fontWeight: 700, color: accent }}>{value}</span>
@@ -266,7 +287,7 @@ function OptionCardInline({ option, onApprove, isApproving, approvedRank }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span
           style={{
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: 800,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
@@ -281,7 +302,7 @@ function OptionCardInline({ option, onApprove, isApproving, approvedRank }) {
         </span>
         <span
           style={{
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: 700,
             letterSpacing: '0.12em',
             color: 'var(--text-muted)',
@@ -309,7 +330,7 @@ function OptionCardInline({ option, onApprove, isApproving, approvedRank }) {
 
       {option.confidence != null && (
         <div>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
             AI Confidence
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -342,7 +363,7 @@ function OptionCardInline({ option, onApprove, isApproving, approvedRank }) {
             textTransform: 'uppercase',
           }}
         >
-          <span>✓</span> Protocol Deployed
+          <CheckCircle2 className="w-4 h-4" /> Protocol Deployed
         </div>
       ) : (
         <button
@@ -705,7 +726,7 @@ export default function DemoPage() {
                   gap: 8,
                 }}
               >
-                <span>⚠</span>
+                <AlertTriangle className="w-4 h-4" />
                 <strong>Error:</strong> {error} — Check that all agents are running and env vars are set.
               </div>
             )}
@@ -761,10 +782,15 @@ export default function DemoPage() {
                                 : 'none',
                           }}
                         >
-                          <div style={{ fontSize: 22, marginBottom: 8 }}>{sc.icon}</div>
+                          <div style={{ fontSize: 22, marginBottom: 8, color: sc.tagColor }}>
+                            {(() => {
+                              const Icon = sc.icon;
+                              return <Icon className="w-8 h-8" />;
+                            })()}
+                          </div>
                           <div
                             style={{
-                              fontSize: 9,
+                              fontSize: 11,
                               fontWeight: 800,
                               letterSpacing: '0.12em',
                               textTransform: 'uppercase',
@@ -786,7 +812,7 @@ export default function DemoPage() {
                             {sc.label}
                           </div>
                           <div
-                            style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5 }}
+                            style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}
                           >
                             {sc.preview}
                           </div>
@@ -817,7 +843,15 @@ export default function DemoPage() {
                       boxShadow: selectedScenario ? '0 0 24px rgba(34,211,238,0.3)' : 'none',
                     }}
                   >
-                    {launching ? '⚡ Injecting…' : '⚡ Launch Demo Pipeline'}
+                    {launching ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Zap className="w-4 h-4 animate-pulse" /> Injecting…
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <Zap className="w-4 h-4" /> Launch Demo Pipeline
+                      </span>
+                    )}
                   </button>
                 </div>
               )}
@@ -886,7 +920,7 @@ export default function DemoPage() {
                   </div>
                   {disruption.severity != null && (
                     <div>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
                         Severity Score
                       </div>
                       <SeverityBar value={disruption.severity} />
@@ -976,9 +1010,9 @@ export default function DemoPage() {
                       }}
                     >
                       {stage === 'report'
-                        ? '✓ Protocol Applied — Report Ready'
+                        ? <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Protocol Applied — Report Ready</span>
                         : stage === 'applied'
-                        ? '⚡ Executing Protocol…'
+                        ? <span className="flex items-center gap-2"><Zap className="w-4 h-4 animate-pulse" /> Executing Protocol…</span>
                         : stage === 'decision'
                         ? 'Human Decision Required'
                         : 'AI Generated 3 Resolution Strategies'}
@@ -1075,7 +1109,9 @@ export default function DemoPage() {
                         marginBottom: 4,
                       }}
                     >
-                      ✓ Pipeline Complete
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" /> Pipeline Complete
+                      </span>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       Executive incident report generated. Download the PDF or run another scenario.
@@ -1098,7 +1134,9 @@ export default function DemoPage() {
                           cursor: 'pointer',
                         }}
                       >
-                        📄 Download PDF
+                        <span className="flex items-center gap-2">
+                          <FileText className="w-4 h-4" /> Download PDF
+                        </span>
                       </button>
                     )}
                     <button
@@ -1116,7 +1154,9 @@ export default function DemoPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      ↺ New Demo
+                      <span className="flex items-center gap-2">
+                        <RotateCcw className="w-4 h-4" /> New Demo
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1139,7 +1179,7 @@ export default function DemoPage() {
                 >
                   <div
                     style={{
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: 800,
                       letterSpacing: '0.14em',
                       textTransform: 'uppercase',
@@ -1150,32 +1190,38 @@ export default function DemoPage() {
                   </div>
                   {activeScenario && (
                     <div>
-                      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 2 }}>Scenario</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {activeScenario.icon} {activeScenario.label}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Scenario</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {(() => {
+                          const Icon = activeScenario.icon;
+                          return <Icon className="w-4 h-4" />;
+                        })()} {activeScenario.label}
                       </div>
                     </div>
                   )}
                   {disruptionId && (
                     <div>
-                      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 2 }}>Disruption ID</div>
-                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--accent-cyan)', wordBreak: 'break-all' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Disruption ID</div>
+                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--accent-cyan)', wordBreak: 'break-all' }}>
                         {disruptionId}
                       </div>
                     </div>
                   )}
                   {traceId && (
                     <div>
-                      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 2 }}>Trace ID</div>
-                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Trace ID</div>
+                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
                         {traceId}
                       </div>
                     </div>
                   )}
                   <div>
-                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 2 }}>Stage</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: STAGES[currentStageIndex]?.color }}>
-                      {STAGES[currentStageIndex]?.icon} {STAGES[currentStageIndex]?.label}
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Stage</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: STAGES[currentStageIndex]?.color, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {(() => {
+                        const Icon = STAGES[currentStageIndex]?.icon;
+                        return Icon ? <Icon className="w-4 h-4" /> : null;
+                      })()} {STAGES[currentStageIndex]?.label}
                     </div>
                   </div>
                 </div>
@@ -1203,7 +1249,7 @@ export default function DemoPage() {
                     gap: 8,
                   }}
                 >
-                  <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                     Agent Console
                   </span>
                   {stage !== 'idle' && stage !== 'report' && <Pulse color="var(--accent-green)" />}
@@ -1238,14 +1284,16 @@ export default function DemoPage() {
                     background: 'var(--bg-elevated)',
                     color: 'var(--text-muted)',
                     fontWeight: 700,
-                    fontSize: 10,
+                    fontSize: 11,
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                     border: '1px solid var(--border-subtle)',
                     cursor: 'pointer',
                   }}
                 >
-                  ✕ Abort & Reset
+                  <span className="flex items-center justify-center gap-2">
+                    <X className="w-3 h-3" /> Abort & Reset
+                  </span>
                 </button>
               )}
             </div>
