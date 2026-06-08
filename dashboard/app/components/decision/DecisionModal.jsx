@@ -171,7 +171,14 @@ export default function DecisionModal() {
     if (isApproving || !traceId || approvedRank || isExecuted) return;
     setIsApproving(true);
     try {
-      const res = await fetch('/api/execute', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ traceId, rank }) });
+      // Get disruptionId from activeResolution (set by demo page bridge)
+      const disruptionId = activeResolution?.disruptionId;
+
+      const res = await fetch('/api/execute', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ traceId, rank, disruptionId }) 
+      });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`);
       setApprovedRank(rank);

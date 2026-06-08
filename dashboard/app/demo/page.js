@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   collection,
   getDocs,
@@ -11,7 +12,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase.js';
-import { watchDisruptionSupabase, watchImpactSupabase, watchResolutionSupabase } from '../lib/supabaseWatcher.js';
+import { useAlertStore } from '../store/alertStore.js';
+import { useDemoInject } from '../hooks/useDemoInject.js';
 import {
   Wind,
   Anchor,
@@ -31,6 +33,11 @@ import {
   X
 } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
+
+const DecisionModal = dynamic(
+  () => import('../components/decision/DecisionModal.jsx'),
+  { ssr: false, loading: () => null }
+);
 
 const SCENARIOS = [
   {
@@ -417,6 +424,14 @@ export default function DemoPage() {
   const unsubsRef = useRef([]);
   const logEndRef = useRef(null);
 
+  // Extract store actions
+  const setActiveDisruptionId = useAlertStore((s) => s.setActiveDisruptionId);
+  const setResolutionWithOptions = useAlertStore((s) => s.setResolutionWithOptions);
+  const clearActiveDisruption = useAlertStore((s) => s.clearActiveDisruption);
+
+  // Injection hook - handles watcher chain
+  const { injectDisruption } = useDemoInject((msg, type) => log(msg, type));
+
   const log = useCallback((msg, type = 'info') => {
     const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
     setLogs((prev) => [...prev.slice(-60), { ts, msg, type }]);
@@ -430,59 +445,15 @@ export default function DemoPage() {
     return () => unsubsRef.current.forEach((u) => u?.());
   }, []);
 
-  const watchResolutionRef = useRef(null);
-  const watchImpactRef = useRef(null);
+  // Update local demo page state when stages progress
+  const handleStageChange = useCallback((newStage) => {
+    setStage(newStage);
+  }, []);
 
-  const watchResolution = useCallback(
-    (dId) => {
-      log('Impact complete — AI resolution agent active…', 'info');
-      const unsub = watchResolutionSupabase(dId, ({ resolution: res, options: opts }) => {
-        setResolution(res);
-        setOptions(opts);
-        setStage('resolution');
-        log(`✓ AI generated ${opts.length} resolution strategies`, 'success');
-        setTimeout(() => setStage('decision'), 1200);
-      });
-      unsubsRef.current.push(unsub);
-    },
-    [log]
-  );
-
-  const watchImpact = useCallback(
-    (dId) => {
-      log('Monitor agent processing… watching impact_reports…', 'info');
-      const unsub = watchImpactSupabase(dId, (data) => {
-        setImpactReport(data);
-        setStage('impact');
-        log(
-          `✓ Impact scored: $${Number(data.totalCargoAtRiskUSD || 0).toLocaleString()} at risk across ${(data.affectedShipments || []).length} shipments`,
-          'success'
-        );
-        if (watchResolutionRef.current) watchResolutionRef.current(dId);
-      });
-      unsubsRef.current.push(unsub);
-    },
-    [log]
-  );
-
-  useEffect(() => {
-    watchResolutionRef.current = watchResolution;
-    watchImpactRef.current = watchImpact;
-  }, [watchResolution, watchImpact]);
-
-  const watchDisruption = useCallback(
-    (dId) => {
-      log(`Listening for disruption ${dId} in Supabase…`, 'info');
-      const unsub = watchDisruptionSupabase(dId, (data) => {
-        setDisruption(data);
-        setStage('monitoring');
-        log(`✓ Disruption confirmed: ${data.title || data.type || dId}`, 'success');
-        if (watchImpactRef.current) watchImpactRef.current(dId);
-      });
-      unsubsRef.current.push(unsub);
-    },
-    [log]
-  );
+  const handleResolutionReady = useCallback((res, opts) => {
+    setResolution(res);
+    setOptions(opts);
+  }, []);
 
   const handleLaunch = useCallback(async () => {
     if (!selectedScenario) return;
@@ -520,11 +491,27 @@ export default function DemoPage() {
       setDisruptionId(dId);
       setTraceId(tId);
 
+      // Bridge into alertStore — activates DecisionModal pipeline
+      setActiveDisruptionId(dId);
+
       log(`✓ Disruption published — ID: ${dId}`, 'success');
       log(`  TraceId: ${tId}`, 'info');
       log('Event bus fan-out complete. Agent pipeline starting…', 'info');
 
-      watchDisruption(dId);
+      // Inject into alert system - handles full watcher chain
+      const unsubscribers = injectDisruption(dId, (stage, data) => {
+        handleStageChange(stage);
+        // Update local state with data from watchers
+        if (stage === 'monitoring' && data) {
+          setDisruption(data);
+        } else if (stage === 'impact' && data) {
+          setImpactReport(data);
+        } else if (stage === 'resolution' && data?.resolution && data?.options) {
+          setResolution(data.resolution);
+          setOptions(data.options);
+        }
+      });
+      unsubsRef.current.push(...unsubscribers);
     } catch (err) {
       setError(err.message);
       setStage('idle');
@@ -532,7 +519,7 @@ export default function DemoPage() {
     } finally {
       setLaunching(false);
     }
-  }, [selectedScenario, log, watchDisruption]);
+  }, [selectedScenario, log, injectDisruption, handleStageChange]);
 
   // Auto-launch once scenario is pre-selected from URL
   useEffect(() => {
@@ -626,6 +613,7 @@ export default function DemoPage() {
   const handleReset = () => {
     unsubsRef.current.forEach((u) => u?.());
     unsubsRef.current = [];
+    clearActiveDisruption();
     setStage('idle');
     setSelectedScenario(null);
     setDisruptionId(null);
@@ -1300,6 +1288,9 @@ export default function DemoPage() {
             </div>
           </div>
         </main>
+
+        <DecisionModal />
+
       </div>
     </>
   );

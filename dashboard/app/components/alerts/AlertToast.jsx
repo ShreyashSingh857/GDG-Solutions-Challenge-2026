@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAlertStore } from '../../store/alertStore.js';
+import { useDemoInject } from '../../hooks/useDemoInject.js';
 
 const TYPE_ICONS = {
   WEATHER: '🌊',
@@ -20,6 +21,8 @@ export default function AlertToastController() {
   const disruptions = useAlertStore((s) => s.disruptions);
   const prevLengthRef = useRef(null);
   const seenIdsRef = useRef(new Set());
+  const activeInjectionsRef = useRef(new Set());
+  const { injectDisruption } = useDemoInject(null);
 
   useEffect(() => {
     // Record initial snapshot as baseline so existing disruptions do not trigger toasts.
@@ -68,7 +71,15 @@ export default function AlertToastController() {
           <button
             className="mt-2 text-[10px] font-bold uppercase tracking-widest bg-[var(--bg-elevated)] hover:bg-[var(--bg-overlay)] text-[var(--text-primary)] px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] transition-all text-center active:scale-95"
             onClick={() => {
-              useAlertStore.getState().setActiveDisruptionId(id);
+              // Prevent duplicate injections
+              if (activeInjectionsRef.current.has(id)) return;
+              activeInjectionsRef.current.add(id);
+
+              // Trigger full injection flow
+              injectDisruption(id, null);
+
+              // Dismiss toast after action
+              setTimeout(() => toast.dismiss(toastId), 300);
             }}
           >
             Protocol Analysis →
@@ -89,7 +100,7 @@ export default function AlertToastController() {
       );
     }
     prevLengthRef.current = disruptions.length;
-  }, [disruptions]);
+  }, [disruptions, injectDisruption]);
 
   return null;
 }
